@@ -1,0 +1,26 @@
+{
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.9.0",
+    "@solana/spl-token": "^0.4.13",
+    "@solana/web3.js": "^1.98.0",
+    "@ton/core": "^0.60.1",
+    "@ton/crypto": "^3.3.0",
+    "@ton/ton": "^15.2.1",
+    "@xchainjs/xchain-client": "^1.0.10",
+    "@xchainjs/xchain-thorchain": "^2.0.14",
+    "@xchainjs/xchain-thorchain-amm": "^2.0.25",
+    "@xchainjs/xchain-thorchain-query": "^1.0.13",
+    "@xchainjs/xchain-util": "^1.0.8",
+    "axios": "^1.8.4",
+    "bignumber.js": "^9.2.1",
+    "bs58": "^6.0.0",
+    "cross-fetch": "^4.1.0",
+    "dotenv": "^16.5.0",
+    "typescript": "^5.8.3",
+    "xrpl": "^4.2.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.1"
+  }
+}
