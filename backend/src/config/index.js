@@ -13,6 +13,14 @@ const config = {
     port: process.env.DB_PORT || 3306
   },
   
+  redis: {
+    host: process.env.REDIS_HOST || '127.0.0.1',
+    port: process.env.REDIS_PORT || 6379,
+    password: process.env.REDIS_PASSWORD || '',
+    db: process.env.REDIS_DB || 0,
+    ttl: process.env.REDIS_TTL || 3600 // 默认缓存时间1小时
+  },
+  
   mcp: {
     clientPath: process.env.MCP_CLIENT_PATH || path.resolve(__dirname, '../../../MCP_Client/src/mcp_client.py'),
     configPath: process.env.MCP_CONFIG_PATH || path.resolve(__dirname, '../../../MCP_Client/config'),
@@ -39,4 +47,4 @@ const config = {
   }
 };
 
-module.exports = config; 
+module.exports = config;
