@@ -37,3 +37,4 @@ yarn-error.log*
 
 # Temporary files
 backend/tmp/* miniconda.sh
+miniconda.sh
