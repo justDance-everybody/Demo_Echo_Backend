@@ -36,4 +36,4 @@ yarn-error.log*
 .eslintcache
 
 # Temporary files
-backend/tmp/* 
+backend/tmp/* miniconda.sh
