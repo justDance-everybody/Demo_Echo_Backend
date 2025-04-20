@@ -10,21 +10,25 @@
       ],
       "enabled": true
     },
-    "MiniMax": {
+
+
+    "minimax-mcp-js": {
       "name": "MiniMax API",
-      "description": "提供MiniMax大语言模型接口",
-      "command": "uvx",
+      "description": "提供MiniMax语音大语言模型接口",
+      "command": "npx",
       "args": [
-        "minimax-mcp"
+        "minimax-mcp-js"
       ],
       "env": {
         "MINIMAX_API_KEY": "REDACTED_REVOKED_KEY",
-        "MINIMAX_MCP_BASE_PATH": "{MINIMAX_MCP_BASE_PATH}",
         "MINIMAX_API_HOST": "https://api.minimax.chat",
-        "MINIMAX_API_RESOURCE_MODE": "url"
+        "MINIMAX_MCP_BASE_PATH": "{MINIMAX_MCP_BASE_PATH}",
+        "MINIMAX_RESOURCE_MODE": "url"
       },
       "enabled": true
     },
+
+
     "amap-maps": {
       "name": "高德地图API",
       "description": "提供高德地图服务和位置信息",
@@ -38,6 +42,8 @@
       },
       "enabled": true
     },
+
+
     "web3-rpc": {
       "name": "Web3 区块链API",
       "description": "提供多链区块链服务",
@@ -45,6 +51,9 @@
       "args": [
         "/home/devbox/Echo/MCP_server/web3-mcp/build/index.js"
       ],
+      "env": {
+        "SOLANA_RPC_URL": "REDACTED_REVOKED_KEY"
+      },
       "enabled": true
     }
   },

@@ -4,6 +4,81 @@
 
 这是智能语音AI-Agent开放平台的后端服务，提供语音文本处理、通过MCP客户端调用高德地图服务查询信息，以及调用Minimax语音合成服务，构建完整的语音交互流程。
 
+## 主要功能
+
+本后端服务提供以下主要功能：
+
+1. **测试服务** - 验证完整的语音交互流程
+2. **MCP网关** - 将前端请求路由到指定的MCP服务
+3. **统一API架构** - 标准化的请求/响应格式
+
+## 新增功能：MCP网关
+
+我们新增了MCP网关功能，用于解析前端请求并通过MCP_client处理。网关不直接与MCP服务器通信，而是将调用参数传递给MCP_client，由MCP_client负责实际的通信过程。
+
+### 主要API端点
+
+- `POST /api/v1/mcp/gateway/:serverId` - 通过指定MCP服务器处理请求
+- `GET /api/v1/mcp/tools/:serverId` - 获取指定MCP服务器的工具列表
+- `POST /api/v1/mcp/tool/:serverId/:toolName` - 在指定MCP服务器上执行特定工具
+
+### 示例用法
+
+```javascript
+// 前端调用MCP网关示例
+async function callMapService() {
+  const response = await fetch('/api/v1/mcp/gateway/amap-maps', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      query: "北京天安门在哪里",
+      options: {
+        userId: "user123"
+      }
+    })
+  });
+  
+  const result = await response.json();
+  console.log(result.data);
+}
+
+// 调用特定工具示例
+async function getWeather() {
+  const response = await fetch('/api/v1/mcp/tool/amap-maps/getWeather', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      city: "北京"
+    })
+  });
+  
+  const result = await response.json();
+  console.log(result.data);
+}
+```
+
+### 工作原理
+
+1. 网关解析请求，确定需要调用的MCP服务器ID
+2. 网关将请求参数转换为MCP_client需要的格式
+3. 通过Node.js子进程调用Python MCP_client处理请求
+4. MCP_client处理完成后，网关解析结果并返回给前端
+
+### 测试工具
+
+我们提供了一个测试脚本用于测试网关功能：
+
+```bash
+# 从backend目录运行
+node src/utils/gateway-test.js MiniMax "今天北京的天气如何？"
+```
+
+更多详细信息请参考[MCP网关文档](docs/mcp-gateway.md)。
+
 ## 测试服务说明
 
 当前实现了一个测试服务，用于验证完整的语音交互流程：
@@ -178,4 +253,9 @@ USE_MOCK_RESPONSES=true
 
 3. **无法合成语音**
    - 检查Minimax服务器ID是否正确配置
-   - 检查MCP服务器配置中是否包含有效的Minimax API密钥 
+   - 检查MCP服务器配置中是否包含有效的Minimax API密钥
+
+4. **MCP网关问题**
+   - 确保serverId参数正确，与mcp_servers.json中的ID一致
+   - 查看临时文件目录(tmp/)是否有权限问题
+   - 检查网关相关日志获取详细错误信息

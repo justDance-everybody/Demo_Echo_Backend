@@ -4,6 +4,7 @@
  */
 
 const winston = require('winston');
+const config = require('config');
 const path = require('path');
 const fs = require('fs');
 
@@ -25,19 +26,22 @@ const logFormat = winston.format.combine(
 
 // 创建日志记录器
 const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || 'info',
-  format: logFormat,
+  level: config.get('logging.level'),
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.json()
+  ),
   transports: [
     // 控制台输出
     new winston.transports.Console({
       format: winston.format.combine(
         winston.format.colorize(),
-        logFormat
+        winston.format.simple()
       )
     }),
     // 记录所有日志到 combined.log
     new winston.transports.File({ 
-      filename: path.join(logDir, 'combined.log'),
+      filename: config.get('logging.file'),
       maxsize: 5242880, // 5MB
       maxFiles: 5,
     }),

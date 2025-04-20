@@ -1,0 +1,58 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+
+# Your rule content
+
+- You can @ files here
+- You can use markdown but dont have to
+---
+description: Guidelines for maintaining and updating the project ReadMe.md file to ensure documentation quality and consistency
+globs: 
+  - ReadMe.md
+alwaysApply: false
+---
+# ReadMe.md Maintenance Rules
+
+Guidelines for maintaining and updating the project ReadMe.md file to ensure documentation quality and consistency.
+
+## When to Update ReadMe.md
+
+1. Any time you add, remove, or significantly change:
+   - Features or modules
+   - API endpoints or request/response formats
+   - Project structure or directory layout
+   - Installation, build, or deployment steps
+   - Configuration files or environment variables
+   - Major bug fixes, refactoring, or version upgrades
+
+## How to Update ReadMe.md
+
+1. Keep the following sections up to date:
+   - Project Overview and Features
+   - Technology Stack
+   - Directory Structure
+   - Installation and Running Instructions
+   - API Usage Examples
+   - Configuration and Environment Variables
+   - Contribution Guidelines
+   - FAQ / Troubleshooting
+   - Changelog / Update Log
+   - Contact or Community Links
+
+2. Ensure all new features, modules, or APIs are documented before merging to main branch.
+
+3. Remove or update any outdated or deprecated information promptly.
+
+4. Use clear, concise, and accurate language. Avoid redundancy and ambiguity.
+
+5. For every Pull Request or code merge, reviewers must check that ReadMe.md is consistent with the codebase.
+
+## Best Practices
+
+- Encourage all contributors to update documentation as part of their development workflow.
+- Use markdown formatting for clarity and readability.
+- Link to detailed documents (e.g., API docs, developer guides) where appropriate.
+- Keep the changelog section updated with every significant release or change.

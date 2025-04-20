@@ -24,9 +24,9 @@ const config = {
   mcp: {
     clientPath: process.env.MCP_CLIENT_PATH || path.resolve(__dirname, '../../../MCP_Client/src/mcp_client.py'),
     configPath: process.env.MCP_CONFIG_PATH || path.resolve(__dirname, '../../../MCP_Client/config'),
-    pythonPath: process.env.MCP_PYTHON_PATH || 'python3',
+    pythonPath: process.env.MCP_PYTHON_PATH || 'uv run',
     amapServerId: process.env.DEFAULT_AMAP_SERVER_ID || 'amap-maps',
-    minimaxServerId: process.env.DEFAULT_MINIMAX_SERVER_ID || 'MiniMax',
+    minimaxServerId: process.env.DEFAULT_MINIMAX_SERVER_ID || 'minimax-mcp-js',
     debugMode: process.env.DEBUG_MODE === 'true',
     useMockResponses: process.env.USE_MOCK_RESPONSES === 'true'
   },

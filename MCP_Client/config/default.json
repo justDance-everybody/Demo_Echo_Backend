@@ -1,1 +1,12 @@
-{"server":{"port":3000},"mcp":{"serverUrl":"http://localhost:3001"}}
+{
+  "server": {
+    "port": 3000
+  },
+  "mcp": {
+    "serverUrl": "http://localhost:8080"
+  },
+  "logging": {
+    "level": "info",
+    "file": "logs/mcp-client.log"
+  }
+}
