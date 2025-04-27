@@ -1,6 +1,6 @@
 ---
-description:
-globs:
+description: Node.js全栈开发指南
+globs: 
 alwaysApply: false
 ---
 # Node.js全栈开发指南
@@ -9,8 +9,8 @@ alwaysApply: false
 
 本项目采用前后端分离架构，前端使用React，后端使用Node.js，辅助Python脚本处理特定任务，数据库使用MySQL。
 
-- 前端代码位于 [frontend/](mdc:frontend/)
-- 后端代码位于 [backend/](mdc:backend/)
+- 前端代码位于 [frontend/](mdc:frontend)
+- 后端代码位于 [backend/](mdc:backend)
 - 项目根目录配置文件 [package.json](mdc:package.json)
 
 ## 后端开发规范 (Node.js)
@@ -149,5 +149,7 @@ alwaysApply: false
 - 编写自动化部署脚本
 - 监控应用性能和错误
 - 实现自动化备份策略
+
+
 
 坚持以上规范，确保全栈应用的代码质量、可维护性和性能。
