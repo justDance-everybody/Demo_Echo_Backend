@@ -179,21 +179,24 @@ const NavBar = () => {
     setDrawerVisible(false);
   };
 
+  // 定义菜单项对应的路径
   const menuItems = [
-    { key: 'home', icon: <HomeOutlined />, label: '首页' },
-    { key: 'profile', icon: <UserOutlined />, label: '个人中心' },
-    { key: 'settings', icon: <SettingOutlined />, label: '设置' },
+    { key: 'home', icon: <HomeOutlined />, label: '首页', path: '/' },
+    { key: 'profile', icon: <UserOutlined />, label: '个人中心', path: '/user' },
+    { key: 'settings', icon: <SettingOutlined />, label: '设置', path: '/settings' },
   ];
 
   return (
-    <NavContainer>
-      <Logo>Echo AI</Logo>
+    <NavContainer theme={theme}>
+      <Logo theme={theme}>Echo AI</Logo>
       
       <MenuItems>
         {menuItems.map(item => (
-          <MenuItem key={item.key}>
-            {item.icon} {item.label}
-          </MenuItem>
+          <Link to={item.path} key={item.key} style={{ textDecoration: 'none' }}>
+            <MenuItem theme={theme}>
+              {item.icon} {item.label}
+            </MenuItem>
+          </Link>
         ))}
       </MenuItems>
       
@@ -206,8 +209,8 @@ const NavBar = () => {
           语音助手
         </Button>
         
-        <ThemeToggle>
-          <ThemeIcon>
+        <ThemeToggle theme={theme}>
+          <ThemeIcon theme={theme}>
             {theme === 'light' ? <BulbOutlined /> : <BulbFilled />}
           </ThemeIcon>
           <Switch 
@@ -218,11 +221,12 @@ const NavBar = () => {
         </ThemeToggle>
       </Controls>
       
-      <MobileMenuButton onClick={showDrawer}>
+      <MobileMenuButton theme={theme} onClick={showDrawer}>
         <MenuOutlined />
       </MobileMenuButton>
       
       <StyledDrawer 
+        theme={theme}
         title={null}
         placement="right"
         closable={false}
@@ -230,8 +234,8 @@ const NavBar = () => {
         open={drawerVisible}
         width={280}
       >
-        <DrawerHeader>
-          <Logo>Echo AI</Logo>
+        <DrawerHeader theme={theme}>
+          <Logo theme={theme}>Echo AI</Logo>
           <Button 
             type="text" 
             icon={<CloseOutlined />} 
@@ -239,15 +243,21 @@ const NavBar = () => {
           />
         </DrawerHeader>
         
-        <Menu mode="vertical" items={menuItems} />
-        
-        <Menu mode="vertical">
-          <Menu.Item key="voice" icon={<AudioOutlined />} onClick={openVoiceDialog}>
+        <Menu mode="vertical" theme={theme === 'dark' ? 'dark' : 'light'} selectable={false}>
+          {menuItems.map(item => (
+            <Menu.Item key={item.key} icon={item.icon} onClick={closeDrawer}>
+              <Link to={item.path} style={{ color: 'inherit', textDecoration: 'none' }}>
+                {item.label}
+              </Link>
+            </Menu.Item>
+          ))}
+          <Menu.Divider />
+          <Menu.Item key="voice" icon={<AudioOutlined />} onClick={() => { openVoiceDialog(); closeDrawer(); }}>
             语音助手
           </Menu.Item>
         </Menu>
         
-        <DrawerThemeToggle>
+        <DrawerThemeToggle theme={theme}>
           <span>深色模式</span>
           <Switch 
             checked={theme === 'dark'} 

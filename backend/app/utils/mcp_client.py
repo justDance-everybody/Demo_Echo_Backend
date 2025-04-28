@@ -1,0 +1,171 @@
+from typing import Dict, List, Any, Optional
+import os
+import sys
+import logging
+import json
+from dotenv import load_dotenv
+from loguru import logger
+from app.config import settings
+
+# 添加MCP客户端相关环境变量 (现在使用 LLM_*)
+try:
+    # 读取后端配置的LLM设置
+    llm_api_key = settings.LLM_API_KEY
+    llm_model = settings.LLM_MODEL
+    llm_api_base = settings.LLM_API_BASE
+
+    # 为 MCP_Client 进程设置环境变量
+    # MCP_Client/mcp_client.py 脚本本身依赖 LLM_* 环境变量
+    if llm_api_key:
+        os.environ["LLM_API_KEY"] = llm_api_key
+    if llm_model:
+        os.environ["LLM_MODEL"] = llm_model
+    if llm_api_base:
+        os.environ["LLM_API_BASE"] = llm_api_base
+    
+    # 设置MCP服务器配置文件路径环境变量 (MCP_Client 需要)
+    mcp_client_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), "MCP_Client")
+    mcp_config_path = settings.MCP_SERVERS_PATH # 使用config中加载的路径
+    # 确保路径是绝对的或相对于MCP_Client目录
+    if not os.path.isabs(mcp_config_path):
+        mcp_config_path = os.path.join(mcp_client_dir, mcp_config_path)
+        
+    os.environ["MCP_SERVERS_PATH"] = mcp_config_path
+    
+    logger.info("已设置LLM和MCP环境变量，用于启动MCP客户端进程")
+    logger.info(f"MCP服务器配置文件路径: {mcp_config_path}")
+except Exception as e:
+    logger.warning(f"设置环境变量失败: {e}")
+
+# 添加MCP_Client目录到sys.path
+mcp_client_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), "MCP_Client")
+sys.path.append(mcp_client_path)
+logger.debug(f"添加MCP客户端路径: {mcp_client_path}")
+
+# 直接导入MCP客户端模块
+try:
+    import importlib.util
+    # 注意：这里的模块名 "mcp_client" 是指 MCP_Client/mcp_client.py 文件
+    spec = importlib.util.spec_from_file_location("mcp_client", os.path.join(mcp_client_path, "mcp_client.py"))
+    mcp_client_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mcp_client_module)
+    MCPClient = mcp_client_module.MCPClient # 这是MCP_Client/mcp_client.py中的类
+    logger.info("成功导入MCP客户端库")
+except Exception as e:
+    logger.error(f"导入MCP客户端库失败: {e}")
+    raise ImportError(f"无法导入MCP客户端: {e}")
+
+class MCPClientWrapper:
+    """MCP客户端包装器，管理与真实MCP客户端的交互"""
+    
+    def __init__(self):
+        """初始化真实MCP客户端"""
+        self.client = None
+        try:
+            # 初始化MCP客户端
+            # MCPClient 来自 MCP_Client/mcp_client.py
+            self.client = MCPClient()
+            logger.info("MCP客户端包装器：内部MCPClient实例初始化成功")
+            if self.client.server_configs:
+                logger.info(f"已加载 {len(self.client.server_configs)} 个MCP服务器配置")
+            else:
+                 logger.warning("未加载任何MCP服务器配置，请检查MCP_SERVERS_PATH环境变量和配置文件")
+            self._connected_server = None
+        except Exception as e:
+            logger.error(f"MCP客户端初始化失败: {e}")
+            raise RuntimeError(f"MCP客户端初始化失败: {e}")
+    
+    async def _ensure_connected(self):
+        """确保已连接到MCP服务器"""
+        if self.client and not self.client.session:
+            server_configs = self.client.server_configs
+            if not server_configs:
+                raise RuntimeError("MCP客户端没有可用的服务器配置")
+                
+            # 选择第一个可用的服务器
+            server_name = next(iter(server_configs))
+            logger.info(f"准备连接到MCP服务器: {server_name}")
+            await self.client.connect(server_name)
+            self._connected_server = server_name
+            logger.info(f"成功连接到MCP服务器: {server_name}")
+    
+    async def get_tool_info(self, intent_type: str, query: str) -> Dict[str, Any]:
+        """
+        获取工具信息 (通过MCP客户端代理)
+        
+        Args:
+            intent_type: 意图类型
+            query: 用户查询
+            
+        Returns:
+            工具信息
+        """
+        # 确保已连接
+        await self._ensure_connected()
+        
+        # 构建查询
+        enriched_query = f"[{intent_type}] {query}"
+        
+        # 调用MCP客户端处理查询
+        logger.info(f"通过MCP客户端处理查询: {enriched_query}")
+        response = await self.client.process_query(enriched_query)
+        
+        # 构建返回结果
+        result = {
+            "intent": intent_type,
+            "query": query,
+            "tools": [tool.name for tool in self.client.tools] if self.client.tools else [],
+            "response": response
+        }
+        
+        logger.info(f"MCP客户端返回处理结果，可用工具: {result['tools']}")
+        return result
+    
+    async def execute_tool(self, tool_id: str, params: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        执行工具 (通过MCP客户端代理)
+        
+        Args:
+            tool_id: 工具ID
+            params: 工具参数
+            
+        Returns:
+            执行结果
+        """
+        # 确保已连接
+        await self._ensure_connected()
+        
+        # 构建查询字符串 (这种方式可能需要调整，取决于MCPClient如何处理)
+        # 直接调用 call_tool 可能更合适
+        logger.info(f"准备通过MCP客户端执行工具: tool={tool_id}, params={params}")
+        try:
+            # 直接调用 MCPClient 的 call_tool 方法
+            tool_result = await self.client.session.call_tool(tool_id, params)
+            # 提取结果内容
+            response_content = getattr(tool_result.content, 'text', tool_result.content)
+            if isinstance(response_content, (list, dict)):
+                 response_content = str(response_content)
+                 
+            result = {
+                "tool_id": tool_id,
+                "success": True,
+                "result": {
+                    "message": response_content
+                }
+            }
+            logger.info(f"MCP客户端执行工具成功: tool={tool_id}")
+        except Exception as e:
+            logger.error(f"MCP客户端执行工具失败: tool={tool_id}, error={e}")
+            result = {
+                "tool_id": tool_id,
+                "success": False,
+                "error": {
+                    "code": "MCP_EXECUTION_FAILED",
+                    "message": str(e)
+                }
+            }
+        
+        return result
+
+# 创建全局MCP客户端实例
+mcp_client = MCPClientWrapper() 

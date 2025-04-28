@@ -15,10 +15,4 @@ git commit -m "$msg"
 echo "🚀 推送到 GitHub..."
 git push origin master
 
-echo "♻️ 重新拉取最新代码（确保一致）..."
-git pull origin master
-
-echo "🔄 重启 PM2 管理的服务（echo-backend）..."
-pm2 restart echo-backend
-
-echo "✅ 部署完成：代码已同步，服务已重启！"
+echo "✅ 完成：代码已推送到 GitHub！"

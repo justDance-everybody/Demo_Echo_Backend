@@ -1,684 +1,245 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Button, Card, Spin, message, Space, Row, Col, Typography, Select, Tabs, Radio } from 'antd';
-import { AudioOutlined, AudioMutedOutlined, ReloadOutlined, RobotOutlined, GlobalOutlined, ThunderboltOutlined, ApiOutlined, SyncOutlined } from '@ant-design/icons';
-import axios from 'axios';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { Card, Row, Col, Space, Divider, Spin } from 'antd';
+import { SoundOutlined, MenuOutlined } from '@ant-design/icons';
+import VoiceRecorder from '../../components/VoiceRecorder';
+import ProgressBar from '../../components/ProgressBar';
+import ConfirmationModal from '../../components/ConfirmationModal';
+import ResultDisplay from '../../components/ResultDisplay';
+import { useSession, SessionStages } from '../../contexts/SessionContext';
+import { useTheme } from '../../contexts/ThemeContext';
 
-const { Title, Paragraph, Text } = Typography;
-const { Option } = Select;
-const { TabPane } = Tabs;
-
-// 后端API地址
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
-
-// 样式化组件
-const ServerCard = styled(Card)`
-  cursor: pointer;
-  margin-bottom: 16px;
-  transition: all 0.3s;
-  border: ${props => props.selected ? '2px solid #1890ff' : '1px solid #f0f0f0'};
-  background: ${props => props.selected ? '#e6f7ff' : 'white'};
-  
-  &:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  }
-`;
-
-const IconContainer = styled.div`
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background-color: ${props => props.color || '#1890ff'};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 12px;
-  color: white;
-  font-size: 18px;
-`;
-
-const VoiceButton = styled(Button)`
-  width: 80px;
-  height: 80px;
-  font-size: 24px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+// 页面容器
+const PageContainer = styled.div`
+  max-width: 1200px;
   margin: 0 auto;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  transition: all 0.3s;
+  padding: 20px;
+`;
+
+// 标题
+const Title = styled.h1`
+  color: ${props => props.theme.text};
+  text-align: center;
+  margin-bottom: 30px;
+`;
+
+// 内容卡片
+const ContentCard = styled(Card)`
+  border-radius: 12px;
+  background-color: ${props => props.theme.surface};
+  box-shadow: 0 4px 12px ${props => props.theme.shadowColor};
+  margin-bottom: 20px;
   
-  &:hover {
-    transform: scale(1.05);
+  .ant-card-body {
+    padding: 24px;
   }
 `;
 
-const ResponseCard = styled(Card)`
-  margin-top: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.09);
-`;
-
+// 语音助手页面组件
 const VoiceAssistant = () => {
-  const [isRecording, setIsRecording] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const { theme } = useTheme();
+  const { 
+    sessionId, 
+    stage, 
+    currentData, 
+    error, 
+    interpret, 
+    execute, 
+    updateStage, 
+    resetSession, 
+    createNewSession 
+  } = useSession();
+  
+  // 语音输入文本
   const [voiceText, setVoiceText] = useState('');
-  const [response, setResponse] = useState(null);
-  const [error, setError] = useState(null);
-  const [audioPlaying, setAudioPlaying] = useState(false);
-  const [mcpServers, setMcpServers] = useState([]);
-  const [selectedServerId, setSelectedServerId] = useState(null);
-  const [loadingServers, setLoadingServers] = useState(false);
-  const [statusMessage, setStatusMessage] = useState('请选择一个服务并点击麦克风开始对话');
+  
+  // 确认对话框状态
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [confirmationText, setConfirmationText] = useState('');
+  
+  // 结果状态
+  const [showResult, setShowResult] = useState(false);
+  const [resultData, setResultData] = useState(null);
+  const [resultStatus, setResultStatus] = useState('success');
+  const [resultMessage, setResultMessage] = useState('');
 
-  const recognitionRef = useRef(null);
-  const audioRef = useRef(null);
-
-  // 初始化并获取MCP服务器列表
+  // 监听session阶段变化
   useEffect(() => {
-    fetchMcpServers();
-    initializeSpeechRecognition();
-  }, []);
-
-  // 初始化语音识别
-  const initializeSpeechRecognition = () => {
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = true;  // 修改为持续监听
-      recognitionRef.current.interimResults = true;
-      recognitionRef.current.lang = 'zh-CN'; // 设置语音识别为中文
-
-      recognitionRef.current.onresult = (event) => {
-        const transcript = Array.from(event.results)
-          .map(result => result[0].transcript)
-          .join('');
-        
-        console.log('语音识别结果:', transcript);  
-        setVoiceText(transcript);
-      };
-
-      recognitionRef.current.onerror = (event) => {
-        console.error('语音识别错误:', event.error);
-        setIsRecording(false);
-        setError(`语音识别错误: ${event.error}`);
-        message.error(`语音识别错误: ${event.error}`);
-      };
-
-      recognitionRef.current.onend = () => {
-        console.log('语音识别结束');
-        setIsRecording(false);
-        
-        // 只有当有文本且不在处理中时才发送请求
-        if (voiceText && !isProcessing) {
-          console.log('语音识别结束，处理文本:', voiceText);
-          processVoiceText(voiceText);
-        } else {
-          console.log('语音识别结束，但没有捕获到文本或正在处理中');
-        }
-      };
+    if (stage === SessionStages.CONFIRMING && currentData) {
+      setConfirmationText(currentData.confirmText || '您是否确认此操作？');
+      setShowConfirmation(true);
     } else {
-      setError('您的浏览器不支持语音识别功能');
-      message.error('您的浏览器不支持语音识别功能');
+      setShowConfirmation(false);
     }
-  };
-
-  // 获取MCP服务器列表
-  const fetchMcpServers = async () => {
-    setLoadingServers(true);
-    try {
-      console.log('获取MCP服务器列表');
-      const response = await axios.get(`${API_URL}/api/test-service/mcp-servers`);
-      
-      if (response.data && response.data.status === 'success' && response.data.servers) {
-        setMcpServers(response.data.servers);
-        console.log('获取到MCP服务器列表:', response.data.servers);
-        
-        // 如果有服务器且没有选中的服务器，选择第一个
-        if (response.data.servers.length > 0 && !selectedServerId) {
-          setSelectedServerId(response.data.servers[0].id);
-        }
+    
+    if (stage === SessionStages.RESULT && currentData) {
+      setResultData(currentData);
+      setResultStatus(currentData.success ? 'success' : 'error');
+      setResultMessage(
+        currentData.message || 
+        (currentData.success ? '操作已成功完成' : '操作失败，请重试')
+      );
+      setShowResult(true);
       } else {
-        message.warning('未获取到可用的MCP服务器');
-        setError('未获取到可用的MCP服务器列表');
-      }
-    } catch (err) {
-      console.error('获取MCP服务器列表错误:', err);
-      setError('获取MCP服务器列表失败');
-      message.error('无法获取服务器列表');
-      
-      // 设置默认服务器用于测试
-      setMcpServers([
-        { id: 'playwright', name: '浏览器助手', description: '提供智能网页浏览功能' },
-        { id: 'MiniMax', name: '智能对话', description: '提供自然语言对话功能' },
-        { id: 'amap-maps', name: '地图服务', description: '提供地点查询和导航服务' },
-        { id: 'web3-rpc', name: '区块链服务', description: '提供区块链交互功能' }
-      ]);
-    } finally {
-      setLoadingServers(false);
-    }
-  };
-
-  // 开始录音
-  const startRecording = () => {
-    if (!selectedServerId) {
-      message.warning('请先选择一个服务');
-      return;
+      setShowResult(false);
     }
     
-    setIsRecording(true);
-    setVoiceText('');
-    setResponse(null);
-    setError(null);
-    setStatusMessage('正在录音，请说话...');
+    if (stage === SessionStages.ERROR && error) {
+      setResultData({ error });
+      setResultStatus('error');
+      setResultMessage(error);
+      setShowResult(true);
+    }
+  }, [stage, currentData, error]);
+        
+  // 处理语音输入结果
+  const handleVoiceResult = (text) => {
+    setVoiceText(text);
     
-    if (audioRef.current) {
-      audioRef.current.pause();
-      setAudioPlaying(false);
-    }
-    
-    try {
-      if (recognitionRef.current) {
-        console.log('开始语音识别');
-        recognitionRef.current.start();
-        message.success('开始录音，请说话...');
-      } else {
-        throw new Error('语音识别未初始化');
-      }
-    } catch (err) {
-      console.error('启动语音识别失败:', err);
-      setIsRecording(false);
-      setStatusMessage('语音识别启动失败，请重试');
-      setError(`启动语音识别失败: ${err.message}`);
-      message.error(`启动语音识别失败: ${err.message}`);
-    }
-  };
-
-  // 停止录音
-  const stopRecording = () => {
-    try {
-      if (recognitionRef.current) {
-        console.log('停止语音识别');
-        recognitionRef.current.stop();
-        setStatusMessage('录音已停止，正在处理...');
-        message.info('录音已停止，正在处理...');
-      }
-    } catch (err) {
-      console.error('停止语音识别失败:', err);
-      setIsRecording(false);
-      setStatusMessage('语音识别停止失败，请重试');
-      setError(`停止语音识别失败: ${err.message}`);
-      message.error(`停止语音识别失败: ${err.message}`);
-    }
-  };
-
-  // 处理语音文本
-  const processVoiceText = async (text) => {
-    if (!text.trim()) {
-      console.log('文本为空，不处理');
-      setStatusMessage('未检测到语音内容，请重试');
-      return;
-    }
-    
-    if (!selectedServerId) {
-      message.warning('请先选择一个服务');
-      setStatusMessage('请先选择一个服务');
-      return;
-    }
-
-    setIsProcessing(true);
-    setResponse(null); // 清空之前的响应
-    setStatusMessage(`正在处理语音文本: "${text.substring(0, 20)}${text.length > 20 ? '...' : ''}"`);
-    
-    try {
-      console.log('发送请求到:', `${API_URL}/api/test-service/voice`);
-      console.log('请求数据:', { voiceText: text, mcpServerId: selectedServerId });
-      
-      const response = await axios.post(`${API_URL}/api/test-service/voice`, {
-        voiceText: text,
-        mcpServerId: selectedServerId,
-        userId: 'user123',
-        sessionId: `session-${Date.now()}`
-      }, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        }
-      });
-
-      console.log('接收到响应:', response.data);
-
-      if (response.data && response.data.status === 'success') {
-        // 提取响应内容
-        let responseData = {
-          ...response.data,
-          parsedContent: ''
-        };
+    if (text && text.trim() !== '') {
+      // 更新状态为正在解析
+      updateStage(SessionStages.INTERPRETING);
         
-        // 提取文本内容
-        if (response.data.textResponse) {
-          responseData.parsedContent = response.data.textResponse;
-        } else if (response.data.result) {
-          // 尝试从result对象中提取文本内容
-          if (typeof response.data.result === 'string') {
-            responseData.parsedContent = response.data.result;
-          } else if (response.data.result.textResponse) {
-            responseData.parsedContent = response.data.result.textResponse;
-          } else if (response.data.result.data && response.data.result.data.content) {
-            responseData.parsedContent = response.data.result.data.content;
-          } else {
-            try {
-              responseData.parsedContent = JSON.stringify(response.data.result, null, 2);
-            } catch (e) {
-              responseData.parsedContent = '收到响应，但无法解析内容';
-            }
-          }
+      // 发送文本进行解析
+      interpret(text);
         }
-        
-        // 提取音频URL
-        if (!responseData.audioUrl) {
-          if (response.data.result && response.data.result.data && response.data.result.data.audio_url) {
-            responseData.audioUrl = response.data.result.data.audio_url;
-          } else if (response.data.result && response.data.result.audioUrl) {
-            responseData.audioUrl = response.data.result.audioUrl;
-          } else if (response.data.result && typeof response.data.result === 'string') {
-            // 尝试从字符串中匹配URL
-            const urlMatch = response.data.result.match(/https?:\/\/[^\s"']+\.(?:mp3|wav|ogg|m4a)/i);
-            if (urlMatch) {
-              responseData.audioUrl = urlMatch[0];
-            }
-          }
-        }
-        
-        console.log('解析后的响应:', responseData);
-        setResponse(responseData);
-        
-        // 使用文本到语音转换进行响应播放
-        if (responseData.parsedContent) {
-          speakText(responseData.parsedContent);
-        }
-        
-        // 如果有音频URL，播放音频
-        if (responseData.audioUrl) {
-          console.log('发现音频URL，尝试播放:', responseData.audioUrl);
-          playAudio(responseData.audioUrl);
-        }
-      } else {
-        setError(response.data?.message || '处理请求时出错');
-        message.error(response.data?.message || '处理请求时出错');
-      }
-    } catch (err) {
-      console.error('API调用错误:', err);
-      let errorMsg = '无法连接到服务器';
-      
-      if (err.response) {
-        errorMsg = `服务器错误: ${err.response.status} - ${err.response.data?.message || '未知错误'}`;
-      } else if (err.request) {
-        errorMsg = '请求超时，服务器未响应';
-      } else {
-        errorMsg = `请求错误: ${err.message}`;
-      }
-      
-      setError(errorMsg);
-      message.error(errorMsg);
-      setStatusMessage('处理请求失败，请重试');
-    } finally {
-      setIsProcessing(false);
-    }
   };
   
-  // 使用浏览器TTS API进行语音合成
-  const speakText = (text) => {
-    if ('speechSynthesis' in window) {
-      try {
-        // 取消之前的语音播放
-        window.speechSynthesis.cancel();
-        
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'zh-CN';
-        utterance.rate = 1.0;
-        
-        utterance.onstart = () => {
-          setAudioPlaying(true);
-        };
-        
-        utterance.onend = () => {
-          setAudioPlaying(false);
-        };
-        
-        utterance.onerror = (e) => {
-          console.error('语音合成错误:', e);
-          setAudioPlaying(false);
-        };
-        
-        window.speechSynthesis.speak(utterance);
-      } catch (error) {
-        console.error('语音合成失败:', error);
-        message.error('浏览器不支持语音合成或发生错误');
-      }
-    } else {
-      message.warning('浏览器不支持语音合成');
-    }
+  // 处理确认
+  const handleConfirm = () => {
+    // 更新状态为正在执行
+    updateStage(SessionStages.EXECUTING);
+    
+    // 执行操作
+    execute();
+    
+    // 关闭确认对话框
+    setShowConfirmation(false);
   };
 
-  // 播放音频
-  const playAudio = (url) => {
-    if (!url) {
-      console.warn('尝试播放音频但没有提供URL');
-      return;
-    }
-    
-    if (audioRef.current) {
-      audioRef.current.pause();
-    }
-    
-    console.log('尝试播放音频URL:', url);
-    
-    // 检查URL是否为有效格式
-    if (!url.match(/^https?:\/\//)) {
-      console.error('无效的音频URL格式:', url);
-      message.warning('音频URL格式无效');
-      return;
-    }
-    
-    // 测试URL是否可用
-    fetch(url, { method: 'HEAD' })
-      .then(response => {
-        if (response.ok) {
-          console.log('音频URL有效，开始播放');
-          
-          audioRef.current = new Audio(url);
-          audioRef.current.onplay = () => {
-            setAudioPlaying(true);
-            setStatusMessage('正在播放音频响应...');
-          };
-          
-          audioRef.current.onended = () => {
-            setAudioPlaying(false);
-            setStatusMessage('音频播放完成');
-          };
-          
-          audioRef.current.onerror = (e) => {
-            console.error('音频播放错误:', e);
-            message.error('无法播放语音响应');
-            setAudioPlaying(false);
-            setStatusMessage('音频播放失败，可查看文本响应');
-          };
-          
-          audioRef.current.play().catch(err => {
-            console.error('音频播放失败:', err);
-            message.error('无法播放语音响应，可能是浏览器阻止了自动播放');
-            setStatusMessage('自动播放被阻止，请尝试点击播放按钮');
-          });
-        } else {
-          console.error('音频URL无效:', response.status);
-          message.warning('语音合成服务返回的音频URL无效，但文本响应可用');
-          setStatusMessage('音频无法访问，查看文本响应');
-        }
-      })
-      .catch(err => {
-        console.error('检查音频URL时出错:', err);
-        message.warning('无法验证音频URL，可能是跨域限制或网络问题');
-        setStatusMessage('音频URL检查失败，查看文本响应');
-      });
-  };
-
-  // 重试
+  // 处理重试
   const handleRetry = () => {
+    // 重置会话状态
+    resetSession();
+    
+    // 关闭确认对话框
+    setShowConfirmation(false);
+  };
+  
+  // 处理取消
+  const handleCancel = () => {
+    // 重置会话状态
+    resetSession();
+    
+    // 关闭确认对话框
+    setShowConfirmation(false);
+  };
+
+  // 处理继续操作
+  const handleContinue = () => {
+    // 创建新会话
+    createNewSession();
+    
+    // 关闭结果显示
+    setShowResult(false);
     setVoiceText('');
-    setResponse(null);
-    setError(null);
-    if (audioRef.current) {
-      audioRef.current.pause();
-      setAudioPlaying(false);
-    }
-  };
-  
-  // 选择MCP服务器
-  const handleServerSelect = (serverId) => {
-    setSelectedServerId(serverId);
-    setResponse(null);
-    setError(null);
-    const server = mcpServers.find(s => s.id === serverId);
-    setStatusMessage(`已选择服务: ${server?.name || serverId}`);
-  };
-  
-  // 根据服务类型获取图标和颜色
-  const getServerIconAndColor = (serverId) => {
-    const services = {
-      'playwright': {
-        icon: <RobotOutlined />,
-        color: '#1890ff',
-        title: '浏览器助手',
-        description: '智能网页浏览与交互服务'
-      },
-      'MiniMax': {
-        icon: <ApiOutlined />,
-        color: '#722ed1',
-        title: '智能聊天',
-        description: '基于大模型的智能对话'
-      },
-      'amap-maps': {
-        icon: <GlobalOutlined />,
-        color: '#52c41a',
-        title: '地图服务',
-        description: '提供地点查询与导航功能'
-      },
-      'web3-rpc': {
-        icon: <ThunderboltOutlined />,
-        color: '#fa8c16',
-        title: '区块链服务',
-        description: '区块链钱包交互与管理'
-      }
-    };
-
-    return services[serverId] || {
-      icon: <RobotOutlined />,
-      color: '#f5222d',
-      title: serverId,
-      description: '通用AI服务'
-    };
-  };
-
-  // 渲染服务器卡片
-  const renderServerCards = () => {
-    if (loadingServers) {
-      return (
-        <div style={{ textAlign: 'center', padding: '20px' }}>
-          <Spin size="large" />
-          <p>加载服务列表中...</p>
-        </div>
-      );
-    }
-    
-    if (mcpServers.length === 0) {
-      return (
-        <div style={{ textAlign: 'center', padding: '20px' }}>
-          <Text type="secondary">暂无可用服务</Text>
-        </div>
-      );
-    }
-    
-    return (
-      <Row gutter={[16, 16]}>
-        {mcpServers.map(server => {
-          const { icon, color } = getServerIconAndColor(server.id);
-          const isSelected = selectedServerId === server.id;
-          
-          return (
-            <Col xs={24} sm={12} md={8} lg={6} key={server.id}>
-              <ServerCard
-                selected={isSelected}
-                onClick={() => handleServerSelect(server.id)}
-                hoverable
-              >
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                  <IconContainer color={color}>
-                    {icon}
-                  </IconContainer>
-                  <div>
-                    <Text strong>{server.name}</Text>
-                    <div>
-                      <Text type="secondary" style={{ fontSize: '12px' }}>{server.description}</Text>
-                    </div>
-                  </div>
-                </div>
-              </ServerCard>
-            </Col>
-          );
-        })}
-      </Row>
-    );
   };
 
   return (
-    <div style={{ padding: '20px' }}>
-      <Title level={2} style={{ textAlign: 'center', marginBottom: '20px' }}>
-        Echo智能助手
-      </Title>
+    <PageContainer>
+      <Title theme={theme}>智能语音AI-Agent平台</Title>
       
-      <Row gutter={[16, 16]} justify="center">
-        <Col xs={24} md={20} lg={18} xl={16}>
-          <Card 
+      <Row gutter={24}>
+        <Col xs={24} md={16} lg={18}>
+          <ContentCard 
+            theme={theme}
             title={
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span>选择AI服务</span>
-                <Button 
-                  type="text" 
-                  icon={<SyncOutlined />} 
-                  onClick={fetchMcpServers}
-                  loading={loadingServers}
-                  size="small"
-                >
-                  刷新
-                </Button>
-              </div>
+              <Space>
+                <SoundOutlined /> 语音助手
+              </Space>
             }
-            bordered={true}
-            style={{ marginBottom: '20px' }}
           >
-            {renderServerCards()}
-          </Card>
-          
-          <Card 
-            title="语音对话"
-            bordered={true}
-            style={{ marginBottom: '20px' }}
-          >
-            <Space direction="vertical" style={{ width: '100%' }}>
-              <div style={{ textAlign: 'center', margin: '10px 0' }}>
-                <Text>{statusMessage}</Text>
-              </div>
+            <ProgressBar stage={stage} />
+            
+            <Divider />
+            
+            <div style={{ textAlign: 'center', padding: '20px 0' }}>
+              {stage === SessionStages.EXECUTING && (
+                <div style={{ marginBottom: '20px' }}>
+                  <Spin size="large" />
+                  <p style={{ marginTop: '10px', color: theme.textSecondary }}>
+                    正在处理您的请求...
+                  </p>
+                </div>
+              )}
               
-              <div style={{ textAlign: 'center', margin: '20px 0' }}>
-                <VoiceButton
-                  type="primary"
-                  icon={isRecording ? <AudioMutedOutlined /> : <AudioOutlined />}
-                  onClick={isRecording ? stopRecording : startRecording}
-                  disabled={isProcessing || !selectedServerId}
+              {!showResult && (
+                <VoiceRecorder 
+                  onResult={handleVoiceResult} 
+                  disabled={stage !== SessionStages.IDLE && stage !== SessionStages.LISTENING}
+                  maxDuration={15}
+                  autoStop={true}
                 />
-                <Paragraph style={{ marginTop: '10px' }}>
-                  {isRecording ? '点击停止录音' : '点击开始录音'}
-                </Paragraph>
-                {!selectedServerId && (
-                  <Text type="warning">请先选择一个AI服务</Text>
-                )}
-              </div>
-              
-              {voiceText && (
-                <div style={{ margin: '10px 0' }}>
-                  <Paragraph strong>您的问题:</Paragraph>
-                  <Paragraph>{voiceText}</Paragraph>
-                </div>
               )}
               
-              {isProcessing && (
-                <div style={{ textAlign: 'center', margin: '20px 0' }}>
-                  <Spin tip="正在处理..." />
-                </div>
+              {showResult && (
+                <ResultDisplay 
+                  data={resultData}
+                  status={resultStatus}
+                  message={resultMessage}
+                  autoSpeak={true}
+                  onAction={handleContinue}
+                  actionText="继续"
+                />
               )}
-              
-              {error && (
-                <div style={{ margin: '10px 0' }}>
-                  <Text type="danger">错误: {error}</Text>
-                </div>
-              )}
+            </div>
+          </ContentCard>
+        </Col>
+        
+        <Col xs={24} md={8} lg={6}>
+          <ContentCard 
+            theme={theme}
+            title={
+              <Space>
+                <MenuOutlined /> 可用工具
             </Space>
-          </Card>
-          
-          {response && (
-            <ResponseCard 
-              title="助手回答" 
-              bordered={true}
-              extra={
-                <Button
-                  icon={<ReloadOutlined />}
-                  onClick={handleRetry}
-                  type="primary"
-                  ghost
-                >
-                  重新提问
-                </Button>
-              }
-            >
-              <div style={{ padding: '10px' }}>
-                {response.parsedContent ? (
-                  <Paragraph>{response.parsedContent}</Paragraph>
-                ) : (
-                  <>
-                    {response.textResponse && (
-                      <Paragraph>{response.textResponse}</Paragraph>
-                    )}
-                    
-                    {response.result && (
-                      <Paragraph>
-                        {typeof response.result === 'string' 
-                          ? response.result 
-                          : response.result.data?.content || JSON.stringify(response.result, null, 2)}
-                      </Paragraph>
-                    )}
-                  </>
-                )}
-                
-                {response.audioUrl && (
-                  <div style={{ marginTop: '15px' }}>
-                    <div style={{ marginBottom: '8px' }}>
-                      <Text type="secondary">语音回复:</Text>
-                    </div>
-                    <audio 
-                      controls 
-                      src={response.audioUrl}
-                      style={{ width: '100%' }}
-                      onError={(e) => {
-                        console.error('音频元素加载错误:', e);
-                        message.error('音频加载失败');
-                      }}
-                    />
-                    {audioPlaying && (
-                      <div style={{ textAlign: 'center', marginTop: '8px' }}>
-                        <Spin size="small" />
-                        <Text style={{ marginLeft: '8px' }}>正在播放...</Text>
-                      </div>
-                    )}
-                  </div>
-                )}
-                
-                {response.mapData && (
-                  <div style={{ marginTop: '15px' }}>
-                    <Title level={5}>地点信息:</Title>
-                    <pre style={{ background: '#f5f5f5', padding: '10px', borderRadius: '4px', maxHeight: '200px', overflow: 'auto' }}>
-                      {JSON.stringify(response.mapData, null, 2)}
-                    </pre>
-                  </div>
-                )}
-              </div>
-            </ResponseCard>
-          )}
+            }
+          >
+            <p style={{ color: theme.textSecondary }}>
+              您可以通过语音使用以下工具：
+            </p>
+            
+            <ul style={{ color: theme.text, paddingLeft: '20px' }}>
+              <li>查询信息</li>
+              <li>控制设备</li>
+              <li>发送消息</li>
+              <li>设置提醒</li>
+              <li>播放音乐</li>
+              <li>更多工具敬请期待...</li>
+            </ul>
+            
+            <Divider />
+            
+            <p style={{ color: theme.textSecondary, fontSize: '13px' }}>
+              示例：<br />
+              "帮我查一下最近的天气情况"<br />
+              "给张三发条消息说我晚点到"<br />
+              "查询一下我的账户余额"
+            </p>
+          </ContentCard>
         </Col>
       </Row>
-    </div>
+      
+      {/* 确认对话框 */}
+      <ConfirmationModal 
+        isOpen={showConfirmation}
+        confirmText={confirmationText}
+        onConfirm={handleConfirm}
+        onRetry={handleRetry}
+        onCancel={handleCancel}
+        useVoiceConfirmation={true}
+      />
+    </PageContainer>
   );
 };
 
