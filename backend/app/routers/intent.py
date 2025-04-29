@@ -1,35 +1,34 @@
-from typing import Dict, Any
-from fastapi import APIRouter, Body, HTTPException, Depends
-from loguru import logger
+from fastapi import APIRouter, Body, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.utils.db import get_async_db_session
 from app.controllers.intent_controller import intent_controller
-from app.schemas.intent import IntentRequest, IntentResponse
+from app.schemas.intent import (
+    IntentRequest,
+    InterpretSuccessResponse,
+)
 
 # 创建路由器
 router = APIRouter(
-    prefix="/intent",
     tags=["intent"],
     responses={404: {"description": "Not found"}},
 )
 
-@router.post("/process", response_model=IntentResponse)
-async def process_intent(request: IntentRequest = Body(...)):
+
+@router.post("/interpret", 
+             response_model=InterpretSuccessResponse, 
+             response_model_exclude_none=False)
+async def process_intent(
+    request: IntentRequest = Body(...), db: AsyncSession = Depends(get_async_db_session)
+):
     """
-    处理用户意图
-    
+    处理用户意图。根据用户查询，可能返回需要调用的工具列表，或直接返回回复内容。
+
     Args:
         request: 意图请求
-        
+        db: 数据库会话 (由 FastAPI 注入)
+
     Returns:
         意图响应
     """
-    try:
-        # 调用控制器处理意图
-        return await intent_controller.process_intent(request)
-    except Exception as e:
-        # 记录错误
-        logger.error(f"处理意图失败: {e}")
-        # 抛出HTTP异常
-        raise HTTPException(
-            status_code=500,
-            detail=f"处理意图失败: {str(e)}"
-        ) 
+    # 调用控制器时传递 request 和 db
+    return await intent_controller.process_intent(request=request, db=db)

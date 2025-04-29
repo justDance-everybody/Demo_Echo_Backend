@@ -81,6 +81,16 @@ app.include_router(health_router)
 app.include_router(intent.router, prefix=settings.API_PREFIX, tags=["intent"])
 app.include_router(execute.router, prefix=settings.API_PREFIX, tags=["execute"])
 
+# 调试：打印所有注册的路由
+logger.info("="*30 + " Registered Routes " + "="*30)
+for route in app.routes:
+    if hasattr(route, "methods"):
+        logger.info(f"Path: {route.path}, Methods: {route.methods}, Name: {route.name}")
+    else:
+        # 处理非 Route 类型的路由，例如 WebSocketRoute 或 Mount
+        logger.info(f"Path: {route.path}, Name: {route.name} (Type: {type(route).__name__})")
+logger.info("="*78)
+
 # 运行服务器
 if __name__ == "__main__":
     import uvicorn

@@ -55,7 +55,23 @@ class MCPClient:
         await self.session.initialize()
         resp = await self.session.list_tools()
         self.tools = resp.tools
-        print("已连接 MCP，可用工具:", [t.name for t in self.tools])
+        print("\\n--- 可用工具详细信息 ---")
+        if not self.tools:
+            print("未找到任何可用工具。")
+        else:
+            for i, tool in enumerate(self.tools):
+                print(f"工具 {i+1}:")
+                print(f"  Name (用于 tool_id 和 endpoint['mcp_tool_name']): {tool.name}")
+                print(f"  Description: {tool.description}")
+                schema_str = "{}"
+                if tool.inputSchema:
+                    try:
+                        schema_str = json.dumps(tool.inputSchema, ensure_ascii=False, indent=2)
+                    except TypeError:
+                        schema_str = f"无法序列化为 JSON: {tool.inputSchema}"
+                print(f"  Input Schema (用于 request_schema):\\n{schema_str}")
+                print("-" * 20)
+        print(f"已连接 MCP，共找到 {len(self.tools)} 个工具。\\n")
 
     async def process_query(self, query: str) -> str:
         if not self.session: return "请先连接到 MCP 服务器。"

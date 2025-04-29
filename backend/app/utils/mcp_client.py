@@ -75,20 +75,52 @@ class MCPClientWrapper:
             logger.error(f"MCP客户端初始化失败: {e}")
             raise RuntimeError(f"MCP客户端初始化失败: {e}")
     
-    async def _ensure_connected(self):
-        """确保已连接到MCP服务器"""
-        if self.client and not self.client.session:
-            server_configs = self.client.server_configs
-            if not server_configs:
+    async def _ensure_connected(self, target_server: Optional[str] = None):
+        """确保已连接到指定的MCP服务器，如果未指定则连接到默认服务器"""
+        server_to_connect = target_server
+
+        # 如果没有指定目标服务器，并且已经连接了，则无需操作
+        if not server_to_connect and self.client and self.client.session:
+            return
+
+        # 如果没有指定目标服务器，使用默认（第一个）
+        if not server_to_connect:
+            if not self.client.server_configs:
                 raise RuntimeError("MCP客户端没有可用的服务器配置")
-                
-            # 选择第一个可用的服务器
-            server_name = next(iter(server_configs))
-            logger.info(f"准备连接到MCP服务器: {server_name}")
-            await self.client.connect(server_name)
-            self._connected_server = server_name
-            logger.info(f"成功连接到MCP服务器: {server_name}")
-    
+            server_to_connect = next(iter(self.client.server_configs))
+            logger.debug(f"未指定目标服务器，将使用默认服务器: {server_to_connect}")
+
+        # 检查目标服务器是否存在于配置中
+        if server_to_connect not in self.client.server_configs:
+             raise ValueError(f"目标MCP服务器 '{server_to_connect}' 未在配置中找到")
+
+        # 检查是否需要切换或建立连接
+        # 需要连接的情况：1. 从未连接过 2. 需要连接的目标与当前连接的不同
+        should_connect = not self.client.session or self._connected_server != server_to_connect
+
+        if should_connect:
+            # 注意：这里的实现假设调用 self.client.connect() 会正确处理
+            # 底层 AsyncExitStack 的重入或替换。如果 MCPClient.connect
+            # 不能安全地被调用多次，这里可能需要更复杂的连接管理逻辑（例如先关闭再连接）。
+            if self.client.session:
+                 logger.warning(f"检测到需要切换MCP服务器，从 '{self._connected_server}' 切换到 '{server_to_connect}'. 正在尝试重新连接...")
+                 # 理想情况下，这里应该先显式断开旧连接，但 MCPClient 可能没有提供接口
+                 # await self.client.disconnect() # 假设有此方法
+
+            logger.info(f"准备连接到MCP服务器: {server_to_connect}")
+            try:
+                await self.client.connect(server_to_connect)
+                self._connected_server = server_to_connect
+                logger.info(f"成功连接到MCP服务器: {self._connected_server}")
+            except Exception as e:
+                 logger.error(f"连接到MCP服务器 '{server_to_connect}' 失败: {e}")
+                 # 连接失败后，重置连接状态
+                 self._connected_server = None
+                 self.client.session = None # 假设可以直接访问或有方法重置
+                 raise RuntimeError(f"连接到MCP服务器 '{server_to_connect}' 失败: {e}")
+        else:
+            logger.debug(f"已连接到目标MCP服务器: {self._connected_server}")
+
     async def get_tool_info(self, intent_type: str, query: str) -> Dict[str, Any]:
         """
         获取工具信息 (通过MCP客户端代理)
@@ -100,7 +132,7 @@ class MCPClientWrapper:
         Returns:
             工具信息
         """
-        # 确保已连接
+        # 确保已连接 (到默认服务器)
         await self._ensure_connected()
         
         # 构建查询
@@ -121,25 +153,37 @@ class MCPClientWrapper:
         logger.info(f"MCP客户端返回处理结果，可用工具: {result['tools']}")
         return result
     
-    async def execute_tool(self, tool_id: str, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute_tool(self, tool_id: str, params: Dict[str, Any], target_server: Optional[str] = None) -> Dict[str, Any]:
         """
         执行工具 (通过MCP客户端代理)
         
         Args:
             tool_id: 工具ID
             params: 工具参数
+            target_server: 可选，指定要连接的MCP服务器名称
             
         Returns:
             执行结果
         """
-        # 确保已连接
-        await self._ensure_connected()
-        
-        # 构建查询字符串 (这种方式可能需要调整，取决于MCPClient如何处理)
-        # 直接调用 call_tool 可能更合适
-        logger.info(f"准备通过MCP客户端执行工具: tool={tool_id}, params={params}")
+        # 确保已连接到目标或默认服务器
+        await self._ensure_connected(target_server=target_server)
+
+        # 检查连接后，session 是否真的存在
+        if not self.client or not self.client.session:
+             logger.error(f"无法执行工具 {tool_id}：未能建立到MCP服务器 '{self._connected_server or '默认'}' 的连接。")
+             return {
+                 "tool_id": tool_id,
+                 "success": False,
+                 "error": {
+                     "code": "MCP_CONNECTION_FAILED",
+                     "message": f"未能连接到MCP服务器 '{self._connected_server or '默认'}'"
+                 }
+             }
+
+        # 直接调用 call_tool
+        logger.info(f"准备通过MCP客户端 ('{self._connected_server}') 执行工具: tool={tool_id}, params={params}")
         try:
-            # 直接调用 MCPClient 的 call_tool 方法
+            # 直接调用 MCPClient 的 session 的 call_tool 方法
             tool_result = await self.client.session.call_tool(tool_id, params)
             # 提取结果内容
             response_content = getattr(tool_result.content, 'text', tool_result.content)

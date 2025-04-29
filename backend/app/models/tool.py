@@ -13,7 +13,9 @@ class Tool(Base):
     endpoint = Column(JSON, nullable=False)  # 对于MCP工具，存储script_path等信息；对于HTTP工具，存储URL等信息
     request_schema = Column(JSON, nullable=False)  # 请求参数的JSON Schema
     response_schema = Column(JSON, nullable=True)  # 响应的JSON Schema
+    server_name = Column(String(64), nullable=True) # 对于MCP工具，存储其所属服务器的名称 (对应 config/mcp_servers.json 中的 key)
     created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
     
     def __repr__(self):
         return f"<Tool(tool_id={self.tool_id}, name={self.name}, type={self.type})>" 
