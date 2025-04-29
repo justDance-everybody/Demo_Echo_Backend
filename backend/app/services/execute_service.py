@@ -420,7 +420,7 @@ class ExecuteService:
 
                         else:
                             # 不支持的平台类型
-                            logger.error(f"服务层：不支持的 HTTP 工具平台: {platform}")
+                            logger.error(f"服务层：不支持的 HTTP 平台: {platform}")
                             return ExecuteResponse(
                                 tool_id=tool_id,
                                 success=False,

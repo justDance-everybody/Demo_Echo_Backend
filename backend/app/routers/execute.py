@@ -11,15 +11,15 @@ router = APIRouter()
     "/execute", 
     response_model=ExecuteResponse, 
     response_model_exclude_none=False,
-    summary="执行指定的工具",
-    description="接收工具ID和参数，调用相应的MCP工具执行操作，并返回结果。"
+    summary="Execute a specific tool",
+    description="Executes the specified tool with the given parameters and returns the result."
 )
 async def execute_tool(
     request: ExecuteRequest = Body(...),
     db: AsyncSession = Depends(get_async_db_session)
 ) -> ExecuteResponse:
     """
-    API端点：执行工具
+    Endpoint to execute a tool.
     """
     # 直接调用控制器处理请求
     return await execute_controller(request=request, db=db)

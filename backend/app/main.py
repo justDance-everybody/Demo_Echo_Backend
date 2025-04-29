@@ -1,11 +1,13 @@
 import os
 import sys
+import json
 from pathlib import Path
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, APIRouter, Request, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse, JSONResponse
+from fastapi.responses import RedirectResponse, JSONResponse, Response
 from loguru import logger
+from starlette.middleware.base import BaseHTTPMiddleware
 from app.routers import intent, execute
 from app.config import settings
 from app.utils.db import init_db
@@ -18,7 +20,7 @@ LOGS_DIR.mkdir(parents=True, exist_ok=True)
 logger.remove()  # 移除默认处理器
 logger.add(
     sys.stderr, 
-    level=settings.LOG_LEVEL
+    level="DEBUG"
 )
 logger.add(
     settings.LOG_FILE, 
@@ -37,11 +39,11 @@ async def lifespan(app: FastAPI):
     应用生命周期管理
     """
     # 应用启动时执行
-    logger.info("应用启动")
+    logger.info("应用启动中...")
     init_db()  # 初始化数据库
     yield
     # 应用关闭时执行
-    logger.info("应用关闭")
+    logger.info("应用关闭中...")
 
 # 创建应用
 app = FastAPI(

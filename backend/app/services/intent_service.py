@@ -117,7 +117,7 @@ class IntentService:
                     try:
                         params = json.loads(call.function.arguments)
                         parsed_tool_calls.append(
-                            {"tool_id": call.function.name, "params": params}
+                            {"tool_id": call.function.name, "parameters": params}
                         )
                     except json.JSONDecodeError:
                         logger.error(
