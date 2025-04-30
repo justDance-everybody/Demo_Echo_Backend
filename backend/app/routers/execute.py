@@ -14,6 +14,7 @@ router = APIRouter()
     summary="Execute a specific tool",
     description="Executes the specified tool with the given parameters and returns the result."
 )
+# @stable(tested=2025-04-30, test_script=backend/test_api.py)
 async def execute_tool(
     request: ExecuteRequest = Body(...),
     db: AsyncSession = Depends(get_async_db_session)

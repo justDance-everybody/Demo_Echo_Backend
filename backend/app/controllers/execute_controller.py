@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas.execute import ExecuteRequest, ExecuteResponse
 from app.services.execute_service import execute_service
 
+# @stable(tested=2025-04-30, test_script=backend/test_api.py)
 async def execute_controller(request: ExecuteRequest, db: AsyncSession) -> ExecuteResponse:
     """
     处理工具执行请求的控制器

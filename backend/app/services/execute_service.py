@@ -3,6 +3,7 @@ from loguru import logger
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 import httpx  # 导入 httpx
+import json
 
 from app.utils.mcp_client import mcp_client
 from app.schemas.execute import ExecuteResponse
@@ -11,6 +12,8 @@ from app.schemas.execute import ExecuteResponse
 # from app.models.session import Session
 # from app.models.log import Log
 # from app.utils.db import db_session
+from app.models.session import Session
+from app.models.log import Log
 from app.models.tool import Tool
 from app.utils.openai_client import openai_client
 from app.config import settings  # 导入 settings 以获取模型名称等
@@ -19,6 +22,7 @@ from app.config import settings  # 导入 settings 以获取模型名称等
 class ExecuteService:
     """处理工具执行请求的服务"""
 
+    # @stable(tested=2025-04-30, test_script=backend/test_api.py)
     async def execute_tool(
         self,
         tool_id: str,
@@ -43,13 +47,28 @@ class ExecuteService:
             执行结果响应
         """
         logger.info(f"服务层：开始执行工具: tool_id={tool_id}, session_id={session_id}")
+        session: Optional[Session] = None
 
         # 可以在这里添加数据库日志记录：记录执行尝试
-        # if session_id:
-        #     Log.create(session_id=session_id, step='execute_start', status='processing', message=f"Executing tool: {tool_id}")
-        #     session = Session.get(session_id)
-        #     if session: session.status = 'executing'
-        #     db_session.commit()
+        if session_id:
+            try:
+                # Use async session (db) to query session
+                result = await db.execute(select(Session).where(Session.session_id == session_id))
+                session = result.scalars().first()
+                if session:
+                    session.status = 'executing'
+                    db.add(session)
+                    # Create log entry
+                    start_log = Log(session_id=session_id, step='execute_start', status='processing', message=f"Executing tool: {tool_id}")
+                    db.add(start_log)
+                    await db.commit()
+                    await db.refresh(session)
+                    logger.info(f"Updated session {session_id} status to executing and logged start.")
+                else:
+                    logger.warning(f"Session {session_id} not found for status update.")
+            except Exception as db_err:
+                logger.error(f"Database error during execute_start logging/status update for session {session_id}: {db_err}", exc_info=True)
+                await db.rollback()
 
         try:
             # 1. 查询数据库获取工具信息
@@ -135,11 +154,18 @@ class ExecuteService:
                         session_id=session_id,  # 确保 session_id 被包含
                     )
                     logger.info(f"服务层：MCP 工具执行成功: tool_id={tool_id}")
-                    # 可以在这里添加数据库日志记录：记录执行成功
-                    # if session_id:
-                    #     Log.create(session_id=session_id, step='execute_end', status='success', message=success_result.message)
-                    #     if session: session.status = 'done' # 或根据业务逻辑设置状态
-                    #     db_session.commit()
+                    if session_id and session:
+                        try:
+                            session.status = 'done'
+                            db.add(session)
+                            success_log = Log(session_id=session_id, step='execute_end', status='success', message=tts_message)
+                            db.add(success_log)
+                            await db.commit()
+                            logger.info(f"Updated session {session_id} status to done and logged success.")
+                        except Exception as db_err:
+                            logger.error(f"Database error during execute_end success log/status update for session {session_id}: {db_err}", exc_info=True)
+                            await db.rollback()
+
                 else:
                     # 执行失败 (由MCP客户端包装器返回失败信息)
                     error_info = mcp_result.get(
@@ -159,11 +185,17 @@ class ExecuteService:
                     logger.warning(
                         f"服务层：MCP 工具执行失败 (MCP client error): tool_id={tool_id}, error={error_info}"
                     )
-                    # 可以在这里添加数据库日志记录：记录执行失败
-                    # if session_id:
-                    #     Log.create(session_id=session_id, step='execute_end', status='error', message=error_info.get('message'))
-                    #     if session: session.status = 'error'
-                    #     db_session.commit()
+                    if session_id and session:
+                        try:
+                            session.status = 'error'
+                            db.add(session)
+                            error_log = Log(session_id=session_id, step='execute_end', status='error', message=json.dumps(error_info))
+                            db.add(error_log)
+                            await db.commit()
+                            logger.info(f"Updated session {session_id} status to error and logged failure.")
+                        except Exception as db_err:
+                            logger.error(f"Database error during execute_end error log/status update for session {session_id}: {db_err}", exc_info=True)
+                            await db.rollback()
 
             elif tool.type == "http":
                 # 2.2 执行 HTTP 工具 (T020-7-9)
@@ -520,11 +552,17 @@ class ExecuteService:
                 error=error_info,
                 session_id=session_id,
             )
-            # 可以在这里添加数据库日志记录：记录系统异常
-            # if session_id:
-            #     Log.create(session_id=session_id, step='execute_end', status='error', message=f"System Error: {str(e)}")
-            #     if session: session.status = 'error'
-            #     db_session.commit()
+            if session_id and session:
+                try:
+                    session.status = 'error'
+                    db.add(session)
+                    exception_log = Log(session_id=session_id, step='execute_end', status='error', message=f"System Error: {str(e)}")
+                    db.add(exception_log)
+                    await db.commit()
+                    logger.info(f"Updated session {session_id} status to error and logged system exception.")
+                except Exception as db_err:
+                    logger.error(f"Database error during system exception logging/status update for session {session_id}: {db_err}", exc_info=True)
+                    await db.rollback()
 
         return response
 

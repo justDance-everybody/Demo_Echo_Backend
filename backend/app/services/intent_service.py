@@ -49,6 +49,7 @@ class IntentService:
         logger.debug(f"加载了 {len(formatted_tools)} 个可用工具。")
         return formatted_tools
 
+    # @stable(tested=2025-04-30, test_script=backend/test_api.py)
     async def process_intent(
         self, query: str, db: AsyncSession, session_id: Optional[str] = None
     ) -> Dict[str, Any]:

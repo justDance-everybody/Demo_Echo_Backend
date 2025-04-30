@@ -20,6 +20,7 @@ from app.schemas.intent import (
 class IntentController:
     """意图控制器"""
 
+    # @stable(tested=2025-04-30, test_script=backend/test_api.py)
     async def process_intent(
         self, request: IntentRequest, db: AsyncSession
     ) -> InterpretSuccessResponse:

@@ -14,6 +14,7 @@ class OpenAIClientError(Exception):
 class OpenAIClient:
     """与LLM交互的客户端 (兼容OpenAI SDK)"""
     
+    # @stable(tested=basic_connectivity, date=2025-04-30)
     def __init__(self):
         """初始化LLM客户端"""
         api_key = settings.LLM_API_KEY or os.getenv("LLM_API_KEY")

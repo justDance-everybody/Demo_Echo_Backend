@@ -153,6 +153,7 @@ class MCPClientWrapper:
         logger.info(f"MCP客户端返回处理结果，可用工具: {result['tools']}")
         return result
     
+    # @stable(tested=2025-04-30, test_script=backend/test_api.py)
     async def execute_tool(self, tool_id: str, params: Dict[str, Any], target_server: Optional[str] = None) -> Dict[str, Any]:
         """
         执行工具 (通过MCP客户端代理)

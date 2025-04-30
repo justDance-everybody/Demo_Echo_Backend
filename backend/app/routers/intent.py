@@ -17,6 +17,7 @@ router = APIRouter(
 @router.post("/interpret", 
              response_model=InterpretSuccessResponse, 
              response_model_exclude_none=False)
+# @stable(tested=2025-04-30, test_script=backend/test_api.py)
 async def process_intent(
     request: IntentRequest = Body(...), db: AsyncSession = Depends(get_async_db_session)
 ):
