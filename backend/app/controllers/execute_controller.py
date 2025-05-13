@@ -1,6 +1,7 @@
 from fastapi import HTTPException
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
+import uuid
 from app.schemas.execute import ExecuteRequest, ExecuteResponse
 from app.services.execute_service import execute_service
 
@@ -19,7 +20,19 @@ async def execute_controller(request: ExecuteRequest, db: AsyncSession) -> Execu
     Raises:
         HTTPException: 如果处理过程中发生不可恢复的错误
     """
-    logger.info(f"控制器：收到工具执行请求: tool_id={request.tool_id}, session_id={request.session_id}")
+    # 如果没有session_id，生成一个新的
+    session_id = request.session_id
+    if not session_id:
+        session_id = str(uuid.uuid4())
+        logger.info(f"[Session: {session_id}] 生成新的会话ID (执行控制器)")
+    
+    # 获取user_id，如果没有就使用默认值
+    user_id = request.user_id
+    if user_id is None:
+        logger.warning(f"[Session: {session_id}] 请求中未提供user_id，使用默认值1")
+        user_id = 1  # 使用默认用户ID
+    
+    logger.info(f"控制器：收到工具执行请求: tool_id={request.tool_id}, session_id={session_id}, user_id={user_id}")
     
     try:
         # 调用服务层执行工具，传入 db
@@ -27,17 +40,16 @@ async def execute_controller(request: ExecuteRequest, db: AsyncSession) -> Execu
             tool_id=request.tool_id,
             params=request.params,
             db=db, # 传递 db 会话
-            session_id=request.session_id,
-            user_id=request.user_id
+            session_id=session_id,  # 使用可能新生成的session_id
+            user_id=user_id  # 使用整数类型的user_id
         )
         
         logger.info(f"控制器：工具执行服务调用完成: tool_id={request.tool_id}, success={response.success}")
         
-        # 检查服务层返回的 response 对象中的 session_id
-        # 如果服务层返回的 session_id 是 None，但请求中有，则使用请求的值
-        if response.session_id is None and request.session_id is not None:
-             logger.warning(f"服务层未能在 ExecuteResponse 中返回 session_id，使用请求中的值: {request.session_id}")
-             response.session_id = request.session_id
+        # 如果服务层未能返回session_id，则使用我们的session_id
+        if response.session_id is None:
+            logger.warning(f"服务层未能在 ExecuteResponse 中返回 session_id，使用控制器中的值: {session_id}")
+            response.session_id = session_id
 
         # --- [增加日志] ---
         logger.debug(f"控制器：即将返回 ExecuteResponse，session_id 的值: {response.session_id}")
@@ -55,11 +67,11 @@ async def execute_controller(request: ExecuteRequest, db: AsyncSession) -> Execu
                 "code": "CONTROLLER_EXCEPTION",
                 "message": f"处理执行请求时发生内部服务器错误: {str(e)}"
             },
-            "session_id": request.session_id # 确保异常响应中包含 session_id
+            "sessionId": session_id # 确保异常响应中包含 sessionId (使用别名)
         }
         # 注意：当抛出 HTTPException 时，其 detail 会被 FastAPI 直接序列化，
         # 这里我们返回字典，FastAPI 会处理。
         raise HTTPException(
             status_code=500,
-            detail=error_detail # 直接传递包含 session_id 的字典
+            detail=error_detail # 直接传递包含 sessionId 的字典
         ) 

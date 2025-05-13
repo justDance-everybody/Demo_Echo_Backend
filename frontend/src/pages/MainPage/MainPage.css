@@ -1,0 +1,321 @@
+.main-page-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh; /* Full viewport height */
+  background-color: #1E1E2F; /* Dark background */
+  color: #F8F8F8; /* Light text */
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+}
+
+.main-content-wrapper {
+  display: flex;
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 侧边栏样式 */
+.sidebar {
+  width: 280px;
+  background-color: #2A2A40;
+  height: 100%;
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 100;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.sidebar h2 {
+  color: #4FD1C5;
+  margin-bottom: 20px;
+  text-align: center;
+  font-size: 20px;
+}
+
+.tools-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tool-item {
+  background-color: #343450;
+  border-radius: 8px;
+  padding: 15px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.tool-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-left: 3px solid #4FD1C5;
+}
+
+.tool-item h3 {
+  margin: 0 0 8px 0;
+  color: #F8F8F8;
+  font-size: 16px;
+}
+
+.tool-item p {
+  margin: 0;
+  color: #BBBBBB;
+  font-size: 14px;
+}
+
+/* 工具元信息样式 */
+.tool-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+  font-size: 12px;
+}
+
+.tool-type {
+  background-color: #4FD1C5;
+  color: #1E1E2F;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.tool-source {
+  background-color: #8C54FF;
+  color: #F8F8F8;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+/* 侧边栏切换按钮 */
+.sidebar-toggle-btn {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  z-index: 200;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #4FD1C5;
+  color: #1E1E2F;
+  border: none;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s;
+}
+
+.sidebar-toggle-btn:hover {
+  transform: scale(1.1);
+}
+
+/* 主内容区域 */
+.content-area {
+  flex: 1;
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 60px 20px 100px 20px;
+  overflow-y: auto;
+  position: relative;
+}
+
+/* 消息容器 */
+.messages-container {
+  width: 100%;
+  max-width: 800px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+/* 用户语音文本样式 */
+.user-message {
+  background-color: #2A2A40;
+  padding: 15px;
+  border-radius: 8px;
+  margin: 5px 0;
+  align-self: flex-start;
+  max-width: 80%;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  border-left: 4px solid #4FD1C5;
+}
+
+/* AI响应文本样式 */
+.system-message {
+  background-color: #343450;
+  padding: 15px;
+  border-radius: 8px;
+  margin: 5px 0;
+  align-self: flex-end;
+  max-width: 80%;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  border-left: 4px solid #8C54FF;
+}
+
+.message-header {
+  color: #4FD1C5;
+  font-size: 14px;
+  margin-bottom: 5px;
+  opacity: 0.8;
+}
+
+.message-content {
+  font-size: 16px;
+  line-height: 1.6;
+  color: #FFFFFF;
+  text-shadow: 0 0 1px rgba(0,0,0,0.3);
+  letter-spacing: 0.02em;
+  font-weight: 400;
+}
+
+/* 结果容器 */
+.result-container {
+  width: 100%;
+  max-width: 800px;
+  margin: 10px 0;
+}
+
+/* 语音录制按钮容器 */
+.voice-recorder-container {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+}
+
+/* 录音按钮样式 */
+.recorder-button {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background-color: #4FD1C5;
+  color: #1E1E2F;
+  font-size: 16px;
+  font-weight: bold;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(79, 209, 197, 0.3);
+  transition: all 0.3s ease;
+}
+
+.recorder-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(79, 209, 197, 0.4);
+}
+
+.recorder-button.listening {
+  animation: pulse 1.5s infinite;
+  background-color: #FF5252;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(255, 82, 82, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 15px rgba(255, 82, 82, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(255, 82, 82, 0);
+  }
+}
+
+/* 重置按钮 */
+.reset-button {
+  margin-top: 20px;
+  margin-bottom: 20px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  background-color: #4FD1C5;
+  color: #1E1E2F;
+  border: none;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 80%;
+    max-width: 300px;
+  }
+  
+  .user-message, .system-message {
+    max-width: 90%;
+  }
+  
+  .voice-recorder-container {
+    bottom: 15px;
+  }
+  
+  .content-area {
+    padding: 60px 15px 90px 15px;
+  }
+}
+
+/* 状态指示器样式 - 会在StatusBar组件中覆盖 */
+.status-bar-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #2A2A40;
+  color: #F8F8F8;
+  z-index: 50;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s ease;
+}
+
+.status-idle {
+  background-color: #2A2A40;
+}
+
+.status-listening {
+  background-color: #4FD1C5;
+  color: #1E1E2F;
+}
+
+.status-thinking {
+  background-color: #8C54FF;
+}
+
+.status-executing {
+  background-color: #FF9900;
+}
+
+.status-speaking {
+  background-color: #4F90FF;
+}
+
+.status-error {
+  background-color: #FF5252;
+} 

@@ -1,6 +1,7 @@
 from loguru import logger
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+import uuid
 
 from app.services.intent_service import intent_service
 
@@ -36,12 +37,23 @@ class IntentController:
             失败时抛出 HTTPException
         """
         try:
+            # 如果没有session_id，生成一个新的
             session_id = request.session_id
-            logger.info(f"[Session: {session_id}] 收到意图处理请求: {request.query}")
+            if not session_id:
+                session_id = str(uuid.uuid4())
+                logger.info(f"[Session: {session_id}] 生成新的会话ID")
+            
+            # 获取并验证user_id，确保不为None
+            user_id = request.user_id
+            if user_id is None:
+                logger.warning(f"[Session: {session_id}] 请求中未提供user_id，使用默认值1")
+                user_id = 1  # 使用默认用户ID
+            
+            logger.info(f"[Session: {session_id}] 收到意图处理请求: {request.query}, 用户ID: {user_id}")
 
-            # 调用服务层处理意图，传入 session_id 和 db
+            # 调用服务层处理意图，传入 session_id、user_id 和 db
             service_result = await intent_service.process_intent(
-                request.query, db=db, session_id=session_id
+                request.query, db=db, session_id=session_id, user_id=user_id
             )
 
             result_type = service_result.get("type")
@@ -51,41 +63,42 @@ class IntentController:
                 # 确保 tool_calls 存在且是列表
                 tool_calls_data = service_result.get("tool_calls", [])
                 confirm_text = service_result.get("confirmText")
-                returned_session_id = service_result.get("session_id", session_id)
+                # 始终优先使用我们生成或从请求获取的session_id
+                returned_session_id = session_id
                 if not isinstance(tool_calls_data, list):
                     raise ValueError("服务返回的 tool_calls 格式不正确")
 
                 # 验证并构造 ToolCall 列表 (Pydantic 会自动验证)
                 validated_tool_calls = [ToolCall(**call) for call in tool_calls_data]
 
+                # 创建响应对象
                 response = InterpretToolCallResponse(
                     tool_calls=validated_tool_calls,
                     confirmText=confirm_text,
-                    session_id=returned_session_id,
+                    sessionId=returned_session_id,  # 使用sessionId作为字段名
                 )
-                # 手动转字典返回，并强制使用请求中的 session_id
-                response_dict = response.dict(exclude_none=False)
-                response_dict["session_id"] = request.session_id # 强制赋值
-                return response_dict
+                return response
 
             elif result_type == "direct_response":
                 content = service_result.get("content", "")
-                returned_session_id = service_result.get("session_id", session_id)
+                # 始终优先使用我们生成或从请求获取的session_id
+                returned_session_id = session_id
                 logger.info(f"[Session: {session_id}] 意图处理结果: 直接回复")
-                logger.debug(f"[DEBUG] Controller: Creating direct response. session_id from request: {session_id}, session_id from service: {service_result.get('session_id')}, final session_id to use: {returned_session_id}")
+                
+                # 增加调试日志，确认session_id值
+                logger.debug(f"[Session: {session_id}] 准备返回的session_id: {returned_session_id}")
+                
+                # 创建响应对象，使用sessionId作为字段名
                 response = InterpretDirectResponse(
-                    content=content, session_id=returned_session_id
+                    content=content, 
+                    sessionId=returned_session_id  # 使用sessionId作为字段名
                 )
-                # 手动转字典返回，并强制使用请求中的 session_id
-                response_dict = response.dict(exclude_none=False)
-                response_dict["session_id"] = request.session_id # 强制赋值
-                return response_dict
+                return response
 
             elif result_type == "error":
                 error_message = service_result.get(
                     "message", "意图服务处理失败，未提供具体信息"
                 )
-                returned_session_id = service_result.get("session_id", session_id)
                 logger.error(
                     f"[Session: {session_id}] 意图服务处理失败: {error_message}"
                 )
@@ -95,7 +108,6 @@ class IntentController:
                 )
             else:
                 # 未知的结果类型
-                returned_session_id = service_result.get("session_id", session_id)
                 logger.error(
                     f"[Session: {session_id}] 意图服务返回未知类型: {result_type}"
                 )

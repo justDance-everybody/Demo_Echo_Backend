@@ -29,7 +29,7 @@ class ExecuteService:
         params: Dict[str, Any],
         db: AsyncSession,
         session_id: Optional[str] = None,
-        user_id: Optional[str] = None,
+        user_id: Optional[int] = None,
         original_query: Optional[str] = None,  # 新增参数: 接收原始查询
     ) -> ExecuteResponse:
         """
@@ -52,9 +52,17 @@ class ExecuteService:
         # 可以在这里添加数据库日志记录：记录执行尝试
         if session_id:
             try:
-                # Use async session (db) to query session
+                # 首先检查会话是否存在，不存在则尝试创建
                 result = await db.execute(select(Session).where(Session.session_id == session_id))
                 session = result.scalars().first()
+                
+                # 如果会话不存在且提供了user_id，则创建新会话
+                if not session and user_id is not None:
+                    logger.info(f"Session {session_id} not found, creating new session with user_id {user_id}")
+                    session = Session(session_id=session_id, user_id=user_id, status='interpreting')
+                    db.add(session)
+                    
+                # 更新会话状态
                 if session:
                     session.status = 'executing'
                     db.add(session)
@@ -65,7 +73,7 @@ class ExecuteService:
                     await db.refresh(session)
                     logger.info(f"Updated session {session_id} status to executing and logged start.")
                 else:
-                    logger.warning(f"Session {session_id} not found for status update.")
+                    logger.warning(f"Session {session_id} not found and could not be created (user_id missing).")
             except Exception as db_err:
                 logger.error(f"Database error during execute_start logging/status update for session {session_id}: {db_err}", exc_info=True)
                 await db.rollback()

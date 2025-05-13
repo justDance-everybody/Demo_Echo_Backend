@@ -1,3 +1,65 @@
+/* 全局样式 */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #181818;
+  color: #eaeaea;
+}
+
+.App {
+  text-align: center;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 导航栏样式 */
+.app-nav {
+  display: flex;
+  justify-content: center;
+  padding: 15px 20px;
+  background-color: #111111;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.app-nav a {
+  color: #eaeaea;
+  text-decoration: none;
+  margin: 0 15px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.app-nav a:hover {
+  background-color: #4FD1C5;
+  color: #111111;
+}
+
+/* 响应式调整 */
+@media (max-width: 600px) {
+  .app-nav {
+    padding: 10px;
+  }
+  
+  .app-nav a {
+    margin: 0 8px;
+    padding: 6px 8px;
+    font-size: 14px;
+  }
+}
+
 .site-layout-content {
   min-height: 280px;
   padding: 24px;

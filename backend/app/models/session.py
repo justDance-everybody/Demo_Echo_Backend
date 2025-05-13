@@ -3,6 +3,9 @@ from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.utils.db import Base, SessionLocal
 import uuid
+from sqlalchemy.future import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from loguru import logger
 
 class Session(Base):
     """会话模型"""
@@ -32,16 +35,29 @@ class Session(Base):
         return f"<Session(session_id={self.session_id}, user_id={self.user_id}, status={self.status})>"
     
     @classmethod
-    def get_or_create(cls, session_id, user_id):
-        """获取会话，如果不存在则创建"""
-        db = SessionLocal()
-        try:
-            session = db.query(cls).filter(cls.session_id == session_id).first()
-            if not session:
-                session = cls(session_id=session_id, user_id=user_id)
-                db.add(session)
-                db.commit()
-                db.refresh(session)
-            return session
-        finally:
-            db.close() 
+    async def get_or_create(cls, db: AsyncSession, session_id: str, user_id: int):
+        """
+        获取会话，如果不存在则创建 (异步版本)
+        
+        Args:
+            db: AsyncSession 数据库会话
+            session_id: 会话ID
+            user_id: 用户ID
+            
+        Returns:
+            Session: 会话实例
+        """
+        logger.debug(f"异步获取或创建会话: session_id={session_id}, user_id={user_id}")
+        
+        # 使用 AsyncSession 异步查询
+        result = await db.execute(select(cls).where(cls.session_id == session_id))
+        session = result.scalars().first()
+        
+        if not session:
+            logger.info(f"会话 {session_id} 不存在，创建新会话")
+            session = cls(session_id=session_id, user_id=user_id)
+            db.add(session)
+            await db.commit()
+            await db.refresh(session)
+            
+        return session 

@@ -1,0 +1,118 @@
+.status-bar-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #F8F8F8;
+  z-index: 50;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s ease;
+  padding: 0 20px;
+}
+
+.status-text {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  transition: color 0.3s ease;
+}
+
+.status-text::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 8px;
+  transition: background-color 0.3s ease;
+}
+
+/* 不同状态的样式 */
+.status-idle {
+  background-color: #2A2A40;
+}
+
+.status-idle .status-text::before {
+  background-color: #bbbbbb;
+}
+
+.status-listening {
+  background-color: #4FD1C5;
+  color: #1E1E2F;
+}
+
+.status-listening .status-text::before {
+  background-color: #1E1E2F;
+  animation: pulse 1.5s infinite;
+}
+
+.status-thinking {
+  background-color: #8C54FF;
+}
+
+.status-thinking .status-text::before {
+  background-color: #ffffff;
+  animation: pulse 1.5s infinite;
+}
+
+.status-confirming {
+  background-color: #4F90FF;
+}
+
+.status-confirming .status-text::before {
+  background-color: #ffffff;
+  animation: pulse 1.5s infinite;
+}
+
+.status-executing {
+  background-color: #FF9900;
+}
+
+.status-executing .status-text::before {
+  background-color: #ffffff;
+  animation: pulse 1.5s infinite;
+}
+
+.status-speaking {
+  background-color: #4F90FF;
+}
+
+.status-speaking .status-text::before {
+  background-color: #ffffff;
+  animation: pulse 1.5s infinite;
+}
+
+.status-error {
+  background-color: #FF5252;
+}
+
+.status-error .status-text::before {
+  background-color: #ffffff;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+}
+
+@media (max-width: 768px) {
+  .status-text {
+    font-size: 14px;
+  }
+} 

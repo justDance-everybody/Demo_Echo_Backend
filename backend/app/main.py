@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, JSONResponse, Response
 from loguru import logger
 from starlette.middleware.base import BaseHTTPMiddleware
-from app.routers import intent, execute
+from app.routers import intent, execute, tools, auth
 from app.config import settings
 from app.utils.db import init_db
 import time
@@ -82,6 +82,8 @@ async def root():
 app.include_router(health_router)
 app.include_router(intent.router, prefix=settings.API_PREFIX, tags=["intent"])
 app.include_router(execute.router, prefix=settings.API_PREFIX, tags=["execute"])
+app.include_router(tools.router, prefix=settings.API_PREFIX, tags=["tools"])
+app.include_router(auth.router, prefix=settings.API_PREFIX, tags=["auth"])
 
 # 调试：打印所有注册的路由
 logger.info("="*30 + " Registered Routes " + "="*30)

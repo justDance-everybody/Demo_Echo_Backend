@@ -27,7 +27,7 @@ class IntentRequest(BaseModel):
 
     query: str = Field(..., description="用户查询")
     session_id: Optional[str] = Field(None, alias="sessionId", description="会话ID")
-    user_id: Optional[str] = Field(None, description="用户ID")
+    user_id: int = Field(..., alias="userId", description="用户ID")
     context: Optional[Dict[str, Any]] = Field(None, description="上下文信息")
 
 
