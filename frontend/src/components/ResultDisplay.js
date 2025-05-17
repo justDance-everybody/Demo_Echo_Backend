@@ -4,7 +4,6 @@ import {
   CheckCircleOutlined, 
   WarningOutlined, 
   InfoCircleOutlined,
-  CloseCircleOutlined,
   ExclamationCircleOutlined
 } from '@ant-design/icons';
 import useTTS from '../hooks/useTTS';
@@ -142,13 +141,13 @@ const ResultDisplay = ({
   const getStatusIcon = useCallback(() => {
     switch (status) {
       case 'success':
-        return <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 24 }} />;
+        return <CheckCircleOutlined data-testid="success-icon" style={{ color: '#52c41a', fontSize: 24 }} />;
       case 'warning':
-        return <WarningOutlined style={{ color: '#f5222d', fontSize: 24 }} />;
+        return <WarningOutlined data-testid="warning-icon" style={{ color: '#f5222d', fontSize: 24 }} />;
       case 'error':
-        return <ExclamationCircleOutlined style={{ color: '#f5222d', fontSize: 24 }} />;
+        return <ExclamationCircleOutlined data-testid="error-icon" style={{ color: '#f5222d', fontSize: 24 }} />;
       default:
-        return <InfoCircleOutlined style={{ color: '#1890ff', fontSize: 24 }} />;
+        return <InfoCircleOutlined data-testid="info-icon" style={{ color: '#1890ff', fontSize: 24 }} />;
     }
   }, [status]);
   

@@ -256,7 +256,7 @@ const ConfirmationModal = ({
       
       return () => clearTimeout(safetyTimer);
     }
-  }, [ttsFinished, isOpen, confirmText, showButtons]);
+  }, [ttsFinished, isOpen, confirmText, showButtons, handleStartVoiceListening]);
   
   // 监听 STT 结果并进行意图分类
   useEffect(() => {

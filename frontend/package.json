@@ -20,6 +20,7 @@
     "start": "react-scripts start",
     "start:dev": "REACT_APP_USE_MOCKS=true react-scripts start",
     "start:mobile": "echo '启动移动端界面...' && react-scripts start",
+    "start:public": "HOST=0.0.0.0 react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
@@ -42,5 +43,15 @@
       "last 1 safari version"
     ]
   },
-  "proxy": "http://localhost:8000"
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "jest-axe": "^10.0.0"
+  },
+  "jest": {
+    "transformIgnorePatterns": [
+      "/node_modules/(?!axios)/"
+    ]
+  }
 }

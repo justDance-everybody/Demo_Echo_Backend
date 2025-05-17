@@ -281,7 +281,7 @@ export function speakStreaming(text, voice = null, rate = 1.3, pitch = 1, onSegm
   });
   
   let isCancelled = false;
-  let lastSegmentIndex = -1; // 跟踪最后成功播放的片段索引
+  let lastSegmentIndex = -1; // 添加跟踪最后成功播放的片段索引的变量
   
   const cancelStreaming = () => {
     console.log('取消流式播放');
@@ -503,10 +503,12 @@ export function speakWithFix(text, voice = null, rate = 1.3, pitch = 1, onEnd = 
   }
 }
 
-export default {
+const TtsPolyfill = {
   initTTS,
   getBestTWVoice,
   speakWithFix,
   speakStreaming,
   splitTextForStreaming
 }; 
+
+export default TtsPolyfill;

@@ -3,15 +3,21 @@
 /**
  * 语音AI前端自动化测试场景定义
  * 
- * 本文件定义了四种主要测试场景：
+ * 本文件定义了多种测试场景：
  * 1. 基础语音识别测试 - 测试基本的语音识别和处理流程
  * 2. 错误处理测试 - 测试各种错误情况的处理
  * 3. 直接回复测试 - 测试无需确认的直接回复场景
  * 4. 用户确认/取消测试 - 测试用户确认或取消操作的场景
+ * 5. 认证流程测试 - 测试用户登录和注册流程
+ * 6. 主题切换测试 - 测试深色/浅色主题切换
+ * 7. 服务页面测试 - 测试服务列表和功能
+ * 8. 响应式布局测试 - 测试不同设备尺寸下的布局
  */
 
 import MockSpeech from '../test-utils/MockSpeech';
 import Logger from '../test-utils/Logger';
+import { fullVoiceDialogueTest, authenticationTest, themeToggleTest } from '../test-utils/tests/comprehensive.test.js';
+import { servicePageLoadTest, responsiveLayoutTest } from '../test-utils/tests/service.test.js';
 
 // 模拟API响应
 const mockAPIResponses = {
@@ -156,10 +162,84 @@ export const userConfirmationTest = {
   ]
 };
 
+// TTS功能测试场景
+export const ttsTest = {
+  name: "语音合成(TTS)测试",
+  description: "测试文本转语音功能，包括播放、暂停和取消",
+  steps: [
+    {
+      name: "初始化语音合成",
+      action: () => {
+        return MockSpeech.install();
+      }
+    },
+    {
+      name: "测试语音播报",
+      action: () => {
+        // 创建一个测试语音实例
+        const utterance = new window.SpeechSynthesisUtterance("这是一条测试语音消息，用于验证TTS功能是否正常工作。");
+        utterance.lang = 'zh-CN';
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        
+        // 添加事件处理
+        utterance.onstart = () => {
+          Logger.info('Test', 'TTS播放开始');
+        };
+        
+        utterance.onend = () => {
+          Logger.info('Test', 'TTS播放结束');
+        };
+        
+        window.speechSynthesis.speak(utterance);
+        Logger.info('Test', '已发送TTS播放请求');
+        
+        return true;
+      }
+    },
+    {
+      name: "测试TTS暂停和恢复",
+      action: () => {
+        // 暂停播放
+        window.speechSynthesis.pause();
+        Logger.info('Test', 'TTS已暂停');
+        
+        // 等待一会后恢复
+        setTimeout(() => {
+          window.speechSynthesis.resume();
+          Logger.info('Test', 'TTS已恢复');
+        }, 500);
+        
+        return new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    },
+    {
+      name: "测试TTS取消",
+      action: () => {
+        window.speechSynthesis.cancel();
+        Logger.info('Test', 'TTS已取消');
+        return true;
+      }
+    },
+    {
+      name: "清理测试环境",
+      action: () => {
+        return MockSpeech.uninstall();
+      }
+    }
+  ]
+};
+
 // 导出所有测试场景
 export default [
   basicSpeechTest,
   errorHandlingTest,
   directReplyTest,
-  userConfirmationTest
+  userConfirmationTest,
+  ttsTest,
+  fullVoiceDialogueTest,
+  authenticationTest,
+  themeToggleTest,
+  servicePageLoadTest,
+  responsiveLayoutTest
 ]; 

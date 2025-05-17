@@ -1,28 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { 
   Button, 
-  Space, 
   NavBar, 
-  Grid, 
   Card,
   Toast,
-  Dialog,
-  Divider,
   WaterMark
 } from 'antd-mobile';
 import { SoundOutline, AudioOutline, CloseCircleOutline } from 'antd-mobile-icons';
 import { v4 as uuidv4 } from 'uuid';
-import MobileNavButton from '../../components/MobileNavButton';
+import ThemeToggle from '../../components/ThemeToggle';
 import apiClient from '../../services/apiClient';
 import useTTS from '../../hooks/useTTS';
 import useVoice from '../../hooks/useVoice';
 import useIntent from '../../hooks/useIntent';
+import { ThemeContext } from '../../theme/ThemeProvider';
+import { AuthContext } from '../../contexts/AuthContext';
 import './VoiceAIMobile.css';
 
 // 添加兼容性检查
 const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition || null;
 
 const VoiceAIMobile = () => {
+  const { theme } = useContext(ThemeContext);
+  const { isAuthenticated, user } = useContext(AuthContext);
   const [listening, setListening] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [executing, setExecuting] = useState(false);
@@ -42,6 +42,7 @@ const VoiceAIMobile = () => {
   const voice = useVoice(); // 使用useVoice hook代替原生API
   const { classifyIntent } = useIntent(); // 使用useIntent hook进行意图分类
   
+  // 初始化会话和检查API可用性
   useEffect(() => {
     // 检查API可用性
     if (!SpeechRecognitionAPI) {
@@ -58,7 +59,144 @@ const VoiceAIMobile = () => {
     setSessionId(uuidv4());
   }, []);
   
-  // 使用useEffect监听voice.transcript变化
+  // 执行操作函数 - 使用useCallback包装以便在依赖项中使用
+  const executeAction = useCallback(async (toolId, params) => {
+    // 防止重复执行
+    if (executing) {
+      console.log("已经在执行操作,忽略重复请求");
+      return;
+    }
+    
+    setExecuting(true);
+    
+    try {
+      Toast.show({
+        icon: 'loading',
+        content: '正在执行...',
+        duration: 0,
+      });
+      
+      console.log(`开始执行工具: ${toolId}, 参数:`, params);
+      const result = await apiClient.execute(toolId, params, sessionId, user?.id || 1);
+      
+      // 清除加载提示
+      Toast.clear();
+      
+      console.log("执行结果:", result);
+      
+      // 格式化结果用于显示和朗读
+      const displayText = formatResultForDisplay(result.data || result);
+      const speechText = formatResultForSpeech(result.data || result);
+      
+      setResult(displayText);
+      
+      // 停止任何正在进行的语音
+      if (isSpeaking) {
+        cancel();
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+      
+      // 朗读结果
+      speak(speechText);
+      
+    } catch (error) {
+      console.error("执行操作失败:", error);
+      Toast.show({
+        icon: 'fail',
+        content: error.message || '执行失败，请重试',
+        duration: 2000,
+      });
+      setResult('执行失败: ' + (error.message || '未知错误'));
+    } finally {
+      // 延迟释放executing状态,避免UI闪烁
+      setTimeout(() => {
+        setExecuting(false);
+      }, 300);
+    }
+  }, [executing, sessionId, user, isSpeaking, cancel, speak]);
+  
+  // 处理意图函数 - 使用useCallback包装以便在依赖项中使用
+  const processIntent = useCallback(async (userText) => {
+    if (processing) {
+      console.log("已经在处理中,忽略重复请求");
+      return; // 避免重复处理
+    }
+    
+    setProcessing(true);
+    
+    try {
+      console.log(`开始处理意图: "${userText}"`);
+      const response = await apiClient.interpret(userText, sessionId, user?.id || 1);
+      
+      // 判断是否需要确认
+      if (response.type === 'confirm' || (response.tool_calls && response.tool_calls.length > 0)) {
+        // 获取确认文本
+        const confirmMessage = response.confirmText || response.confirm_text || '您确定要执行此操作吗？';
+        setConfirmText(confirmMessage);
+        
+        // 准备工具ID和参数
+        let toolId = '';
+        let params = {};
+        
+        if (response.tool_calls && response.tool_calls.length > 0) {
+          // 新的API结构
+          const toolCall = response.tool_calls[0];
+          toolId = toolCall.tool_id;
+          params = toolCall.parameters || {};
+        } else {
+          // 旧的API结构
+          toolId = response.action;
+          params = response.params || {};
+        }
+        
+        // 先存储当前工具ID和参数,用于后续执行
+        setCurrentToolId(toolId);
+        setCurrentParams(params);
+        
+        // 确保不会在TTS播放前就开始监听语音
+        setListening(false);
+        if (voice.isListening) {
+          await voice.stopListening();
+        }
+        
+        // 设置等待确认状态
+        setWaitingForConfirmation(true);
+        
+        // 延迟一点再播放TTS,确保状态更新已完成
+        // 停止任何正在播放的语音
+        if (isSpeaking) {
+          cancel();
+          // 给取消操作一点时间完成
+          await new Promise(resolve => setTimeout(resolve, 300));
+        }
+        
+        // 播放确认文本
+        console.log(`开始播放确认文本: "${confirmMessage}"`);
+        speak(confirmMessage);
+        setSpeaking(true);
+      } else if (response.content) {
+        // 直接响应
+        setResult(response.content);
+        speak(response.content);
+      } else {
+        setResult('无法理解您的请求,请重试');
+        speak('无法理解您的请求,请重试');
+      }
+    } catch (error) {
+      console.error('处理意图失败:', error);
+      Toast.show({
+        icon: 'fail',
+        content: error.message || '服务器错误,请重试',
+      });
+    } finally {
+      // 短延迟后才释放processing状态,避免重复处理
+      setTimeout(() => {
+        setProcessing(false);
+      }, 300);
+    }
+  }, [processing, sessionId, user, voice, isSpeaking, cancel, speak, setListening]);
+  
+  // 使用useEffect监听voice.transcript变化，处理确认流程
   useEffect(() => {
     if (waitingForConfirmation && voice.transcript) {
       console.log("收到确认语音回复:", voice.transcript);
@@ -134,9 +272,9 @@ const VoiceAIMobile = () => {
         setConfirmText('');
       }
     }
-  }, [voice.transcript, waitingForConfirmation, classifyIntent, currentToolId, currentParams, text, originalQuery, executing]);
+  }, [voice.transcript, waitingForConfirmation, classifyIntent, currentToolId, currentParams, text, originalQuery, executing, voice, processIntent, executeAction]);
   
-  // 使用useEffect监听isSpeaking状态变化
+  // 使用useEffect监听isSpeaking状态变化，处理TTS播放完成后的自动语音识别启动
   useEffect(() => {
     setSpeaking(isSpeaking);
     
@@ -162,9 +300,9 @@ const VoiceAIMobile = () => {
       // 清理函数,避免组件卸载时仍然执行定时器
       return () => clearTimeout(timer);
     }
-  }, [isSpeaking, waitingForConfirmation, confirmText, voice, processing, executing]);
+  }, [isSpeaking, waitingForConfirmation, confirmText, voice, processing, executing, setListening]);
   
-  // 使用useEffect监听voice.isListening状态
+  // 使用useEffect监听voice.isListening状态，处理语音识别结果
   useEffect(() => {
     setListening(voice.isListening);
     
@@ -185,7 +323,7 @@ const VoiceAIMobile = () => {
         }
       }, 200);
     }
-  }, [voice.isListening, voice.transcript, waitingForConfirmation, processing]);
+  }, [voice.isListening, voice.transcript, waitingForConfirmation, processing, processIntent]);
 
   // 监听语音识别错误
   useEffect(() => {
@@ -235,156 +373,6 @@ const VoiceAIMobile = () => {
         icon: 'fail',
         content: '启动语音识别失败，请重试',
       });
-    }
-  };
-  
-  // 处理用户意图
-  const processIntent = async (userText) => {
-    if (processing) {
-      console.log("已经在处理中,忽略重复请求");
-      return; // 避免重复处理
-    }
-    
-    setProcessing(true);
-    
-    try {
-      console.log(`开始处理意图: "${userText}"`);
-      const response = await apiClient.interpret(userText, sessionId, 1);
-      
-      // 判断是否需要确认
-      if (response.type === 'confirm' || (response.tool_calls && response.tool_calls.length > 0)) {
-        // 获取确认文本
-        const confirmMessage = response.confirmText || response.confirm_text || '您确定要执行此操作吗？';
-        setConfirmText(confirmMessage);
-        
-        // 准备工具ID和参数
-        let toolId = '';
-        let params = {};
-        
-        if (response.tool_calls && response.tool_calls.length > 0) {
-          // 新的API结构
-          const toolCall = response.tool_calls[0];
-          toolId = toolCall.tool_id;
-          params = toolCall.parameters || {};
-        } else {
-          // 旧的API结构
-          toolId = response.action;
-          params = response.params || {};
-        }
-        
-        // 先存储当前工具ID和参数,用于后续执行
-        setCurrentToolId(toolId);
-        setCurrentParams(params);
-        
-        // 确保不会在TTS播放前就开始监听语音
-        setListening(false);
-        if (voice.isListening) {
-          await voice.stopListening();
-        }
-        
-        // 设置等待确认状态
-        setWaitingForConfirmation(true);
-        
-        // 延迟一点再播放TTS,确保状态更新已完成
-        // 停止任何正在播放的语音
-        if (isSpeaking) {
-          cancel();
-          // 给取消操作一点时间完成
-          await new Promise(resolve => setTimeout(resolve, 300));
-        }
-        
-        // 播放确认文本
-        console.log(`开始播放确认文本: "${confirmMessage}"`);
-        speak(confirmMessage);
-        setSpeaking(true);
-      } else if (response.content) {
-        // 直接响应
-        setResult(response.content);
-        speak(response.content);
-      } else {
-        setResult('无法理解您的请求,请重试');
-        speak('无法理解您的请求,请重试');
-      }
-    } catch (error) {
-      console.error('处理意图失败:', error);
-      Toast.show({
-        icon: 'fail',
-        content: error.message || '服务器错误,请重试',
-      });
-    } finally {
-      // 短延迟后才释放processing状态,避免重复处理
-      setTimeout(() => {
-        setProcessing(false);
-      }, 300);
-    }
-  };
-  
-  // 执行操作
-  const executeAction = async (toolId, params) => {
-    // 防止重复执行
-    if (executing) {
-      console.log("已经在执行操作,忽略重复请求");
-      return;
-    }
-    
-    setExecuting(true);
-    
-    try {
-      // 确保在执行操作前,不再处于等待确认状态
-      setWaitingForConfirmation(false);
-      
-      console.log(`开始执行操作,工具ID: ${toolId}`);
-      const response = await apiClient.execute(toolId, params, sessionId, 1);
-      
-      if (response.success) {
-        // 确保TTS已停止
-        cancel();
-        
-        // 提取要显示的文本内容
-        const displayText = formatResultForDisplay(response.data);
-        setResult(displayText);
-        
-        // 提取要播报的语音内容
-        const speechText = formatResultForSpeech(response.data);
-        
-        // 延迟一点播放TTS,确保状态更新已完成
-        setTimeout(() => {
-          console.log(`播报执行结果: "${speechText.substring(0, 30)}${speechText.length > 30 ? '...' : ''}"`);
-          speak(speechText);
-        }, 300);
-      } else {
-        const errorMessage = `执行失败: ${response.error?.message || '未知错误'}`;
-        setResult(errorMessage);
-        
-        // 确保TTS已停止
-        cancel();
-        
-        // 延迟一点播放错误信息
-        setTimeout(() => {
-          speak(`很抱歉,执行失败。${response.error?.message || '发生了未知错误'}`);
-        }, 300);
-      }
-    } catch (error) {
-      console.error('执行操作失败:', error);
-      setResult('服务器错误,请重试');
-      
-      // 确保TTS已停止
-      cancel();
-      
-      // 延迟一点播放错误信息
-      setTimeout(() => {
-        speak('很抱歉,服务器出现错误,请重试');
-      }, 300);
-    } finally {
-      // 延迟一点重置状态
-      setTimeout(() => {
-        setExecuting(false);
-        // 重置工具ID和参数
-        setCurrentToolId('');
-        setCurrentParams({});
-        // 清除确认文本
-        setConfirmText('');
-      }, 300);
     }
   };
   
@@ -501,54 +489,56 @@ const VoiceAIMobile = () => {
   };
 
   return (
-    <div className="voice-ai-container">
-      <NavBar backArrow={false} style={{ 
-        background: '#1677ff', 
-        color: 'white',
-        fontWeight: 'bold'
-      }}>全语音 AI 助手</NavBar>
+    <div className="voice-ai-container" data-theme={theme}>
+      <NavBar 
+        backArrow={false} 
+        className="voice-ai-navbar" 
+        right={
+          <Button 
+            size="mini" 
+            onClick={() => window.location.href = isAuthenticated ? '/user' : '/auth'}
+          >
+            {isAuthenticated ? (user?.username || '我的') : '登录'}
+          </Button>
+        }
+      >
+        全语音 AI 助手
+      </NavBar>
       
       <div className="content-area">
         {text && (
-          <Card title="您的请求" headerStyle={{ color: '#1677ff' }}>
+          <Card title="您的请求" className="voice-card user-request-card">
             <div className="user-text">{text}</div>
           </Card>
         )}
         
         {confirmText && (
-          <Card title="确认信息" headerStyle={{ color: '#722ed1' }}>
+          <Card title="确认信息" className="voice-card confirm-card">
             <div className="confirm-text">{confirmText}</div>
           </Card>
         )}
         
         {waitingForConfirmation && voice.transcript && (
-          <Card title="您的回复" headerStyle={{ color: '#1890ff' }}>
+          <Card title="您的回复" className="voice-card user-reply-card">
             <div className="user-text">{voice.transcript}</div>
           </Card>
         )}
         
         {result && (
-          <Card title="执行结果" headerStyle={{ color: '#52c41a' }}>
+          <Card title="执行结果" className="voice-card result-card">
             <div className="result-text">
               {(() => {
                 try {
                   const jsonObj = JSON.parse(result);
                   // 是JSON,格式化显示
                   return (
-                    <pre style={{ 
-                      whiteSpace: 'pre-wrap',
-                      wordBreak: 'break-word',
-                      overflowX: 'auto',
-                      padding: '8px',
-                      backgroundColor: '#f5f5f5',
-                      borderRadius: '4px'
-                    }}>
+                    <pre className="json-result">
                       {JSON.stringify(jsonObj, null, 2)}
                     </pre>
                   );
                 } catch (e) {
                   // 不是JSON,按普通文本显示
-                  return <p style={{ lineHeight: '1.5' }}>{result}</p>;
+                  return <p className="text-result">{result}</p>;
                 }
               })()}
             </div>
@@ -556,13 +546,9 @@ const VoiceAIMobile = () => {
         )}
         
         {!text && !confirmText && !result && (
-          <div style={{ 
-            textAlign: 'center', 
-            padding: '40px 20px',
-            color: '#666' 
-          }}>
-            <SoundOutline style={{ fontSize: 48, color: '#1677ff' }} />
-            <p style={{ marginTop: 16 }}>点击下方按钮开始语音对话</p>
+          <div className="empty-state">
+            <SoundOutline className="empty-icon" />
+            <p className="empty-text">点击下方按钮开始语音对话</p>
           </div>
         )}
       </div>
@@ -576,13 +562,12 @@ const VoiceAIMobile = () => {
           <div className="status waiting">请语音确认或取消...</div>
         )}
         {!listening && !processing && !executing && !speaking && !waitingForConfirmation && (
-          <div style={{ padding: '8px', color: '#666' }}>空闲中,等待您的指令</div>
+          <div className="status idle">空闲中,等待您的指令</div>
         )}
       </div>
       
       <div className="control-area">
-        <Grid columns={3} gap={8}>
-          <Grid.Item>
+        <div className="button-row">
             <Button
               block
               color="primary"
@@ -594,9 +579,7 @@ const VoiceAIMobile = () => {
             >
               {listening ? '录音中...' : '开始录音'}
             </Button>
-          </Grid.Item>
           
-          <Grid.Item>
             <Button
               block
               color="warning"
@@ -607,9 +590,7 @@ const VoiceAIMobile = () => {
             >
               {speaking ? '停止播报' : '取消操作'}
             </Button>
-          </Grid.Item>
           
-          <Grid.Item>
             <Button
               block
               color="success"
@@ -627,8 +608,7 @@ const VoiceAIMobile = () => {
             >
               重新播报
             </Button>
-          </Grid.Item>
-        </Grid>
+        </div>
         
         {/* 添加重置按钮 */}
         {(text || result || confirmText) && (
@@ -637,7 +617,7 @@ const VoiceAIMobile = () => {
             color="default"
             size="middle"
             onClick={resetSession}
-            style={{ marginTop: '12px' }}
+            className="reset-button"
           >
             清除并重置会话
           </Button>
@@ -649,28 +629,21 @@ const VoiceAIMobile = () => {
             color="primary"
             size="large"
             onClick={handleDemoText}
-            style={{ marginTop: '12px' }}
+            className="demo-button"
           >
             测试功能（不用语音）
           </Button>
         )}
       </div>
       
-      <div style={{ 
-        padding: '8px 0', 
-        textAlign: 'center',
-        fontSize: '12px',
-        color: '#999',
-        backgroundColor: '#f5f5f5',
-        borderTop: '1px solid #eee'
-      }}>
+      <div className="footer">
         Echo AI 语音助手 © 2025
       </div>
       
       <WaterMark content="Echo AI" />
       
       {/* 添加导航按钮 */}
-      <div style={{ position: 'absolute', top: '12px', right: '12px' }}>
+      <div className="classic-mode-button">
         <Button 
           size="mini" 
           onClick={() => window.location.href = '/classic'}
@@ -678,6 +651,9 @@ const VoiceAIMobile = () => {
           切换到经典版
         </Button>
       </div>
+      
+      {/* 添加主题切换按钮 */}
+      <ThemeToggle />
     </div>
   );
 };

@@ -88,10 +88,11 @@ class AuthService:
         """
         access_token_expires = timedelta(minutes=settings.JWT_EXPIRATION)
         
-        # 创建令牌数据
+        # 创建令牌数据，包含用户角色信息
         token_data = {
             "sub": str(user.id),
-            "username": user.username
+            "username": user.username,
+            "role": user.role
         }
         
         # 使用令牌数据创建JWT令牌

@@ -1,0 +1,41 @@
+=============================================
+语音AI代理前端自动化测试 - 启动脚本
+=============================================
+chmod: cannot access 'src/mocks/cleanup-tests.sh': No such file or directory
+✅ 已添加测试模式环境变量
+正在停止现有前端服务...
+找到运行在端口3000的服务，PID: 62405，正在关闭...
+✅ 端口3000已释放
+✅ 前端服务已停止，准备启动新实例
+启动前端应用...
+⏳ 正在启动，请等待几秒钟...
+
+> voice-ai-agent-frontend@0.1.0 start
+> react-scripts start
+
+(node:32297) [DEP_WEBPACK_DEV_SERVER_ON_AFTER_SETUP_MIDDLEWARE] DeprecationWarning: 'onAfterSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:32297) [DEP_WEBPACK_DEV_SERVER_ON_BEFORE_SETUP_MIDDLEWARE] DeprecationWarning: 'onBeforeSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+Starting the development server...
+
+✅ 启动完成！请访问 http://localhost:3000/test
+
+测试完成后可运行 ./src/mocks/cleanup-tests.sh 清理测试环境
+=============================================
+Compiled successfully!
+
+You can now view voice-ai-agent-frontend in the browser.
+
+  Local:            http://localhost:3000
+  On Your Network:  http://10.108.12.3:3000
+
+Note that the development build is not optimized.
+To create a production build, use npm run build.
+
+webpack compiled successfully
+Compiling...
+Compiled successfully!
+webpack compiled successfully
+Compiling...
+Compiled successfully!
+webpack compiled successfully

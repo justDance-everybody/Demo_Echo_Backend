@@ -5,8 +5,39 @@ import { ConfigProvider as AntMobileConfigProvider } from 'antd-mobile';
 import zhCN from 'antd/lib/locale/zh_CN';
 import zhCNMobile from 'antd-mobile/es/locales/zh-CN';
 import 'antd-mobile/bundle/style.css';
+import './styles/tokens.css'; // 确保CSS变量在早期加载
 import './index.css';
+import './styles/MobileOptimization.css'; // 导入移动端优化样式
 import App from './App';
+import ThemeProvider from './theme/ThemeProvider';
+import GlobalStyles from './styles/GlobalStyles';
+
+// Ant Design Mobile 自定义主题配置
+const antMobileTheme = {
+  token: {
+    // 设置主色调，使用CSS变量，确保与我们的设计令牌系统一致
+    colorPrimary: 'var(--color-primary)',
+    colorSuccess: 'var(--color-success)',
+    colorWarning: 'var(--color-warning)',
+    colorDanger: 'var(--color-error)',
+    colorTextBase: 'var(--text)',
+    fontFamily: 'var(--font-family)',
+    borderRadius: 8, // 8px
+  },
+};
+
+// Ant Design 自定义主题配置
+const antDesignTheme = {
+  token: {
+    colorPrimary: 'var(--color-primary)',
+    colorSuccess: 'var(--color-success)',
+    colorWarning: 'var(--color-warning)',
+    colorError: 'var(--color-error)',
+    colorTextBase: 'var(--text)',
+    fontFamily: 'var(--font-family)',
+    borderRadius: 8,
+  },
+};
 
 // Polyfill for SpeechRecognition
 if (!window.SpeechRecognition && !window.webkitSpeechRecognition) {
@@ -57,10 +88,13 @@ console.log('日志收集器已激活。使用 window.voiceDebugger 查看语音
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <AntConfigProvider locale={zhCN}>
-      <AntMobileConfigProvider locale={zhCNMobile}>
+    <ThemeProvider>
+      <GlobalStyles />
+      <AntConfigProvider locale={zhCN} theme={antDesignTheme}>
+        <AntMobileConfigProvider locale={zhCNMobile} theme={antMobileTheme}>
         <App />
       </AntMobileConfigProvider>
     </AntConfigProvider>
+    </ThemeProvider>
   </React.StrictMode>
 ); 

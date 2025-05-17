@@ -1,86 +1,87 @@
 // TestPage.js - 语音AI前端测试页面
 
 import React from 'react';
-import TestRunner from './TestRunner';
+import styled from 'styled-components';
+import { Tabs } from 'antd-mobile';
+import TestRunner from '../test-utils/TestRunner';
 
-// 测试页面样式
-const styles = {
-  container: {
-    maxWidth: '960px',
-    margin: '0 auto',
-    padding: '20px',
-    fontFamily: 'Arial, sans-serif'
-  },
-  header: {
-    marginBottom: '20px',
-    borderBottom: '1px solid #eee',
-    paddingBottom: '10px'
-  },
-  title: {
-    fontSize: '24px',
-    fontWeight: 'bold',
-    color: '#333'
-  },
-  subtitle: {
-    fontSize: '16px',
-    color: '#666',
-    marginTop: '5px'
-  },
-  content: {
-    backgroundColor: '#fff',
-    borderRadius: '8px',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-    padding: '20px',
-    marginBottom: '20px'
-  },
-  instructions: {
-    backgroundColor: '#f9f9f9',
-    padding: '15px',
-    borderRadius: '6px',
-    marginBottom: '20px'
-  },
-  instructionTitle: {
-    fontSize: '18px',
-    fontWeight: 'bold',
-    marginBottom: '10px'
-  },
-  instructionList: {
-    paddingLeft: '20px',
-    marginBottom: '0'
-  },
-  instructionItem: {
-    marginBottom: '8px'
+const TestPageContainer = styled.div`
+  min-height: 100vh;
+  padding: 20px;
+  background-color: var(--background);
+  
+  @media (min-width: 768px) {
+    padding: 40px;
   }
-};
+`;
 
-// 测试页面组件
+const Header = styled.header`
+  margin-bottom: 30px;
+  
+  h1 {
+    font-size: var(--font-size-3xl);
+    color: var(--text);
+    margin-bottom: 10px;
+  }
+  
+  p {
+    color: var(--text-secondary);
+    max-width: 800px;
+  }
+`;
+
+const TabContent = styled.div`
+  margin-top: 20px;
+`;
+
+/**
+ * 测试页面
+ * 测试页面用于运行和管理前端测试
+ */
 const TestPage = () => {
   return (
-    <div style={styles.container}>
-      <div style={styles.header}>
-        <h1 style={styles.title}>语音AI自动化测试</h1>
-        <p style={styles.subtitle}>测试、调试和监控前端语音交互功能</p>
-      </div>
-      
-      <div style={styles.content}>
-        <div style={styles.instructions}>
-          <h3 style={styles.instructionTitle}>使用说明</h3>
-          <ol style={styles.instructionList}>
-            <li style={styles.instructionItem}>在右下角测试面板中选择要运行的测试场景</li>
-            <li style={styles.instructionItem}>点击"运行测试"按钮开始测试</li>
-            <li style={styles.instructionItem}>测试过程会自动模拟语音交互，无需手动操作</li>
-            <li style={styles.instructionItem}>测试结束后，可导出测试报告或日志进行分析</li>
-          </ol>
-        </div>
-        
+    <TestPageContainer>
+      <Header>
+        <h1>Echo 前端测试中心</h1>
         <p>
-          本测试工具旨在模拟用户的语音交互行为，自动化测试语音识别、意图理解、确认流程等功能。
-          测试结果和日志将帮助开发人员诊断潜在问题，提高语音交互的质量。
+          测试中心提供各种测试工具，用于验证前端组件和功能的正确性。
+          您可以运行单元测试、集成测试和端到端测试，并查看测试结果和日志。
         </p>
-      </div>
+      </Header>
       
-      <TestRunner />
-    </div>
+      <Tabs>
+        <Tabs.Tab title="端到端测试" key="e2e">
+          <TabContent>
+            <TestRunner />
+          </TabContent>
+        </Tabs.Tab>
+        <Tabs.Tab title="单元测试" key="unit">
+          <TabContent>
+            <p>单元测试通常通过命令行运行。请使用以下命令：</p>
+            <pre>
+              cd frontend<br />
+              npm test
+            </pre>
+            <p>您也可以运行特定测试：</p>
+            <pre>
+              npm test -- -t "组件名称"
+            </pre>
+          </TabContent>
+        </Tabs.Tab>
+        <Tabs.Tab title="手动测试" key="manual">
+          <TabContent>
+            <p>手动测试清单：</p>
+            <ol>
+              <li>验证响应式布局在不同设备尺寸下的显示</li>
+              <li>验证主题切换功能</li>
+              <li>验证用户认证流程</li>
+              <li>验证服务页面功能</li>
+              <li>验证语音交互功能</li>
+            </ol>
+          </TabContent>
+        </Tabs.Tab>
+      </Tabs>
+    </TestPageContainer>
   );
 };
 

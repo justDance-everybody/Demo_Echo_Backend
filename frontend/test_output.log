@@ -1,0 +1,45 @@
+=============================================
+语音AI代理前端自动化测试 - 启动脚本
+=============================================
+chmod: cannot access 'src/mocks/cleanup-tests.sh': No such file or directory
+✅ 已添加测试模式环境变量
+正在停止现有前端服务...
+找到运行在端口3000的服务，PID: 61068，正在关闭...
+✅ 端口3000已释放
+找到其他React脚本进程，正在关闭...
+关闭进程 PID: 61886
+关闭进程 PID: 61887
+关闭进程 PID: 61894
+✅ 所有React相关进程已关闭
+✅ 前端服务已停止，准备启动新实例
+启动前端应用...
+⏳ 正在启动，请等待几秒钟...
+
+> voice-ai-agent-frontend@0.1.0 start
+> react-scripts start
+
+(node:62405) [DEP_WEBPACK_DEV_SERVER_ON_AFTER_SETUP_MIDDLEWARE] DeprecationWarning: 'onAfterSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:62405) [DEP_WEBPACK_DEV_SERVER_ON_BEFORE_SETUP_MIDDLEWARE] DeprecationWarning: 'onBeforeSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+Starting the development server...
+
+✅ 启动完成！请访问 http://localhost:3000/test
+
+测试完成后可运行 ./src/mocks/cleanup-tests.sh 清理测试环境
+=============================================
+Compiled successfully!
+
+You can now view voice-ai-agent-frontend in the browser.
+
+  Local:            http://localhost:3000
+  On Your Network:  http://10.108.12.3:3000
+
+Note that the development build is not optimized.
+To create a production build, use npm run build.
+
+webpack compiled successfully
+(node:62405) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+Proxy error: Could not proxy request /test from localhost:3000 to http://localhost:8000.
+See https://nodejs.org/api/errors.html#errors_common_system_errors for more information (ECONNREFUSED).
+
+The build failed because the process exited too early. This probably means the system ran out of memory or someone called `kill -9` on the process.

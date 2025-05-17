@@ -57,6 +57,95 @@ api.interceptors.response.use(
   }
 );
 
+// 认证相关方法
+
+// 设置认证令牌
+const setAuthToken = (token) => {
+  if (token) {
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  } else {
+    delete api.defaults.headers.common['Authorization'];
+  }
+};
+
+// 用户登录
+const login = async (username, password) => {
+  try {
+    const response = await api.post('/api/auth/login', {
+      username,
+      password
+    });
+    
+    // 确保返回成功状态和处理用户角色
+    return {
+      success: true,
+      token: response.data.access_token,
+      user: {
+        id: response.data.user_id,
+        username: response.data.username,
+        role: response.data.role || 'user' // 确保获取角色信息，默认为user
+      }
+    };
+  } catch (error) {
+    console.error('登录失败:', error);
+    return {
+      success: false,
+      message: error.message || '登录失败，请稍后再试'
+    };
+  }
+};
+
+// 用户注册
+const register = async (username, password, email) => {
+  try {
+    const response = await api.post('/api/auth/register', {
+      username,
+      password,
+      email
+    });
+    
+    // 确保返回成功状态和处理用户角色
+    return {
+      success: true,
+      user: {
+        id: response.data.id,
+        username: response.data.username,
+        role: response.data.role || 'user' // 确保获取角色信息，默认为user
+      }
+    };
+  } catch (error) {
+    console.error('注册失败:', error);
+    return {
+      success: false,
+      message: error.message || '注册失败，请稍后再试'
+    };
+  }
+};
+
+// 获取用户信息
+const getUserInfo = async () => {
+  try {
+    const response = await api.get('/api/auth/me');
+    return response.data;
+  } catch (error) {
+    console.error('获取用户信息失败:', error);
+    throw error;
+  }
+};
+
+// 刷新令牌
+const refreshToken = async () => {
+  try {
+    const response = await api.post('/api/auth/refresh');
+    return response.data;
+  } catch (error) {
+    console.error('刷新令牌失败:', error);
+    throw error;
+  }
+};
+
+// 原有的API方法
+
 const interpret = async (transcript, sessionId, userId) => {
     try {
         console.log(`发送interpret请求，携带sessionId: ${sessionId}`);
@@ -142,10 +231,162 @@ const getTools = async () => {
     }
 };
 
+// 获取单个工具（服务）详情
+const getToolById = async (toolId) => {
+  try {
+    console.log(`获取工具ID: ${toolId} 的详情`);
+    const response = await api.get(`/api/v1/tools/${toolId}`);
+    console.log("工具详情响应:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error(`获取工具ID: ${toolId} 的详情失败:`, error);
+    throw error;
+  }
+};
+
+// 开发者API接口
+
+// 获取开发者服务列表
+const getDeveloperServices = async () => {
+  try {
+    console.log("获取开发者服务列表...");
+    const response = await api.get('/api/dev/tools');
+    console.log("开发者服务列表响应:", response.data);
+    return response.data.services;
+  } catch (error) {
+    console.error('获取开发者服务列表失败:', error);
+    throw error;
+  }
+};
+
+// 创建新服务
+const createDeveloperService = async (serviceData) => {
+  try {
+    console.log("创建新服务...", serviceData);
+    const response = await api.post('/api/dev/tools', serviceData);
+    console.log("创建服务响应:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error('创建服务失败:', error);
+    throw error;
+  }
+};
+
+// 获取单个开发者服务详情
+const getDeveloperServiceById = async (serviceId) => {
+  try {
+    console.log(`获取开发者服务ID: ${serviceId} 的详情`);
+    const response = await api.get(`/api/dev/tools/${serviceId}`);
+    console.log("开发者服务详情响应:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error(`获取开发者服务ID: ${serviceId} 的详情失败:`, error);
+    throw error;
+  }
+};
+
+// 更新服务
+const updateDeveloperService = async (serviceId, updateData) => {
+  try {
+    console.log(`更新开发者服务ID: ${serviceId}`, updateData);
+    const response = await api.put(`/api/dev/tools/${serviceId}`, updateData);
+    console.log("更新服务响应:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error(`更新开发者服务ID: ${serviceId} 失败:`, error);
+    throw error;
+  }
+};
+
+// 删除服务
+const deleteDeveloperService = async (serviceId) => {
+  try {
+    console.log(`删除开发者服务ID: ${serviceId}`);
+    const response = await api.delete(`/api/dev/tools/${serviceId}`);
+    console.log("删除服务响应:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error(`删除开发者服务ID: ${serviceId} 失败:`, error);
+    throw error;
+  }
+};
+
+// 上传API包
+const uploadApiPackage = async (formData) => {
+  try {
+    console.log("上传API包...");
+    const response = await api.post('/api/dev/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    console.log("上传API包响应:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error('上传API包失败:', error);
+    throw error;
+  }
+};
+
+// 获取开发者应用列表
+const getDeveloperApplications = async () => {
+  try {
+    console.log("获取开发者应用列表...");
+    const response = await api.get('/api/dev/apps');
+    console.log("开发者应用列表响应:", response.data);
+    return response.data.applications;
+  } catch (error) {
+    console.error('获取开发者应用列表失败:', error);
+    throw error;
+  }
+};
+
+// 创建新应用
+const createDeveloperApplication = async (applicationData) => {
+  try {
+    console.log("创建新应用...", applicationData);
+    const response = await api.post('/api/dev/apps', applicationData);
+    console.log("创建应用响应:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error('创建应用失败:', error);
+    throw error;
+  }
+};
+
+// 测试API服务
+const testApiService = async (serviceId, testData) => {
+  try {
+    console.log(`测试开发者服务ID: ${serviceId}`, testData);
+    const response = await api.post(`/api/dev/tools/${serviceId}/test`, testData);
+    console.log("测试服务响应:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error(`测试开发者服务ID: ${serviceId} 失败:`, error);
+    throw error;
+  }
+};
+
 const apiClient = {
   interpret,
   execute, 
   getTools,
+  getToolById,
+  login,
+  register,
+  getUserInfo,
+  refreshToken,
+  setAuthToken,
+  // 开发者API接口
+  getDeveloperServices,
+  createDeveloperService,
+  getDeveloperServiceById,
+  updateDeveloperService,
+  deleteDeveloperService,
+  uploadApiPackage,
+  getDeveloperApplications,
+  createDeveloperApplication,
+  testApiService
 };
 
 export default apiClient; 

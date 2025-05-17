@@ -186,51 +186,6 @@ const MainPage = () => {
         }
     }, [speak, resetUIState, startListening, isListening, stopListening]);
 
-    const handleUserConfirm = useCallback(() => {
-        console.log(`[Session: ${sessionIdRef.current}] 用户确认了操作`);
-        setIsConfirmModalOpen(false);
-        
-        // 取消可能正在播放的确认文本
-        if (isSpeaking) {
-            cancelTTS();
-        }
-        if (isListening) {
-            // stopListening(); // useVoice Hook 的 onresult 后会自动停止
-        }
-        
-        // 处理用户确认
-        setStatus('executing');
-        
-        // 从pendingAction获取工具信息
-        let toolId, params, userId = 1;
-        
-        if (pendingAction?.tool_calls && pendingAction.tool_calls.length > 0) {
-            // 新格式: 工具调用数组
-            const firstToolCall = pendingAction.tool_calls[0];
-            toolId = firstToolCall.tool_id;
-            params = firstToolCall.parameters || {};
-        } else {
-            console.warn(`[Session: ${sessionIdRef.current}] 没有明确的 tool_calls，尝试执行... (可能需要后端支持无工具的确认流程)`);
-            // 这里可以尝试设置一个默认动作或提示错误
-            // 暂时允许继续，看后端execute如何处理
-            toolId = pendingAction?.action || 'default_confirm_action'; // 假设有一个默认动作
-            params = pendingAction?.params || {};
-        }
-        
-        const currentSessionId = sessionIdRef.current;
-
-        console.log(`[Session: ${currentSessionId}] 准备执行工具: ${toolId}，参数:`, params);
-        
-        // 清除任何现有的自动重置计时器
-        if (resetTimerRef.current) {
-            clearTimeout(resetTimerRef.current);
-            resetTimerRef.current = null;
-        }
-        
-        // 执行工具调用
-        executeToolAndHandleResult(toolId, params, currentSessionId, userId);
-    }, [pendingAction, speak, cancelTTS, resetUIState, isSpeaking, isListening /*, stopListening*/]);
-
     // 提取工具执行和结果处理逻辑到单独的函数
     const executeToolAndHandleResult = useCallback(async (toolId, params, currentSessionId, userId) => {
         try {
@@ -302,6 +257,51 @@ const MainPage = () => {
             resetTimerRef.current = setTimeout(resetUIState, 5000);
         }
     }, [speak, resetUIState]);
+
+    const handleUserConfirm = useCallback(() => {
+        console.log(`[Session: ${sessionIdRef.current}] 用户确认了操作`);
+        setIsConfirmModalOpen(false);
+        
+        // 取消可能正在播放的确认文本
+        if (isSpeaking) {
+            cancelTTS();
+        }
+        if (isListening) {
+            // stopListening(); // useVoice Hook 的 onresult 后会自动停止
+        }
+        
+        // 处理用户确认
+        setStatus('executing');
+        
+        // 从pendingAction获取工具信息
+        let toolId, params, userId = 1;
+        
+        if (pendingAction?.tool_calls && pendingAction.tool_calls.length > 0) {
+            // 新格式: 工具调用数组
+            const firstToolCall = pendingAction.tool_calls[0];
+            toolId = firstToolCall.tool_id;
+            params = firstToolCall.parameters || {};
+        } else {
+            console.warn(`[Session: ${sessionIdRef.current}] 没有明确的 tool_calls，尝试执行... (可能需要后端支持无工具的确认流程)`);
+            // 这里可以尝试设置一个默认动作或提示错误
+            // 暂时允许继续，看后端execute如何处理
+            toolId = pendingAction?.action || 'default_confirm_action'; // 假设有一个默认动作
+            params = pendingAction?.params || {};
+        }
+        
+        const currentSessionId = sessionIdRef.current;
+
+        console.log(`[Session: ${currentSessionId}] 准备执行工具: ${toolId}，参数:`, params);
+        
+        // 清除任何现有的自动重置计时器
+        if (resetTimerRef.current) {
+            clearTimeout(resetTimerRef.current);
+            resetTimerRef.current = null;
+        }
+        
+        // 执行工具调用
+        executeToolAndHandleResult(toolId, params, currentSessionId, userId);
+    }, [pendingAction, speak, cancelTTS, resetUIState, isSpeaking, isListening, executeToolAndHandleResult]);
 
     const handleUserRetry = useCallback(() => {
         cancelTTS();
@@ -437,6 +437,7 @@ const MainPage = () => {
     return (
         <motion.div
             className="main-page"
+            data-testid="main-page"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}

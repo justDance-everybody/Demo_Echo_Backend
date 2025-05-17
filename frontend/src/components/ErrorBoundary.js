@@ -25,7 +25,10 @@ class ErrorBoundary extends React.Component {
     if (this.state.hasError) {
       // 自定义错误UI
       return (
-        <div style={{ padding: '20px', color: '#ff4d4f', backgroundColor: '#fff1f0', borderRadius: '4px', margin: '20px' }}>
+        <div 
+          style={{ padding: '20px', color: '#ff4d4f', backgroundColor: '#fff1f0', borderRadius: '4px', margin: '20px' }}
+          data-testid="error-boundary-fallback"
+        >
           <h2>应用遇到问题</h2>
           <p>我们正在努力解决这个问题，请稍后再试。</p>
           <details style={{ whiteSpace: 'pre-wrap', marginTop: '10px' }}>

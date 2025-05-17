@@ -1,65 +1,64 @@
-import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import MainPage from './pages/MainPage/MainPage';
-import VoiceAIMobile from './pages/MainPage/VoiceAIMobile';
+import AuthPage from './pages/AuthPage';
+import ServicesPage from './pages/ServicesPage';
+import ServiceDetailPage from './pages/ServiceDetailPage';
+import Settings from './pages/Settings/index';
+import { ToastService } from './components/common/Toast';
+import { AuthProvider } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
+import NavBar from './components/NavBar';
+import ProtectedRoute from './components/ProtectedRoute';
+import UserCenter from './pages/user/UserCenter';
 import TestPage from './tests/TestPage';
-import ErrorBoundary from './components/ErrorBoundary';
-import './App.css'; // Assuming App.css still exists
+import DeveloperConsole from './pages/DeveloperConsole';
+import './App.css';
 
 function App() {
-  // 增加应用级别的错误处理和语音功能诊断
-  useEffect(() => {
-    // 检查浏览器语音支持
-    const checkVoiceSupport = () => {
-      const sttSupport = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
-      const ttsSupport = !!(window.speechSynthesis);
-      
-      console.log('语音功能支持状态:', { 
-        语音识别: sttSupport ? '支持' : '不支持', 
-        语音合成: ttsSupport ? '支持' : '不支持',
-        语音合成声音数量: ttsSupport ? window.speechSynthesis.getVoices().length : 0
-      });
-      
-      return { stt: sttSupport, tts: ttsSupport };
-    };
-    
-    const voiceSupport = checkVoiceSupport();
-    
-    // 如果不支持语音功能，显示警告
-    if (!voiceSupport.stt || !voiceSupport.tts) {
-      console.warn('您的浏览器可能不完全支持语音功能，某些功能可能不可用');
-    }
-    
-    // 捕获全局未处理的错误，特别是与语音相关的
-    window.addEventListener('error', (event) => {
-      console.error('全局错误:', event.error);
-      if (event.error && event.error.message && 
-          (event.error.message.includes('speech') || 
-           event.error.message.includes('voice') || 
-           event.error.message.includes('audio'))) {
-        console.error('检测到与语音相关的错误:', event.error);
-      }
-    });
-    
-    return () => {
-      window.removeEventListener('error', () => {});
-    };
-  }, []);
-
   return (
-    <div className="App">
-      <ErrorBoundary>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/classic" element={<MainPage />} />
-            <Route path="/" element={<VoiceAIMobile />} />
-            <Route path="/test" element={<TestPage />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </BrowserRouter>
-      </ErrorBoundary>
-    </div>
+    <Router>
+      <ThemeProvider>
+        <AuthProvider>
+          <ToastService />
+          <div className="App">
+            <NavBar />
+            <div className="content-wrapper">
+              <Routes>
+                <Route path="/" element={<MainPage />} />
+                <Route path="/auth" element={<AuthPage />} />
+                <Route path="/services" element={<ServicesPage />} />
+                <Route path="/services/:id" element={<ServiceDetailPage />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/user" element={
+                  <ProtectedRoute>
+                    <UserCenter />
+                  </ProtectedRoute>
+                } />
+                <Route path="/developer" element={
+                  <ProtectedRoute requireRole="developer">
+                    <DeveloperConsole />
+                  </ProtectedRoute>
+                } />
+                <Route path="/developer/services/:id" element={
+                  <ProtectedRoute requireRole="developer">
+                    <DeveloperConsole />
+                  </ProtectedRoute>
+                } />
+                <Route path="/developer/apps/:id" element={
+                  <ProtectedRoute requireRole="developer">
+                    <DeveloperConsole />
+                  </ProtectedRoute>
+                } />
+                <Route path="/test" element={<TestPage />} />
+                <Route path="*" element={<div>页面不存在</div>} />
+              </Routes>
+            </div>
+          </div>
+        </AuthProvider>
+      </ThemeProvider>
+    </Router>
   );
 }
 
-export default App; 
+export default App;

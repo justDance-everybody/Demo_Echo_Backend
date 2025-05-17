@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
+import setupDeveloperApiMocks from './developerApiMock';
 
 /**
  * Mock服务配置
@@ -256,6 +257,9 @@ const setupMocks = (api) => {
       status: 'created'
     };
   });
+  
+  // 注册开发者API Mock
+  setupDeveloperApiMocks(api);
   
   console.log('Mock服务已启动');
 };

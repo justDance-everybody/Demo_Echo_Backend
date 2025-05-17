@@ -29,23 +29,31 @@ router = APIRouter(
 class UserCreate(BaseModel):
     username: str
     password: str
-
+    email: Optional[str] = None
+    
+class UserLogin(BaseModel):
+    username: str
+    password: str
+    
+class TokenData(BaseModel):
+    user_id: int
+    username: str
+    
 class UserResponse(BaseModel):
     id: int
     username: str
+    role: Optional[str] = None
     
-    class Config:
-        orm_mode = True
-
 class TokenResponse(BaseModel):
     access_token: str
-    token_type: str = "bearer"
+    token_type: str
     expires_in: int
     user_id: int
     username: str
-
+    role: Optional[str] = None
+    
 # 用户注册
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=UserResponse)
 async def register(
     user_data: UserCreate,
     db: AsyncSession = Depends(get_async_db_session)
@@ -54,7 +62,7 @@ async def register(
     注册新用户
     
     Args:
-        user_data: 用户注册信息
+        user_data: 用户创建请求
         db: 数据库会话
         
     Returns:
@@ -63,21 +71,22 @@ async def register(
     Raises:
         HTTPException: 如果用户名已存在
     """
-    # 检查用户名是否已存在
+    # 检查用户是否已存在
     result = await db.execute(select(User).where(User.username == user_data.username))
     existing_user = result.scalars().first()
     
     if existing_user:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_409_CONFLICT,
             detail="用户名已存在"
         )
-    
+        
     # 创建新用户
     hashed_password = get_password_hash(user_data.password)
     new_user = User(
         username=user_data.username,
-        password_hash=hashed_password
+        password_hash=hashed_password,
+        email=user_data.email
     )
     
     try:
@@ -87,20 +96,14 @@ async def register(
         
         return UserResponse(
             id=new_user.id,
-            username=new_user.username
+            username=new_user.username,
+            role=new_user.role
         )
-    
     except IntegrityError:
         await db.rollback()
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="无法创建用户，请检查提供的信息"
-        )
-    except Exception as e:
-        await db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"创建用户时发生错误: {str(e)}"
+            status_code=status.HTTP_409_CONFLICT,
+            detail="用户创建失败，可能用户名已存在"
         )
 
 # 用户登录获取token
@@ -137,7 +140,7 @@ async def login_for_access_token(
     # 创建访问令牌
     access_token_expires = timedelta(minutes=settings.JWT_EXPIRATION)
     access_token = create_access_token(
-        data={"sub": str(user.id), "username": user.username},
+        data={"sub": str(user.id), "username": user.username, "role": user.role},
         expires_delta=access_token_expires
     )
     
@@ -146,7 +149,8 @@ async def login_for_access_token(
         token_type="bearer",
         expires_in=settings.JWT_EXPIRATION * 60,  # 转换为秒
         user_id=user.id,
-        username=user.username
+        username=user.username,
+        role=user.role
     )
 
 # 获取当前用户
@@ -163,5 +167,6 @@ async def get_me(current_user: User = Depends(get_current_user)):
     """
     return UserResponse(
         id=current_user.id,
-        username=current_user.username
+        username=current_user.username,
+        role=current_user.role
     ) 

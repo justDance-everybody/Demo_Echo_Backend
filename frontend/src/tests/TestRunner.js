@@ -1,9 +1,12 @@
 // TestRunner.js - 语音AI测试运行器组件
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import testScenarios from './AutomatedTest';
 import MockSpeech from '../test-utils/MockSpeech';
 import Logger from '../test-utils/Logger';
+import { Button, Card, Space, Typography, Tag } from 'antd';
+import { ThemeContext } from '../theme/ThemeProvider';
+import ThemeToggle from '../components/ThemeToggle';
 
 // 测试状态常量
 const TEST_STATUS = {
@@ -134,11 +137,40 @@ const styles = {
   },
   logInfo: { color: '#1890ff' },
   logWarn: { color: '#faad14' },
-  logError: { color: '#ff4d4f' }
+  logError: { color: '#ff4d4f' },
+  testPanel: {
+    backgroundColor: 'var(--surface)',
+    borderRadius: '8px',
+    boxShadow: '0 3px 6px var(--shadow)',
+    padding: '20px',
+    marginBottom: '20px',
+    transition: 'background-color 0.3s, box-shadow 0.3s'
+  },
+  testHeader: {
+    fontSize: '18px',
+    fontWeight: 'bold',
+    marginBottom: '15px',
+    color: 'var(--text)'
+  },
+  testRow: {
+    marginBottom: '10px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center' 
+  },
+  testResult: {
+    marginTop: '10px',
+    padding: '10px',
+    backgroundColor: 'var(--background)',
+    borderRadius: '4px',
+    color: 'var(--text)',
+    transition: 'background-color 0.3s, color 0.3s'
+  }
 };
 
 // 测试运行器组件
 const TestRunner = () => {
+  const { theme, toggleTheme } = useContext(ThemeContext);
   const [selectedTest, setSelectedTest] = useState(null);
   const [status, setStatus] = useState(TEST_STATUS.IDLE);
   const [result, setResult] = useState(null);
@@ -147,6 +179,8 @@ const TestRunner = () => {
   const [showRunner, setShowRunner] = useState(true);
   const [logs, setLogs] = useState([]);
   const logRef = useRef(null);
+  const [themeTestStatus, setThemeTestStatus] = useState('未运行');
+  const [themeTestLog, setThemeTestLog] = useState([]);
 
   // 添加日志
   const addLog = (level, message) => {
@@ -299,6 +333,66 @@ const TestRunner = () => {
     );
   };
 
+  // 主题切换测试
+  const runThemeTest = async () => {
+    setThemeTestStatus('运行中');
+    setThemeTestLog([]);
+    
+    // 记录日志函数
+    const log = (message) => {
+      setThemeTestLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`]);
+    };
+
+    try {
+      // 记录当前主题
+      const initialTheme = theme;
+      log(`当前主题: ${initialTheme}`);
+      
+      // 等待1秒
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // 切换主题
+      log('切换主题...');
+      toggleTheme();
+      
+      // 等待主题切换完成
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // 验证主题是否切换成功
+      const newTheme = localStorage.getItem('theme') || 'light';
+      const expected = initialTheme === 'light' ? 'dark' : 'light';
+      
+      if (newTheme === expected) {
+        log(`主题切换成功: ${newTheme}`);
+        setThemeTestStatus('通过');
+      } else {
+        log(`主题切换失败: 预期 ${expected}, 实际 ${newTheme}`);
+        setThemeTestStatus('失败');
+      }
+      
+      // 切换回初始主题
+      log('恢复初始主题...');
+      toggleTheme();
+      
+      // 等待主题切换完成
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // 验证主题是否恢复成功
+      const finalTheme = localStorage.getItem('theme') || 'light';
+      
+      if (finalTheme === initialTheme) {
+        log(`主题恢复成功: ${finalTheme}`);
+      } else {
+        log(`主题恢复失败: 预期 ${initialTheme}, 实际 ${finalTheme}`);
+        setThemeTestStatus('失败');
+      }
+      
+    } catch (error) {
+      log(`测试出错: ${error.message}`);
+      setThemeTestStatus('错误');
+    }
+  };
+
   // 不显示测试运行器时，只显示一个小按钮
   if (!showRunner) {
     return (
@@ -412,6 +506,48 @@ const TestRunner = () => {
         >
           导出报告
         </button>
+      </div>
+
+      <div style={styles.testPanel}>
+        <h2 style={styles.testHeader}>主题切换测试</h2>
+        
+        <div style={styles.testRow}>
+          <Space>
+            <span>当前主题: <strong>{theme}</strong></span>
+            <ThemeToggle />
+          </Space>
+          
+          <Space>
+            <Button type="primary" onClick={runThemeTest}>
+              运行主题测试
+            </Button>
+            <Tag color={
+              themeTestStatus === '通过' ? 'success' :
+              themeTestStatus === '失败' ? 'error' :
+              themeTestStatus === '运行中' ? 'processing' :
+              'default'
+            }>
+              {themeTestStatus}
+            </Tag>
+          </Space>
+        </div>
+        
+        {themeTestLog.length > 0 && (
+          <Card title="测试日志" size="small" style={styles.testResult}>
+            {themeTestLog.map((log, index) => (
+              <div key={index}>{log}</div>
+            ))}
+          </Card>
+        )}
+        
+        <Card title="手动测试" size="small" style={{marginTop: '15px'}}>
+          <p>使用右下角的主题切换按钮测试主题切换功能。切换后，页面颜色应立即变化。</p>
+          <Space>
+            <Button onClick={toggleTheme}>
+              切换到{theme === 'light' ? '暗色' : '亮色'}主题
+            </Button>
+          </Space>
+        </Card>
       </div>
     </div>
   );

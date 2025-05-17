@@ -1,273 +1,189 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
-import { Button, Drawer, Menu, Switch } from 'antd';
-import { 
-  MenuOutlined, 
-  CloseOutlined, 
-  HomeOutlined, 
-  UserOutlined, 
-  SettingOutlined, 
-  AudioOutlined,
-  BulbOutlined, 
-  BulbFilled 
-} from '@ant-design/icons';
-import { ThemeContext } from '../theme/ThemeProvider';
-import { Link } from 'react-router-dom';
+import ThemeToggle from './ThemeToggle';
+import MobileNavButton from './MobileNavButton';
+import { useTheme } from '../contexts/ThemeContext';
+import { AuthContext } from '../contexts/AuthContext';
 
-// 响应式断点
-const BREAKPOINTS = {
-  xs: '480px',
-  sm: '576px',
-  md: '768px',
-  lg: '992px',
-  xl: '1200px',
-};
-
+// 导航栏容器
 const NavContainer = styled.nav`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 24px;
-  height: 64px;
-  background-color: ${props => props.theme.headerBackground};
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 1rem 2rem;
+  background-color: var(--nav-bg, var(--surface));
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   position: sticky;
   top: 0;
-  z-index: 1000;
-  transition: all 0.3s ease;
+  z-index: 100;
 `;
 
+// Logo样式
 const Logo = styled.div`
-  font-size: 20px;
+  font-size: 1.5rem;
   font-weight: 700;
-  color: ${props => props.theme.primaryColor};
-  font-family: 'SF Pro Display', -apple-system, sans-serif;
-`;
-
-const MenuItems = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 16px;
+  color: var(--primary-color);
   
-  @media (max-width: ${BREAKPOINTS.md}) {
-    display: none;
-  }
-`;
-
-const MenuItem = styled.div`
-  padding: 8px 16px;
-  cursor: pointer;
-  color: ${props => props.theme.textColor};
-  transition: color 0.3s ease;
-  
-  &:hover {
-    color: ${props => props.theme.primaryColor};
-  }
-`;
-
-const Controls = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  
-  @media (max-width: ${BREAKPOINTS.md}) {
-    display: none;
-  }
-`;
-
-const ThemeToggle = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-`;
-
-const ThemeIcon = styled.span`
-  color: ${props => props.theme.textColor};
-  font-size: 16px;
-`;
-
-const MobileMenuButton = styled.button`
-  background: none;
-  border: none;
-  font-size: 24px;
-  color: ${props => props.theme.textColor};
-  cursor: pointer;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  padding: 4px;
-  
-  @media (max-width: ${BREAKPOINTS.md}) {
+  a {
+    color: inherit;
+    text-decoration: none;
     display: flex;
+    align-items: center;
+    gap: 0.5rem;
   }
+  
+  span {
+    font-size: 1.8rem;
+  }
+`;
+
+// 导航链接容器
+const NavLinks = styled.div`
+  display: flex;
+  gap: 1.5rem;
+  
+  @media (max-width: 768px) {
+    display: none;
+  }
+`;
+
+// 导航链接
+const NavLink = styled(Link)`
+  color: var(--text-color);
+  text-decoration: none;
+  font-weight: 500;
+  padding: 0.5rem;
+  position: relative;
+  transition: color 0.2s ease;
+  
+  &.active, &:hover {
+    color: var(--primary-color);
+  }
+  
+  &::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 2px;
+    bottom: 0;
+    left: 50%;
+    background-color: var(--primary-color);
+    transition: width 0.3s ease, left 0.3s ease;
+  }
+  
+  &.active::after, &:hover::after {
+    width: 100%;
+    left: 0;
+  }
+`;
+
+// 操作区域
+const ActionsArea = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+`;
+
+// 按钮样式
+const Button = styled(Link)`
+  background-color: var(--primary-color);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: var(--border-radius, 4px);
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s ease;
   
   &:hover {
-    color: ${props => props.theme.primaryColor};
-  }
-`;
-
-const StyledDrawer = styled(Drawer)`
-  .ant-drawer-body {
-    padding: 0;
-    background-color: ${props => props.theme.background};
+    opacity: 0.9;
+    transform: translateY(-2px);
   }
   
-  .ant-menu {
-    background-color: ${props => props.theme.background};
-    color: ${props => props.theme.textColor};
-    border-right: none;
-  }
-  
-  .ant-menu-item:hover {
-    color: ${props => props.theme.primaryColor};
-  }
-  
-  .ant-menu-item-selected {
-    background-color: ${props => props.theme.primaryColorLight};
-    color: ${props => props.theme.primaryColor};
+  @media (max-width: 768px) {
+    display: none;
   }
 `;
 
-const DrawerHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px;
-  border-bottom: 1px solid ${props => props.theme.borderColor};
-`;
-
-const DrawerThemeToggle = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px;
-  border-top: 1px solid ${props => props.theme.borderColor};
-`;
-
+// 导航栏组件
 const NavBar = () => {
-  const { theme, toggleTheme } = useContext(ThemeContext);
-  const [drawerVisible, setDrawerVisible] = useState(false);
-  const [voiceDialogOpen, setVoiceDialogOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
-
-  // 监听窗口大小变化
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  const handleThemeChange = () => {
-    toggleTheme();
-  };
-
-  const openVoiceDialog = () => {
-    setVoiceDialogOpen(true);
-    if (drawerVisible) {
-      setDrawerVisible(false);
+  const location = useLocation();
+  const { theme } = useTheme();
+  const { isAuthenticated, role } = useContext(AuthContext);
+  const [isScrolled, setIsScrolled] = useState(false);
+  
+  // 创建导航项
+  const getNavItems = () => {
+    // 基础导航项
+    const baseItems = [
+      { label: '首页', url: '/', isActive: location.pathname === '/' },
+      { label: '服务', url: '/services', isActive: location.pathname === '/services' },
+      { label: '关于', url: '/about', isActive: location.pathname === '/about' },
+      { label: '设置', url: '/settings', isActive: location.pathname === '/settings' },
+    ];
+    
+    // 根据用户角色添加特定导航项
+    if (isAuthenticated && (role === 'developer' || role === 'admin')) {
+      baseItems.push({ 
+        label: '开发者', 
+        url: '/developer', 
+        isActive: location.pathname.startsWith('/developer') 
+      });
     }
+    
+    return baseItems;
   };
-
-  const showDrawer = () => {
-    setDrawerVisible(true);
+  
+  // 获取导航项
+  const navItems = getNavItems();
+  
+  // 监听滚动事件
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+  
+  // 处理导航
+  const handleNavigate = (url) => {
+    // 此处为MobileNavButton使用，不需要实际处理导航
+    // React Router的Link组件会处理导航
   };
-
-  const closeDrawer = () => {
-    setDrawerVisible(false);
-  };
-
-  // 定义菜单项对应的路径
-  const menuItems = [
-    { key: 'home', icon: <HomeOutlined />, label: '首页', path: '/' },
-    { key: 'profile', icon: <UserOutlined />, label: '个人中心', path: '/user' },
-    { key: 'settings', icon: <SettingOutlined />, label: '设置', path: '/settings' },
-  ];
-
+  
   return (
-    <NavContainer theme={theme}>
-      <Logo theme={theme}>Echo AI</Logo>
+    <NavContainer style={{ 
+      boxShadow: isScrolled ? '0 4px 20px rgba(0, 0, 0, 0.15)' : '0 2px 10px rgba(0, 0, 0, 0.1)',
+    }}>
+      <Logo>
+        <Link to="/">
+          <span role="img" aria-label="logo">🔊</span>
+          Echo
+        </Link>
+      </Logo>
       
-      <MenuItems>
-        {menuItems.map(item => (
-          <Link to={item.path} key={item.key} style={{ textDecoration: 'none' }}>
-            <MenuItem theme={theme}>
-              {item.icon} {item.label}
-            </MenuItem>
-          </Link>
+      <NavLinks>
+        {navItems.map((item, index) => (
+          <NavLink 
+            key={index} 
+            to={item.url} 
+            className={item.isActive ? 'active' : ''}
+          >
+            {item.label}
+          </NavLink>
         ))}
-      </MenuItems>
+      </NavLinks>
       
-      <Controls>
-        <Button 
-          type="primary" 
-          icon={<AudioOutlined />} 
-          onClick={openVoiceDialog}
-        >
-          语音助手
-        </Button>
-        
-        <ThemeToggle theme={theme}>
-          <ThemeIcon theme={theme}>
-            {theme === 'light' ? <BulbOutlined /> : <BulbFilled />}
-          </ThemeIcon>
-          <Switch 
-            checked={theme === 'dark'} 
-            onChange={handleThemeChange} 
-            size="small"
-          />
-        </ThemeToggle>
-      </Controls>
-      
-      <MobileMenuButton theme={theme} onClick={showDrawer}>
-        <MenuOutlined />
-      </MobileMenuButton>
-      
-      <StyledDrawer 
-        theme={theme}
-        title={null}
-        placement="right"
-        closable={false}
-        onClose={closeDrawer}
-        open={drawerVisible}
-        width={280}
-      >
-        <DrawerHeader theme={theme}>
-          <Logo theme={theme}>Echo AI</Logo>
-          <Button 
-            type="text" 
-            icon={<CloseOutlined />} 
-            onClick={closeDrawer}
-          />
-        </DrawerHeader>
-        
-        <Menu mode="vertical" theme={theme === 'dark' ? 'dark' : 'light'} selectable={false}>
-          {menuItems.map(item => (
-            <Menu.Item key={item.key} icon={item.icon} onClick={closeDrawer}>
-              <Link to={item.path} style={{ color: 'inherit', textDecoration: 'none' }}>
-                {item.label}
-              </Link>
-            </Menu.Item>
-          ))}
-          <Menu.Divider />
-          <Menu.Item key="voice" icon={<AudioOutlined />} onClick={() => { openVoiceDialog(); closeDrawer(); }}>
-            语音助手
-          </Menu.Item>
-        </Menu>
-        
-        <DrawerThemeToggle theme={theme}>
-          <span>深色模式</span>
-          <Switch 
-            checked={theme === 'dark'} 
-            onChange={handleThemeChange}
-          />
-        </DrawerThemeToggle>
-      </StyledDrawer>
-      
-      {/* 这里可以添加VoiceDialog组件 */}
-      {/* {voiceDialogOpen && <VoiceDialog onClose={() => setVoiceDialogOpen(false)} />} */}
+      <ActionsArea>
+        <ThemeToggle />
+        <Button to="/user">用户中心</Button>
+        <MobileNavButton 
+          items={navItems.concat({ label: '用户中心', url: '/user', isActive: location.pathname === '/user' })} 
+          onNavigate={handleNavigate}
+        />
+      </ActionsArea>
     </NavContainer>
   );
 };

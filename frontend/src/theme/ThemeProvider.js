@@ -1,35 +1,25 @@
 import React, { createContext, useState, useEffect } from 'react';
 import { ThemeProvider as StyledThemeProvider } from 'styled-components';
+import { ThemeProvider as ContextThemeProvider } from '../contexts/ThemeContext';
 
-// 定义主题
-const lightTheme = {
-  bodyBackground: '#f5f5f5',
-  headerBackground: '#ffffff',
-  cardBackground: '#ffffff',
-  primaryColor: '#1890ff',
-  textColor: '#333333',
-  secondaryTextColor: '#666666',
-  borderColor: '#e8e8e8',
-  buttonBackground: '#1890ff',
-  buttonText: '#ffffff',
-  shadowColor: 'rgba(0, 0, 0, 0.1)',
-  dialogBackground: '#ffffff',
-  dialogOverlay: 'rgba(0, 0, 0, 0.5)',
-};
-
-const darkTheme = {
-  bodyBackground: '#121212',
-  headerBackground: '#1f1f1f',
-  cardBackground: '#1f1f1f',
-  primaryColor: '#1890ff',
-  textColor: '#e0e0e0',
-  secondaryTextColor: '#a0a0a0',
-  borderColor: '#333333',
-  buttonBackground: '#1890ff',
-  buttonText: '#ffffff',
-  shadowColor: 'rgba(0, 0, 0, 0.4)',
-  dialogBackground: '#2d2d2d',
-  dialogOverlay: 'rgba(0, 0, 0, 0.7)',
+// 使用基于CSS变量的主题对象
+const themeObject = {
+  background: 'var(--background)',
+  surface: 'var(--surface)',
+  text: 'var(--text)',
+  textSecondary: 'var(--text-secondary)',
+  border: 'var(--border)',
+  primary: 'var(--color-primary)',
+  primaryLight: 'var(--color-primary-light)',
+  primaryDark: 'var(--color-primary-dark)',
+  secondary: 'var(--color-secondary)',
+  secondaryLight: 'var(--color-secondary-light)',
+  secondaryDark: 'var(--color-secondary-dark)',
+  success: 'var(--color-success)',
+  warning: 'var(--color-warning)',
+  error: 'var(--color-error)',
+  info: 'var(--color-info)',
+  shadow: 'var(--shadow)'
 };
 
 // 创建主题上下文
@@ -38,8 +28,8 @@ export const ThemeContext = createContext({
   toggleTheme: () => {},
 });
 
-// 主题提供者组件
-export const ThemeProvider = ({ children }) => {
+// 主题提供者组件 - 为了兼容性保留，但我们使用 contexts/ThemeContext 中的实现
+const LegacyThemeProvider = ({ children }) => {
   // 从本地存储获取主题设置，默认为亮色主题
   const [theme, setTheme] = useState(() => {
     const savedTheme = localStorage.getItem('theme');
@@ -55,12 +45,9 @@ export const ThemeProvider = ({ children }) => {
     });
   };
 
-  // 当主题发生变化时，更新文档的类名
+  // 当主题发生变化时，更新文档的data-theme属性
   useEffect(() => {
-    document.body.className = theme;
-    document.body.style.backgroundColor = theme === 'light' 
-      ? lightTheme.bodyBackground 
-      : darkTheme.bodyBackground;
+    document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
   // 提供当前主题和切换函数
@@ -69,13 +56,15 @@ export const ThemeProvider = ({ children }) => {
     toggleTheme,
   };
 
+  // 使用StyledThemeProvider提供主题对象，这样styled-components可以访问主题变量
   return (
     <ThemeContext.Provider value={themeContextValue}>
-      <StyledThemeProvider theme={theme === 'light' ? lightTheme : darkTheme}>
+      <StyledThemeProvider theme={themeObject}>
         {children}
       </StyledThemeProvider>
     </ThemeContext.Provider>
   );
 };
 
-export default ThemeProvider; 
+// 为了向后兼容性，我们导出contexts/ThemeContext中的ThemeProvider
+export default ContextThemeProvider; 

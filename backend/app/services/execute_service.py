@@ -458,6 +458,223 @@ class ExecuteService:
                                 session_id=session_id,
                             )
 
+                        elif platform == "generic":
+                            # --- 实现调用通用 HTTP API 的逻辑 ---
+                            http_url = app_config.get("url")
+                            if not http_url:
+                                logger.error(
+                                    f"服务层：通用 HTTP 工具 '{tool_id}' 的 app_config 配置缺少 url"
+                                )
+                                return ExecuteResponse(
+                                    tool_id=tool_id,
+                                    success=False,
+                                    error={
+                                        "code": "MISSING_URL",
+                                        "message": "通用 HTTP 工具配置缺少 URL",
+                                    },
+                                    session_id=session_id,
+                                )
+                            
+                            # 获取配置的HTTP方法，默认为POST
+                            http_method = app_config.get("method", "POST").upper()
+                            # 获取配置的内容类型，默认为application/json
+                            content_type = app_config.get("content_type", "application/json")
+                            # 获取配置的超时设置，默认为30秒
+                            timeout = float(app_config.get("timeout", 30))
+                            # 获取配置的请求头
+                            headers = app_config.get("headers", {})
+                            
+                            # 如果提供了API密钥，添加到请求头中
+                            if api_key:
+                                # 根据配置的auth_type决定如何使用API密钥
+                                auth_type = app_config.get("auth_type", "Bearer")
+                                if auth_type == "Bearer":
+                                    headers["Authorization"] = f"Bearer {api_key}"
+                                elif auth_type == "ApiKey":
+                                    # 获取API密钥的头名称，默认为X-API-Key
+                                    key_header = app_config.get("key_header", "X-API-Key")
+                                    headers[key_header] = api_key
+                                elif auth_type == "Basic":
+                                    import base64
+                                    # 假设api_key格式为username:password
+                                    basic_auth = base64.b64encode(api_key.encode()).decode()
+                                    headers["Authorization"] = f"Basic {basic_auth}"
+                            
+                            # 设置Content-Type
+                            if content_type and "Content-Type" not in headers:
+                                headers["Content-Type"] = content_type
+                            
+                            # 准备请求有效载荷
+                            # 这里假设params就是要发送的数据
+                            payload = params
+                            # 如果指定了payload_key，则使用它作为嵌套的键
+                            payload_key = app_config.get("payload_key")
+                            if payload_key:
+                                payload = {payload_key: params}
+                            
+                            # 处理URL中的参数占位符
+                            try:
+                                # 使用format_map在URL中替换{param_name}占位符
+                                if "{" in http_url and "}" in http_url:
+                                    http_url = http_url.format_map(
+                                        {**params, **{"default": ""}}
+                                    )
+                            except KeyError as e:
+                                logger.warning(
+                                    f"URL格式化错误，缺少参数 {e}，将使用原始URL"
+                                )
+                            except Exception as e:
+                                logger.warning(
+                                    f"URL格式化时发生错误: {e}，将使用原始URL"
+                                )
+                            
+                            logger.info(
+                                f"准备调用通用 HTTP API: Method={http_method}, URL={http_url}"
+                            )
+                            
+                            try:
+                                # 根据HTTP方法发送请求
+                                if http_method == "GET":
+                                    # 对于GET请求，将params作为URL参数
+                                    response = await client.get(
+                                        http_url, 
+                                        headers=headers,
+                                        params=payload if app_config.get("send_params_in_querystring", False) else None,
+                                        timeout=timeout
+                                    )
+                                elif http_method == "POST":
+                                    # 对于POST请求，根据内容类型决定如何发送数据
+                                    if content_type == "application/x-www-form-urlencoded":
+                                        response = await client.post(
+                                            http_url, 
+                                            headers=headers,
+                                            data=payload,
+                                            timeout=timeout
+                                        )
+                                    else:  # 默认为JSON
+                                        response = await client.post(
+                                            http_url, 
+                                            headers=headers,
+                                            json=payload,
+                                            timeout=timeout
+                                        )
+                                elif http_method == "PUT":
+                                    response = await client.put(
+                                        http_url, 
+                                        headers=headers,
+                                        json=payload,
+                                        timeout=timeout
+                                    )
+                                elif http_method == "PATCH":
+                                    response = await client.patch(
+                                        http_url, 
+                                        headers=headers,
+                                        json=payload,
+                                        timeout=timeout
+                                    )
+                                elif http_method == "DELETE":
+                                    response = await client.delete(
+                                        http_url, 
+                                        headers=headers,
+                                        json=payload if app_config.get("send_body_with_delete", False) else None,
+                                        timeout=timeout
+                                    )
+                                else:
+                                    logger.error(f"不支持的HTTP方法: {http_method}")
+                                    return ExecuteResponse(
+                                        tool_id=tool_id,
+                                        success=False,
+                                        error={
+                                            "code": "UNSUPPORTED_HTTP_METHOD",
+                                            "message": f"不支持的HTTP方法: {http_method}",
+                                        },
+                                        session_id=session_id,
+                                    )
+                                
+                                response.raise_for_status()  # 检查HTTP错误
+                                
+                                # 解析响应
+                                try:
+                                    api_result = response.json()
+                                except Exception:
+                                    # 如果无法解析为JSON，则使用文本内容
+                                    api_result = {"text": response.text}
+                                
+                                # 从响应中提取需要的结果
+                                result_path = app_config.get("result_path")
+                                if result_path:
+                                    # 支持用点号分隔的路径，如"data.items.0.message"
+                                    current = api_result
+                                    try:
+                                        for key in result_path.split('.'):
+                                            if key.isdigit():  # 处理数组索引
+                                                current = current[int(key)]
+                                            else:
+                                                current = current[key]
+                                        raw_result = current
+                                    except (KeyError, IndexError, TypeError) as e:
+                                        logger.warning(
+                                            f"无法从响应中提取路径 '{result_path}': {e}"
+                                        )
+                                        raw_result = str(api_result)
+                                else:
+                                    raw_result = str(api_result)
+                                
+                                # --- [调用 LLM 总结] ---
+                                try:
+                                    logger.debug(
+                                        f"准备调用 LLM 总结通用 HTTP 工具 '{tool_id}' 的结果。"
+                                    )
+                                    summary_prompt = (
+                                        f"你是一个智能助手，需要将以下工具执行的原始结果总结成一段简洁、流畅、适合直接对用户语音播报的话。\n"
+                                        f"用户的原始问题(或相关参数)是：{params}\n"
+                                        f"工具 '{tool_id}' (HTTP API) 返回的原始结果是：\n```\n{str(raw_result)}\n```\n"
+                                        f"请生成总结。"
+                                    )
+                                    summary_response = (
+                                        await openai_client.client.chat.completions.create(
+                                            model=settings.LLM_MODEL,
+                                            messages=[
+                                                {"role": "user", "content": summary_prompt}
+                                            ],
+                                            temperature=0.2,
+                                            max_tokens=150,
+                                        )
+                                    )
+                                    tts_message = summary_response.choices[
+                                        0
+                                    ].message.content.strip()
+                                    logger.info(
+                                        f"LLM 成功总结了通用 HTTP 工具 '{tool_id}' 的结果。"
+                                    )
+                                except Exception as llm_err:
+                                    logger.error(
+                                        f"调用 LLM 总结通用 HTTP 工具 '{tool_id}' 结果时出错: {llm_err}，将直接使用原始结果。",
+                                        exc_info=True,
+                                    )
+                                    tts_message = str(raw_result)  # 出错时回退到原始结果
+                                
+                                logger.info(f"通用 HTTP API 调用成功: tool_id={tool_id}")
+                                # 返回结果
+                                response_data = {
+                                    "tts_message": tts_message,
+                                    "original_http_response": api_result,
+                                }
+                                return ExecuteResponse(
+                                    tool_id=tool_id,
+                                    success=True,
+                                    data=response_data,
+                                    error=None,
+                                    session_id=session_id,
+                                )
+                                
+                            except httpx.HTTPStatusError as e:
+                                # 这些错误会在上面的总catch中被处理
+                                raise
+                            except httpx.RequestError as e:
+                                # 这些错误会在上面的总catch中被处理
+                                raise
+                                
                         else:
                             # 不支持的平台类型
                             logger.error(f"服务层：不支持的 HTTP 平台: {platform}")

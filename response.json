@@ -1,1 +1,0 @@
-{"sessionId":"fixed-session-id-for-testing-7777","type":"tool_call","tool_calls":[{"tool_id":"maps_weather","parameters":{"city":"Guangzhou"}}],"confirmText":"好的，我需要调用 maps_weather 来处理您的请求。","content":null}

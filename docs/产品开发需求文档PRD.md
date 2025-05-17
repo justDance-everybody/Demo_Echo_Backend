@@ -1,12 +1,12 @@
 # 全语音AI-Agent平台的产品需求文档（PRD）
-**状态：** 草稿·已批准
+**状态：** 已批准·正在实施
 
 ---
 
 ## 1. 引言
 
 **1.1 项目描述**  
-“全语音AI-Agent平台”是一个端到端、以语音为唯一交互手段的智能代理系统。用户一句话即可调度海量“技能”（MCP 脚本、第三方 HTTP API 等），并通过实时的 TTS 语音反馈，获得即时、精准的服务体验。
+"全语音AI-Agent平台"是一个端到端、以语音为唯一交互手段的智能代理系统。用户一句话即可调度海量"技能"（MCP 脚本、第三方 HTTP API 等），并通过实时的 TTS 语音反馈，获得即时、精准的服务体验。
 
 **1.2 项目范围概览**  
 - **MVP 范围**：单次调用单个功能的端到端闭环体验
@@ -18,7 +18,7 @@
 - **竞争优势**：零点击、语音即服务，适配车载、IoT、可穿戴场景
 
 **1.4 目标用户／利益相关者**  
-- **终端用户**：普通消费者，需“一句话”完成查询、控制等操作
+- **终端用户**：普通消费者，需"一句话"完成查询、控制等操作
 - **第三方开发者**：提供 HTTP API 或 MCP 脚本，快速接入平台
 - **内部团队**：前端、后端、测试、运维、产品经理
 
@@ -27,7 +27,7 @@
 ## 2. 目标与 KPI
 
 **2.1 项目目标**  
-1. 实现“一句话→解析→复述确认→执行→播报”的完整闭环  
+1. 实现"一句话→解析→复述确认→执行→播报"的完整闭环  
 2. 极简接口规范，第三方技能 30 分钟内接入
 
 **2.2 可衡量成果**  
@@ -54,13 +54,50 @@
 ## 3. 功能需求
 
 ### 3.1 前端需求  
-- **技术框架**：React + Ant Design / Material-UI + Web Speech API  
-- **核心模块**：录音 & STT；进度状态（识别/理解/执行/完成）；AI 复述 & 确认（TTS + 自动 STT 分类 CONFIRM/RETRY/CANCEL）；结果反馈；技能列表（列表/卡片/网格视图切换）；用户配置（contacts、wallets）
+- **技术框架**：React 18 + Vite + Ant Design Mobile + Web Speech API  
+- **核心模块**：
+  - **认证系统**：登录/注册界面，JWT认证，AuthContext，基于角色的权限控制(user/developer/admin)
+  - **录音 & STT**：实时语音转文本
+  - **进度状态**：识别/理解/执行/完成四阶段进度展示
+  - **AI 复述 & 确认**：TTS + 自动 STT 分类 CONFIRM/RETRY/CANCEL
+  - **结果反馈**：动态卡片展示执行结果
+  - **技能列表**：列表/卡片/网格视图切换，搜索过滤
+  - **用户配置**：contacts、wallets等用户数据管理
+  - **全局弹窗**：Toast系统，错误、超时、重试提示
+  - **错误边界**：React ErrorBoundary 捕获渲染错误
+  - **第三方开发者Portal**：上传、管理自定义API，仅对具有developer或admin角色的用户可见
+- **设计系统**：
+  - **设计令牌**：CSS变量驱动所有样式
+    - 色彩：主色 #4FD1C5，背景 #1E1E2F，文本 #F8F8F8，错误 #F56565，警告 #ECC94B
+    - 间距：8px(sm)/16px(md)/24px(lg)
+    - 圆角：8px
+    - 字体：Inter, sans-serif
+  - **响应式策略**：Mobile-First + 断点适配
+  - **主题切换**：支持运行时动态调整，持久化到localStorage
+  - **组件一致性**：所有UI组件统一使用设计令牌
 
 ### 3.2 后端需求  
 - **技术栈**：Python + FastAPI + Uvicorn  
 - **NLU 引擎**：OpenAI Python SDK（GPT-3.5/4）  
 - **核心接口**（JWT 鉴权，前缀 `/v1`）：
+  - `POST /auth/register`：
+    - **请求**：
+      ```json
+      {"username":"<string>","email":"<string>","password":"<string>"}
+      ```  
+    - **响应 201**：
+      ```json
+      {"id":<int>,"username":"<string>","email":"<string>"}
+      ```  
+  - `POST /auth/login`：
+    - **请求**：
+      ```json
+      {"username":"<string>","password":"<string>"}
+      ```  
+    - **响应 200**：
+      ```json
+      {"token":"<JWT>","user":{"id":<int>,"username":"<string>"}}
+      ```
   - `POST /v1/api/interpret`：
     - **请求**：
       ```json
@@ -84,7 +121,12 @@
       ```json
       {"success":false,"error":{"code":"EXEC_FAIL","message":"..."}}
       ```
-- **错误码**：INVALID_PARAM、UNKNOWN_ALIAS、EXEC_FAIL、SERVICE_UNAVAILABLE、TIMEOUT
+  - `GET /v1/api/tools`：
+    - **响应 200**：
+      ```json
+      {"tools":[{"tool_id":"<string>","name":"<string>","description":"<string>","type":"<string>"}]}
+      ```
+- **错误码**：INVALID_PARAM、UNKNOWN_ALIAS、EXEC_FAIL、SERVICE_UNAVAILABLE、TIMEOUT、AUTH_FAILED
 
 ### 3.3 数据库设计  
 - **持久化方案**：MySQL + SQLAlchemy + Alembic
@@ -93,6 +135,9 @@
   CREATE TABLE users (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     username VARCHAR(64) UNIQUE NOT NULL,
+    email VARCHAR(128) UNIQUE NOT NULL,
+    password_hash VARCHAR(256) NOT NULL,
+    role ENUM('user', 'developer', 'admin') NOT NULL DEFAULT 'user', -- 用户角色: 普通用户、开发者、管理员
     contacts JSON,
     wallets JSON,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -130,18 +175,38 @@
 ## 4. 技术框架
 | 层级      | 技术选型                                              |
 |-----------|------------------------------------------------------|
-| 前端      | React + AntD/MUI + Web Speech API                    |
+| 前端      | React 18 + Vite + Ant Design Mobile + Web Speech API |
 | 后端      | Python + FastAPI + Uvicorn                           |
 | NLU       | OpenAI SDK (Python)                                  |
 | STT/TTS   | 浏览器 Web Speech API                                |
 | 数据库    | MySQL + SQLAlchemy + Alembic                         |
 | 会话管理  | JWT + Redis (可选)                                   |
+| 测试工具  | Jest + RTL + Cypress + MSW                           |
+| 自动化    | Cursor CLI + auto-dev.sh                             |
 | 部署运维  | Docker Compose → Kubernetes（后续）                  |
 
 ---
 
 ## 5. 交互流程
 
+### 5.1 认证流程
+```mermaid
+sequenceDiagram
+  User->>Front: 访问应用
+  Front->>Front: 检查本地JWT
+  alt 未登录
+    Front->>Front: 展示登录页
+    User->>Front: 输入用户名密码
+    Front->>Back: POST /auth/login
+    Back->>Back: 验证凭证
+    Back-->>Front: 返回JWT(包含用户角色)
+    Front->>Front: 保存JWT和角色信息，跳转对应主页
+  else 已登录
+    Front->>Front: 根据用户角色显示相应界面
+  end
+```
+
+### 5.2 核心交互流程
 ```mermaid
 sequenceDiagram
   User->>Front: 一句话
@@ -162,15 +227,75 @@ sequenceDiagram
   else RETRY
     Front->>Back: POST /v1/api/interpret
   else CANCEL
-    Front->>TTS: 播报“操作已取消”
+    Front->>TTS: 播报"操作已取消"
   end
 ```
 
 ---
 
-## 6. 已实现功能备注
-- **MCP 客户端 (Python版)**：`connect(path)` & `call_tool(tool,params)`  
-- **Frontend Hooks**：`useVoice()`, `useIntent()` 示例已给出  
-- **会话管理**：基于 sessionId 的状态追踪
+## 6. 已实现功能与近期更新
+
+### 6.1 已实现功能
+- **后端核心功能**：
+  - API架构：FastAPI基础架构、路由、控制器、服务层
+  - 数据库模型：用户、工具、会话、日志
+  - 意图解析：基于LLM的意图理解
+  - 工具执行：MCP和HTTP工具调用
+  - 用户认证：JWT授权机制
+
+- **前端核心组件**：
+  - 语音交互：VoiceRecorder组件（录音/STT）
+  - 状态管理：SessionContext、进度条显示
+  - 结果展示：ResultDisplay组件
+  - API集成：apiClient服务封装
+  - 设计系统：统一设计令牌系统
+  - 错误处理：ErrorBoundary组件
+
+### 6.2 近期更新 (2025-05-15)
+- **后端**：
+  - 完成了HTTP工具调用支持（Dify平台、Coze平台、通用HTTP API）
+  - 实现了用户身份认证系统（注册/登录API、JWT中间件）
+  - 修复了session_id在API响应中为null的问题
+
+- **前端**：
+  - 创建了设计令牌系统，实现CSS变量驱动所有样式
+  - 开始实现认证系统，包括登录/注册组件和AuthContext
+  - 开始配置自动化测试和开发环境：
+    - 集成Cypress进行E2E测试
+    - 配置MSW提供Mock服务
+    - 实现auto-dev.sh自动化脚本
+  - 开始优化技能服务目录，支持列表/网格视图切换和搜索
+  - 优化了响应式策略，采用Mobile-First方法，实现断点适配
+
+---
+
+## 7. 接下来优先实施计划
+
+1. **前端认证系统**：
+   - 完成登录和注册组件
+   - 实现AuthContext全局状态
+   - 添加路由保护机制
+   - 实现JWT存储和刷新
+
+2. **通用提示系统**：
+   - 实现Toast/Modal组件系统
+   - 统一错误处理流程
+   - 集成设计令牌确保风格一致
+
+3. **技能服务目录**：
+   - 完善列表/网格视图切换
+   - 实现搜索过滤功能
+   - 优化服务卡片设计
+   - 支持第三方开发者上传的服务
+
+4. **自动化测试环境**：
+   - 完善Cypress E2E测试
+   - 集成MSW模拟后端API
+   - 优化auto-dev.sh自动化流程
+
+5. **主题与样式**：
+   - 实现运行时主题切换
+   - 创建样式调试面板
+   - 完善响应式适配策略
 
 ---

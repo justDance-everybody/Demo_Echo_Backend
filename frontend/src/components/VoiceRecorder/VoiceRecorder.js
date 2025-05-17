@@ -114,14 +114,14 @@ const VoiceRecorder = ({ onResult, onError, setStatus, disabled }) => { // Added
 
 
     return (
-        <div className="voice-recorder-container">
+        <div className="voice-recorder-container" data-testid="voice-recorder">
             <button
                 className={`recorder-button ${isListening ? 'listening' : ''}`}
                 onClick={handleButtonClick}
                 // Disable the button if recognition isn't ready OR if the disabled prop is true
                 disabled={!recognition || disabled} 
             >
-                {isListening ? '停止' : '按住说话'}
+                {isListening ? '停止' : '点击开始说话'}
             </button>
             {/* Display a message if speech recognition is not supported */}
             {!recognition && <p>语音识别不可用</p>}

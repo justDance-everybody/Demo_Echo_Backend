@@ -1,35 +1,60 @@
 import { createGlobalStyle } from 'styled-components';
+import './tokens.css'; // 导入设计令牌CSS
+// 注意: Inter字体需要在index.html中通过<link>标签加载，而不是通过@import
 
 const GlobalStyles = createGlobalStyle`
-  :root {
-    --primary: #4FD1C5;
-    --secondary: #805AD5;
-    --background: ${props => props.theme.background};
-    --surface: ${props => props.theme.surface};
-    --text: ${props => props.theme.text};
-    --text-secondary: ${props => props.theme.textSecondary};
-    --border: ${props => props.theme.border};
-    --error: ${props => props.theme.error};
-    --success: ${props => props.theme.success};
-    --warning: ${props => props.theme.warning};
-  }
-
   body {
     margin: 0;
     padding: 0;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-      sans-serif;
+    font-family: var(--font-family);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background-color: ${props => props.theme.background};
-    color: ${props => props.theme.text};
-    transition: background-color 0.3s ease, color 0.3s ease;
+    background-color: var(--background);
+    color: var(--text);
+    transition: background-color var(--transition-normal), color var(--transition-normal);
+    font-size: var(--font-size-md);
+    line-height: var(--line-height-normal);
   }
 
   code {
     font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
       monospace;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    margin-top: 0;
+    font-weight: var(--font-weight-semibold);
+    color: var(--text);
+  }
+
+  h1 {
+    font-size: var(--font-size-3xl);
+  }
+
+  h2 {
+    font-size: var(--font-size-2xl);
+  }
+
+  h3 {
+    font-size: var(--font-size-xl);
+  }
+
+  h4 {
+    font-size: var(--font-size-lg);
+  }
+
+  h5, h6 {
+    font-size: var(--font-size-md);
+  }
+
+  a {
+    color: var(--color-primary);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+  }
+
+  a:hover {
+    color: var(--color-primary-dark);
   }
 
   /* 自定义滚动条 */
@@ -39,54 +64,93 @@ const GlobalStyles = createGlobalStyle`
   }
 
   ::-webkit-scrollbar-track {
-    background: ${props => props.theme.background};
+    background: var(--background);
   }
 
   ::-webkit-scrollbar-thumb {
-    background: ${props => props.theme.border};
-    border-radius: 4px;
+    background: var(--border);
+    border-radius: var(--radius-md);
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: ${props => props.theme.textSecondary};
+    background: var(--text-secondary);
   }
 
   /* 覆盖Ant Design样式 */
   .ant-layout {
-    background-color: ${props => props.theme.background};
+    background-color: var(--background);
   }
 
   .ant-card {
-    background-color: ${props => props.theme.surface};
-    color: ${props => props.theme.text};
-    border-color: ${props => props.theme.border};
+    background-color: var(--surface);
+    color: var(--text);
+    border-color: var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow var(--transition-fast);
+  }
+
+  .ant-card:hover {
+    box-shadow: var(--shadow-md);
   }
 
   .ant-card-head {
-    color: ${props => props.theme.text};
-    border-color: ${props => props.theme.border};
+    color: var(--text);
+    border-color: var(--border);
   }
   
   .ant-btn-primary {
-    background-color: ${props => props.theme.primary};
-    border-color: ${props => props.theme.primary};
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
   }
   
   .ant-btn-primary:hover {
-    background-color: ${props => `${props.theme.primary}dd`};
-    border-color: ${props => `${props.theme.primary}dd`};
+    background-color: var(--color-primary-dark);
+    border-color: var(--color-primary-dark);
   }
   
   .ant-divider {
-    border-color: ${props => props.theme.border};
+    border-color: var(--border);
   }
   
   .ant-spin-dot i {
-    background-color: ${props => props.theme.primary};
+    background-color: var(--color-primary);
   }
-  
-  /* 加载字体 */
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+  /* Ant Design Mobile 样式覆盖 */
+  .adm-button-primary {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+    color: #fff;
+  }
+
+  .adm-button-primary:not(.adm-button-disabled):active {
+    background-color: var(--color-primary-dark);
+    border-color: var(--color-primary-dark);
+  }
+
+  .adm-card {
+    background-color: var(--surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .adm-list-item {
+    background-color: var(--surface);
+    color: var(--text);
+    border-color: var(--border);
+  }
+
+  .adm-nav-bar {
+    background-color: var(--surface);
+    color: var(--text);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .adm-toast {
+    --background-color: var(--surface);
+    --text-color: var(--text);
+  }
 `;
 
 export default GlobalStyles; 
