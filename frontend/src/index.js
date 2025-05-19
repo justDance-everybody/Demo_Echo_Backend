@@ -12,6 +12,19 @@ import App from './App';
 import ThemeProvider from './theme/ThemeProvider';
 import GlobalStyles from './styles/GlobalStyles';
 
+// Start MSW worker in development if REACT_APP_USE_MOCKS is true
+if (process.env.NODE_ENV === 'development' && process.env.REACT_APP_USE_MOCKS === 'true') {
+  console.log('Starting MSW for mocking API calls...');
+  import('./mocks/browser').then(({ worker }) => {
+    worker.start({
+      onUnhandledRequest: 'bypass', // or 'warn' or a function
+    });
+    console.log('MSW worker started.');
+  }).catch(err => {
+    console.error('Failed to start MSW worker:', err);
+  });
+}
+
 // Ant Design Mobile 自定义主题配置
 const antMobileTheme = {
   token: {

@@ -12,7 +12,7 @@ import NavBar from './components/NavBar';
 import ProtectedRoute from './components/ProtectedRoute';
 import UserCenter from './pages/user/UserCenter';
 import TestPage from './tests/TestPage';
-import DeveloperConsole from './pages/DeveloperConsole';
+import DeveloperConsole from './pages/DeveloperConsolePage/DeveloperConsolePage';
 import './App.css';
 
 function App() {

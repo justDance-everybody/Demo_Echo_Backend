@@ -31,6 +31,53 @@ npm start
 npm run build
 ```
 
+## 测试 (Testing)
+
+本项目使用 Cypress 进行端到端 (E2E) 测试，并集成 `cypress-axe` 进行无障碍访问测试。
+
+### 安装测试依赖
+
+如果尚未安装，请在 `frontend` 目录下运行：
+```bash
+npm install --save-dev cypress cypress-mochawesome-reporter jq cypress-axe axe-core
+```
+
+### 运行 E2E 测试
+
+可以通过以下命令运行所有E2E测试：
+```bash
+npm run test:ci 
+# 或者直接使用 cypress 命令
+# npx cypress run
+```
+
+### 测试报告
+
+测试执行完毕后，详细的HTML测试报告会自动生成在 `cypress/reports/html/index.html`。这份报告包含了每个测试用例的执行情况、截图（如有失败）和视频（在 `cypress run` 模式下）。
+
+### 无障碍测试 (Accessibility Testing)
+
+我们使用 `cypress-axe` 在E2E测试中检查应用的无障碍性。在您的测试文件中，通常在页面加载或重要UI变化后，可以按如下方式使用：
+
+```javascript
+// 在你的Cypress测试文件 (e.g., frontend/cypress/e2e/your_test.cy.js)
+
+describe('Some Feature', () => {
+  it('should be accessible', () => {
+    cy.visit('/your-page');
+    cy.injectAxe(); // 注入axe-core运行时
+    cy.checkA11y(); // 检查整个页面的可访问性
+    // 你也可以配置 checkA11y 来排除某些元素或检查特定规则
+    // cy.checkA11y('.specific-selector', { rules: { 'color-contrast': { enabled: true } } });
+  });
+});
+```
+
+单元测试和组件测试使用 Jest 和 React Testing Library (RTL)。可以通过以下命令运行：
+```bash
+npm test
+```
+
 ## 使用指南
 
 1. 桌面版界面访问: http://localhost:3000/
@@ -81,7 +128,7 @@ npm run build
 
 ## 许可证
 
-[MIT](LICENSE)
+[MIT](LICENSE) 
 
 # Echo 应用前端主题系统
 
@@ -164,81 +211,3 @@ function YourComponent() {
 
 ```jsx
 const StyledComponent = styled.div`
-  color: var(--text-color);
-  background-color: var(--surface);
-  border-radius: var(--border-radius);
-  padding: var(--spacing-md);
-`;
-```
-
-## 可定制变量
-
-主题系统提供了以下可定制的CSS变量：
-
-| 变量名 | 默认值（深色） | 默认值（浅色） | 描述 |
-|-------|--------------|--------------|------|
-| --primary-color | #4FD1C5 | #38B2AC | 主色调，用于按钮、链接等 |
-| --secondary-color | #805AD5 | #6B46C1 | 辅助色，用于强调和高亮 |
-| --background | #1E1E2F | #FFFFFF | 页面背景色 |
-| --surface | #27293D | #F7FAFC | 卡片和组件背景色 |
-| --text-color | #F8F8F8 | #1A202C | 主要文本颜色 |
-| --text-secondary | #A0AEC0 | #4A5568 | 次要文本颜色 |
-| --border-color | #2D3748 | #E2E8F0 | 边框颜色 |
-| --border-radius | 8px | 8px | 圆角大小 |
-| --spacing-sm | 8px | 8px | 小间距 |
-| --spacing-md | 16px | 16px | 中间距 |
-| --spacing-lg | 24px | 24px | 大间距 |
-
-## 持久化
-
-主题设置会自动保存到 `localStorage`，包括：
-
-- `theme`: 'dark' 或 'light'，表示当前主题模式
-- `customTheme`: JSON字符串，包含自定义的主题变量
-
-## 响应式主题
-
-主题系统支持响应式设计，可以通过媒体查询结合主题变量实现不同屏幕尺寸的样式适配：
-
-```css
-@media (max-width: 768px) {
-  :root {
-    --spacing-md: 12px;
-    --border-radius: 6px;
-  }
-  
-  /* 针对特定主题的响应式调整 */
-  [data-theme="dark"] {
-    --surface: #1c1c2e;
-  }
-}
-```
-
-## 开发指南
-
-### 添加新的主题变量
-
-1. 在 `ThemeContext.js` 中的主题对象中添加新变量
-2. 在 `GlobalStyles.js` 中添加对应的CSS变量
-3. 如需在UI中提供自定义选项，在 `ThemeSettings.js` 中添加对应控件
-
-### 单元测试
-
-运行主题系统测试：
-
-```bash
-npm test -- ThemeSystem.test.js
-```
-
-主题系统包含以下测试：
-
-- 组件单元测试（ThemeToggle, ThemeSettings）
-- Settings页面集成测试
-- 主题持久化测试
-- CSS变量更新测试
-
-## 注意事项
-
-- 所有UI组件应使用CSS变量而非硬编码的颜色/尺寸值
-- 自定义主题可能需要考虑可访问性（对比度）问题
-- 移动设备上测试主题切换和定制功能 

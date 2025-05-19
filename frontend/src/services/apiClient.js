@@ -213,7 +213,7 @@ const execute = async (toolId, params, sessionId, userId) => {
         
         return response.data; 
     } catch (error) {
-        console.error('API call to /execute failed:', error);
+        console.error('API call to execute failed in function:', error);
         // Re-throw the processed error object from the interceptor
          throw error; 
     }
@@ -354,29 +354,56 @@ const createDeveloperApplication = async (applicationData) => {
   }
 };
 
-// 测试API服务
-const testApiService = async (serviceId, testData) => {
+// 测试已保存的API服务 (原 testApiService)
+const testSavedApiService = async (serviceId, testData) => {
   try {
-    console.log(`测试开发者服务ID: ${serviceId}`, testData);
+    console.log(`测试已保存的开发者服务ID: ${serviceId}`, testData);
     const response = await api.post(`/api/dev/tools/${serviceId}/test`, testData);
     console.log("测试服务响应:", response.data);
     return response.data;
   } catch (error) {
-    console.error(`测试开发者服务ID: ${serviceId} 失败:`, error);
+    console.error(`测试已保存的开发者服务ID: ${serviceId} 失败:`, error);
     throw error;
   }
 };
 
-const apiClient = {
-  interpret,
-  execute, 
-  getTools,
-  getToolById,
+// 新增: 测试未保存的API服务配置
+const testUnsavedDeveloperTool = async (toolConfiguration) => {
+  // toolConfiguration should include all form fields + the testInput value
+  // Example: { serviceName: 'Test', platformType: 'dify', ..., testInput: 'hello' }
+  try {
+    console.log("测试未保存的服务配置:", toolConfiguration);
+    // This endpoint /api/dev/tools/test is NEW and needs to be implemented in the backend
+    // and mocked in MSW. It receives the full tool config and test input.
+    const response = await api.post('/api/dev/tools/test', toolConfiguration);
+    console.log("测试未保存的服务响应:", response.data);
+    return response.data; // Expected: { success: boolean, raw_response?: any, error?: string }
+  } catch (error) {
+    console.error('测试未保存的服务配置失败:', error);
+    throw error; // Let the interceptor handle formatting the error
+  }
+};
+
+// Generic methods for direct use by components if they import the default export
+const apiClientInstance = {
+  get: (url, config) => api.get(url, config),
+  post: (url, data, config) => api.post(url, data, config),
+  put: (url, data, config) => api.put(url, data, config),
+  delete: (url, config) => api.delete(url, config),
+  patch: (url, data, config) => api.patch(url, data, config), // Added patch for completeness
+
+  // You can also choose to expose specific, named functions through this default export if preferred by components
+  setAuthToken,
   login,
   register,
   getUserInfo,
   refreshToken,
-  setAuthToken,
+  interpret,
+  execute,
+  getTools,
+  getToolById,
+  // If there are specific developer tool functions that components might use via `apiClient.someFunc()`,
+  // they could be added here too. For now, DeveloperConsolePage uses the generic get, put, delete.
   // 开发者API接口
   getDeveloperServices,
   createDeveloperService,
@@ -386,7 +413,8 @@ const apiClient = {
   uploadApiPackage,
   getDeveloperApplications,
   createDeveloperApplication,
-  testApiService
+  testSavedApiService,          // Renamed original testApiService
+  testUnsavedDeveloperTool,     // Added new method
 };
 
-export default apiClient; 
+export default apiClientInstance; 

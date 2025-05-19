@@ -1,143 +1,153 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import StyleEditor from '../StyleEditor';
-import { ThemeContext } from '../../contexts/ThemeContext';
+import { ThemeProvider } from '../../contexts/ThemeContext'; // Use actual provider
 
-// 模拟ThemeContext
-const mockThemeContext = {
-  theme: {
-    isDark: true,
-    primary: '#4FD1C5',
-    background: '#1E1E2F',
-    text: '#F8F8F8'
-  },
-  updateThemeVariable: jest.fn(),
-  toggleTheme: jest.fn()
-};
+// Mock localStorage
+let localStorageMock = {};
+global.Storage.prototype.getItem = jest.fn((key) => localStorageMock[key]);
+global.Storage.prototype.setItem = jest.fn((key, value) => {
+  localStorageMock[key] = value;
+});
+global.Storage.prototype.clear = jest.fn(() => {
+  localStorageMock = {};
+});
 
-// 模拟document.documentElement.style的getPropertyValue方法
+// Mock document.documentElement.style.setProperty and getPropertyValue
+const setPropertyMock = jest.fn();
+const getPropertyValueMock = jest.fn();
 Object.defineProperty(window.document.documentElement.style, 'getPropertyValue', {
-  value: jest.fn().mockImplementation((prop) => {
-    const mockValues = {
-      '--color-primary': '#4FD1C5',
-      '--color-secondary': '#805AD5',
-      '--background': '#1E1E2F',
-      '--surface': '#27293D',
-      '--text': '#F8F8F8',
-      '--radius-md': '8px',
-      '--radius-lg': '12px',
-    };
-    return mockValues[prop] || '';
-  }),
+    value: getPropertyValueMock,
+    configurable: true
+});
+Object.defineProperty(window.document.documentElement.style, 'setProperty', {
+    value: setPropertyMock,
   configurable: true
 });
 
-// 模拟计算样式的getComputedStyle
-window.getComputedStyle = jest.fn().mockImplementation(() => ({
-  getPropertyValue: (prop) => {
-    const mockValues = {
-      '--color-primary': '#4FD1C5',
-      '--color-secondary': '#805AD5',
+// Mock window.getComputedStyle
+const mockComputedStyle = {
+    getPropertyValue: getPropertyValueMock // Reuse the same mock for simplicity or make specific
+};
+global.getComputedStyle = jest.fn(() => mockComputedStyle);
+
+
+describe('StyleEditor组件 - 集成测试', () => {
+  const renderWithActualProvider = (component) => {
+    return render(<ThemeProvider>{component}</ThemeProvider>);
+  };
+
+  const initialCssVars = {
+    '--primary-color': '#4FD1C5',
+    '--secondary-color': '#805AD5',
+    '--text-color': '#F8F8F8',
       '--background': '#1E1E2F',
       '--surface': '#27293D',
-      '--text': '#F8F8F8',
-      '--radius-md': '8px',
-      '--radius-lg': '12px',
-    };
-    return mockValues[prop] || '';
-  }
-}));
-
-describe('StyleEditor组件', () => {
-  const mockUpdateThemeVariable = jest.fn();
-  const mockThemeContext = {
-    theme: { 
-      isDark: true,
-      variables: {
-        '--primary-color': '#3498db',
-        '--secondary-color': '#2ecc71',
-        '--text-color': '#ffffff'
-      }
-    },
-    toggleTheme: jest.fn(),
-    updateThemeVariable: mockUpdateThemeVariable
+    '--border-color': '#2D3748',
   };
 
   beforeEach(() => {
-    mockUpdateThemeVariable.mockClear();
+    localStorageMock = {};
+    setPropertyMock.mockClear();
+    getPropertyValueMock.mockClear();
+    global.Storage.prototype.getItem.mockClear();
+    global.Storage.prototype.setItem.mockClear();
+    
+    // Setup getPropertyValueMock for initial load
+    getPropertyValueMock.mockImplementation((varName) => initialCssVars[varName] || '');
+    
+    // Set initial localStorage state if StyleEditor depends on it for initial theme mode
+    localStorageMock['theme'] = 'dark'; // Assuming dark mode for default values in StyleEditor
+    localStorageMock['customTheme'] = JSON.stringify({});
   });
 
-  test('正确渲染主题变量', () => {
-    render(
-      <ThemeContext.Provider value={mockThemeContext}>
-        <StyleEditor />
-      </ThemeContext.Provider>
-    );
-
-    // 检查标题存在
+  test('正确渲染并从计算样式加载初始值', () => {
+    renderWithActualProvider(<StyleEditor />);
     expect(screen.getByText('样式编辑器')).toBeInTheDocument();
     
-    // 检查颜色变量是否显示
-    expect(screen.getByText('--primary-color')).toBeInTheDocument();
-    expect(screen.getByText('--secondary-color')).toBeInTheDocument();
-    expect(screen.getByText('--text-color')).toBeInTheDocument();
-    
-    // 检查颜色输入框
-    const colorInputs = screen.getAllByRole('textbox');
-    expect(colorInputs.length).toBe(3); // 应该有3个颜色变量输入框
+    // Check that inputs are rendered with values from getPropertyValueMock
+    expect(screen.getByDisplayValue(initialCssVars['--primary-color'])).toBeInTheDocument();
+    expect(screen.getByDisplayValue(initialCssVars['--secondary-color'])).toBeInTheDocument();
   });
 
-  test('修改颜色变量时调用updateThemeVariable', async () => {
-    render(
-      <ThemeContext.Provider value={mockThemeContext}>
-        <StyleEditor />
-      </ThemeContext.Provider>
-    );
+  test('修改颜色变量时应更新CSS变量和localStorage', async () => {
+    renderWithActualProvider(<StyleEditor />);
+    const newPrimaryColor = '#ff00ff';
 
-    // 获取第一个变量的输入框（--primary-color）
-    const inputs = screen.getAllByRole('textbox');
-    const primaryColorInput = inputs[0];
+    // Find the input for --primary-color. StyleEditor uses varName as key and in the display.
+    // The input is a text input in the current StyleEditor.js
+    const primaryColorInput = screen.getByDisplayValue(initialCssVars['--primary-color']);
     
-    // 修改颜色值
-    fireEvent.change(primaryColorInput, { target: { value: '#ff0000' } });
-    
-    // 检查updateThemeVariable是否被调用
-    await waitFor(() => {
-      expect(mockUpdateThemeVariable).toHaveBeenCalledWith('--primary-color', '#ff0000');
+    await act(async () => {
+        fireEvent.change(primaryColorInput, { target: { value: newPrimaryColor } });
     });
+
+    expect(setPropertyMock).toHaveBeenCalledWith('--primary-color', newPrimaryColor);
+    const customTheme = JSON.parse(localStorageMock['customTheme']);
+    expect(customTheme['primary-color']).toEqual(newPrimaryColor);
   });
 
-  test('重置按钮功能', () => {
-    render(
-      <ThemeContext.Provider value={mockThemeContext}>
-        <StyleEditor />
-      </ThemeContext.Provider>
-    );
-
-    // 查找并点击重置按钮
+  test('重置按钮应将变量恢复为默认值并更新CSS和localStorage', async () => {
+    renderWithActualProvider(<StyleEditor />);
     const resetButton = screen.getByText('重置为默认值');
+
+    // Modify a variable first to ensure reset has an effect
+    const primaryColorInput = screen.getByDisplayValue(initialCssVars['--primary-color']);
+    await act(async () => {
+        fireEvent.change(primaryColorInput, { target: { value: '#000000' } });
+    });
+    // Clear mocks to only capture reset calls
+    setPropertyMock.mockClear();
+    global.Storage.prototype.setItem.mockClear();
+
+    await act(async () => {
     fireEvent.click(resetButton);
-    
-    // 验证所有默认颜色被重置
-    expect(mockUpdateThemeVariable).toHaveBeenCalledTimes(3); // 应该重置三个颜色变量
+    });
+
+    // StyleEditor's resetToDefault has its own set of defaults
+    // Check a few to ensure setProperty was called for them
+    const editorDefaultsDark = {
+        '--primary-color': '#4FD1C5',
+        '--secondary-color': '#805AD5',
+        '--text-color': '#F8F8F8',
+        '--background': '#1E1E2F',
+        '--surface': '#27293D',
+        '--border-color': '#2D3748',
+    };
+
+    expect(setPropertyMock).toHaveBeenCalledWith('--primary-color', editorDefaultsDark['--primary-color']);
+    expect(setPropertyMock).toHaveBeenCalledWith('--background', editorDefaultsDark['--background']);
+    // Add more checks if necessary for all defaults
+
+    // Check localStorage reflects these defaults
+    // The entire customTheme should reflect the reset state, which means it should contain all default vars
+    const finalCustomTheme = JSON.parse(localStorageMock['customTheme']);
+    expect(finalCustomTheme['primary-color']).toEqual(editorDefaultsDark['--primary-color']);
+    expect(finalCustomTheme['background']).toEqual(editorDefaultsDark['--background']);
   });
 
-  test('导出主题配置', () => {
-    // 模拟window.URL.createObjectURL
+  test('导出主题配置功能', () => {
     global.URL.createObjectURL = jest.fn(() => 'mock-url');
-    
-    render(
-      <ThemeContext.Provider value={mockThemeContext}>
-        <StyleEditor />
-      </ThemeContext.Provider>
-    );
+    const mockLinkClick = jest.fn();
+    // Mock document.createElement to intercept the link and its click
+    const originalCreateElement = document.createElement;
+    document.createElement = jest.fn((tagName) => {
+        if (tagName === 'a') {
+            return { href: '', download: '', click: mockLinkClick, style: {} };
+        }
+        return originalCreateElement.call(document, tagName);
+    });
 
-    // 查找并点击导出按钮
+    renderWithActualProvider(<StyleEditor />);
     const exportButton = screen.getByText('导出主题配置');
     fireEvent.click(exportButton);
     
-    // 检查是否创建了下载链接
     expect(global.URL.createObjectURL).toHaveBeenCalled();
+    expect(mockLinkClick).toHaveBeenCalled();
+
+    // Restore original createElement
+    document.createElement = originalCreateElement;
+    global.URL.revokeObjectURL = jest.fn(); // also mock revoke
   });
 }); 

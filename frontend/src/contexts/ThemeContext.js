@@ -60,8 +60,8 @@ export const ThemeProvider = ({ children, overrideValue }) => {
   const [isDarkMode, setIsDarkMode] = useState(() => {
     // 尝试从本地存储中恢复主题设置
     if (typeof localStorage !== 'undefined') {
-      const savedTheme = localStorage.getItem('theme');
-      return savedTheme ? savedTheme === 'dark' : true;  // 默认使用深色主题
+    const savedTheme = localStorage.getItem('theme');
+    return savedTheme ? savedTheme === 'dark' : true;  // 默认使用深色主题
     }
     return true; // 默认深色主题
   });
@@ -140,7 +140,7 @@ export const ThemeProvider = ({ children, overrideValue }) => {
         {children}
       </ThemeContext.Provider>
     );
-  }
+    }
   
   // 合并基础主题和自定义主题变量
   const theme = {
