@@ -38,3 +38,9 @@ yarn-error.log*
 # Temporary files
 backend/tmp/* miniconda.sh
 miniconda.sh
+
+# Frontend cleanup (logs & test artifacts)
+frontend/*.log
+frontend/logs/
+frontend/test_logs_*/
+frontend/test_reports_*/
