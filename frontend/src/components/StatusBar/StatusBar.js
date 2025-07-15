@@ -8,15 +8,15 @@ const StatusBar = ({ currentStatus }) => {
             case 'idle':
                 return '空闲，等待语音输入';
             case 'listening':
-                return '正在听您说话...';
+                return '正在监听...';
             case 'thinking':
-                return '正在理解您的指令...';
+                return '正在思考...';
             case 'confirming':
-                return '请确认操作...';
+                return '等待确认';
             case 'executing':
-                return '正在执行操作...';
+                return '正在执行...';
             case 'speaking':
-                return '正在播报结果...';
+                return '正在播报...';
             case 'error':
                 return '发生错误，请重试';
             default:

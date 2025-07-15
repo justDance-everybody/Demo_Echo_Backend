@@ -349,8 +349,8 @@ const ConfirmationModal = ({
   const debugInfo = `ttsFinished: ${ttsFinished ? 'true' : 'false'} | showButtons: ${showButtons ? 'true' : 'false'} | isConfirmListening: ${isConfirmListening ? 'true' : 'false'}`;
   
   return (
-    <ModalOverlay theme={theme}>
-      <ModalContent theme={theme}>
+    <ModalOverlay theme={theme} className="confirmation-dialog" data-testid="confirmation-modal">
+      <ModalContent theme={theme} data-testid="confirmation-modal-content">
         <ModalIcon theme={theme}>
           <QuestionCircleOutlined />
         </ModalIcon>
@@ -413,13 +413,13 @@ const ConfirmationModal = ({
         
         {showButtons && !isConfirmListening && (
           <ButtonGroup>
-            <ConfirmButton theme={theme} onClick={handleConfirm}>
+            <ConfirmButton theme={theme} onClick={handleConfirm} data-testid="confirm-button">
               <CheckOutlined /> 确认
             </ConfirmButton>
-            <RetryButton theme={theme} onClick={handleRetry}>
+            <RetryButton theme={theme} onClick={handleRetry} data-testid="retry-button">
               <UndoOutlined /> 重试
             </RetryButton>
-            <CancelButton theme={theme} onClick={handleCancel}>
+            <CancelButton theme={theme} onClick={handleCancel} data-testid="cancel-button">
               <CloseOutlined /> 取消
             </CancelButton>
           </ButtonGroup>

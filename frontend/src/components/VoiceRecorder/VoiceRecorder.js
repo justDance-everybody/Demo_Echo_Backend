@@ -46,12 +46,12 @@ const VoiceRecorder = ({ onResult, onError, setStatus, disabled }) => { // Added
             // Event handler when recognition ends
             recog.onend = () => {
                 console.log('Voice recognition ended (initial input).');
-                // Ensure the button state is reset if recognition ends unexpectedly 
-                // (e.g., timeout, network error) while still in listening state.
-                 if (isListening) {
-                     setIsListening(false);
-                     // Optionally call onError or setStatus if needed, but MainPage usually handles this
-                 }
+                // Always reset the listening state when recognition ends
+                setIsListening(false);
+                // Optionally reset status to idle if needed
+                if (typeof setStatus === 'function') {
+                    setStatus('idle');
+                }
             };
 
             // Store the configured recognition instance in state
@@ -121,7 +121,7 @@ const VoiceRecorder = ({ onResult, onError, setStatus, disabled }) => { // Added
                 // Disable the button if recognition isn't ready OR if the disabled prop is true
                 disabled={!recognition || disabled} 
             >
-                {isListening ? '停止' : '点击开始说话'}
+                {isListening ? '点击停止' : '点击录音'}
             </button>
             {/* Display a message if speech recognition is not supported */}
             {!recognition && <p>语音识别不可用</p>}

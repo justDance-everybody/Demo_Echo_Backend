@@ -325,7 +325,7 @@ const MainPage = () => {
         }
     }, [isSpeaking, status]);
 
-    useEffect(() => {
+  useEffect(() => {
         return () => {
             // 组件卸载时清理资源
             cancelTTS();
@@ -442,7 +442,7 @@ const MainPage = () => {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
         >
-            <StatusBar status={status} lastTranscript={lastTranscript} lastResponse={lastResponse} />
+            <StatusBar currentStatus={status} lastTranscript={lastTranscript} lastResponse={lastResponse} />
             
             {/* 侧边栏切换按钮 */}
             <button 
@@ -491,10 +491,10 @@ const MainPage = () => {
                         {lastTranscript && (
                             <motion.div 
                                 className="transcript user-message"
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.3 }}
-                            >
+            >
                                 <div className="message-header">你说</div>
                                 <div className="message-content">{lastTranscript}</div>
                             </motion.div>
@@ -514,16 +514,16 @@ const MainPage = () => {
                         
                         {lastResponse && typeof lastResponse === 'object' && lastResponse.status !== 'success' && (
                             <motion.div
-                                initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.3 }}
                                 className="result-container"
-                            >
-                                <ResultDisplay 
+            >
+              <ResultDisplay
                                     status={lastResponse.status}
                                     message={lastResponse.message} 
                                     autoSpeak={false}
-                                />
+              />
                             </motion.div>
                         )}
                         
@@ -544,11 +544,11 @@ const MainPage = () => {
                             </motion.div>
                         )}
                     </div>
-                    
-                    {/* 重置按钮 */}
+        
+        {/* 重置按钮 */}
                     {status !== 'idle' && status !== 'listening' && (
                         <motion.button 
-                            className="reset-button"
+          className="reset-button"
                             onClick={handleReset}
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -565,9 +565,9 @@ const MainPage = () => {
                         onResult={handleVoiceResult} 
                         onError={handleVoiceError}
                         setStatus={setStatus}
-                        disabled={status !== 'idle'} // 添加禁用状态，仅在idle状态下启用语音按钮
+                        disabled={status !== 'idle' && status !== 'listening'} // 允许在idle和listening状态下使用
                     />
-                </div>
+      </div>
             </div>
             
             {/* 确认对话框 */}
