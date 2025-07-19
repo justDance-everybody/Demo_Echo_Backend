@@ -1,153 +1,202 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
+import { motion, AnimatePresence } from 'framer-motion';
 import { QuestionCircleOutlined, CheckOutlined, CloseOutlined, UndoOutlined, AudioOutlined } from '@ant-design/icons';
 import useVoice from '../hooks/useVoice';
 import useIntent from '../hooks/useIntent';
 import { useTheme } from '../contexts/ThemeContext';
 import useTTS from '../hooks/useTTS';
+import { useInteraction, INTERACTION_STATES } from '../contexts/InteractionContext';
+import { UI_CONFIG } from '../config/uiConfig';
+import { COMPONENT_LAYOUTS, ANIMATION_LAYOUTS } from '../styles/layouts';
+import { TIMEOUTS, CONFIRM_KEYWORDS } from '../config/constants';
 
-// 模态框容器
-const ModalOverlay = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: ${props => props.theme.dialogOverlay};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  animation: fadeIn 0.3s ease;
+// 清理确认文本的函数
+const cleanConfirmText = (text) => {
+  if (!text) return '';
   
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+  try {
+    // 如果是JSON字符串，尝试解析
+    if (typeof text === 'string' && (text.startsWith('{') || text.startsWith('[')) && (text.endsWith('}') || text.endsWith(']'))) {
+      const parsed = JSON.parse(text);
+      // 从解析的对象中提取有意义的文本
+      return parsed.message || parsed.content || parsed.text || parsed.confirm_text || JSON.stringify(parsed, null, 2);
+    }
+    
+    // 处理可能的编码问题
+    let cleanedText = text.toString();
+    
+    // 移除可能的控制字符和不可见字符
+    cleanedText = cleanedText.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
+    
+    // 处理可能的Unicode编码问题
+    try {
+      cleanedText = decodeURIComponent(escape(cleanedText));
+    } catch (e) {
+      // 如果解码失败，使用原文本
+      console.warn('文本解码失败，使用原文本:', e);
+    }
+    
+    // 移除多余的空白字符
+    cleanedText = cleanedText.trim().replace(/\s+/g, ' ');
+    
+    // 确保以句号结尾
+    if (cleanedText && !cleanedText.match(/[.!?]$/)) {
+      cleanedText += '。';
+    }
+    
+    return cleanedText || '确认执行此操作吗？';
+  } catch (error) {
+    console.error('清理确认文本时出错:', error);
+    return '确认执行此操作吗？';
   }
+};
+
+// 样式组件
+const ModalOverlay = styled(motion.div)`
+  ${COMPONENT_LAYOUTS.modal};
+  ${COMPONENT_LAYOUTS.modal.overlay};
+  backdrop-filter: blur(4px);
 `;
 
-// 模态框内容
-const ModalContent = styled.div`
-  background-color: ${props => props.theme.dialogBackground};
-  border-radius: 12px;
-  width: 90%;
+const ModalContent = styled(motion.div)`
+  ${COMPONENT_LAYOUTS.modal.content};
   max-width: 480px;
-  padding: 24px;
-  box-shadow: 0 4px 20px ${props => props.theme.shadowColor};
-  position: relative;
-  animation: slideIn 0.3s ease;
-  
-  @keyframes slideIn {
-    from { transform: translateY(20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-  }
+  width: 90%;
+  text-align: center;
+  border: 1px solid var(--color-border);
 `;
 
-// 模态框图标
 const ModalIcon = styled.div`
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background-color: ${props => props.theme.primary}22;
-  color: ${props => props.theme.primary};
+  width: var(--button-size-lg);
+  height: var(--button-size-lg);
+  border-radius: var(--border-radius-full);
+  background-color: var(--color-primary-alpha);
+  color: var(--color-primary);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
-  margin: 0 auto 16px;
+  font-size: ${UI_CONFIG.iconSizes.large};
+  margin: 0 auto ${UI_CONFIG.spacing.medium};
 `;
 
-// 模态框标题
 const ModalTitle = styled.h3`
-  color: ${props => props.theme.text};
+  margin: 0 0 ${UI_CONFIG.spacing.medium} 0;
+  color: var(--color-text);
   text-align: center;
-  margin-bottom: 16px;
-  font-size: 18px;
+  font-size: ${UI_CONFIG.typography.sizes.large};
+  font-weight: ${UI_CONFIG.typography.weights.semibold};
 `;
 
-// 模态框文本
-const ModalText = styled.div`
-  color: ${props => props.theme.text};
+const ModalText = styled.p`
+  margin: 0 0 ${UI_CONFIG.spacing.large} 0;
+  color: var(--color-text);
   text-align: center;
-  margin-bottom: 24px;
-  line-height: 1.6;
-  font-size: 16px;
+  font-size: ${UI_CONFIG.typography.sizes.medium};
+  line-height: ${UI_CONFIG.typography.lineHeights.relaxed};
+  max-height: 200px;
+  overflow-y: auto;
 `;
 
-// 按钮容器
 const ButtonGroup = styled.div`
-  display: flex;
+  ${COMPONENT_LAYOUTS.form.actions};
   justify-content: center;
-  gap: 12px;
+  margin-top: ${UI_CONFIG.spacing.large};
+  gap: ${UI_CONFIG.spacing.small};
 `;
 
-// 按钮
-const Button = styled.button`
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
+const Button = styled(motion.button)`
+  padding: ${UI_CONFIG.spacing.small} ${UI_CONFIG.spacing.large};
+  border: none;
+  border-radius: ${UI_CONFIG.borderRadius.medium};
+  font-size: ${UI_CONFIG.typography.sizes.small};
+  font-weight: ${UI_CONFIG.typography.weights.medium};
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 6px;
-  transition: all 0.2s ease;
+  transition: ${UI_CONFIG.transitions.fast};
+  min-width: 80px;
   
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 2px 8px ${props => props.theme.shadowColor};
+    transform: var(--transform-scale-hover);
+    box-shadow: var(--shadow-md);
   }
   
   &:active {
-    transform: translateY(0);
+    transform: var(--transform-scale-active);
+  }
+  
+  &:disabled {
+    opacity: var(--opacity-disabled);
+    cursor: not-allowed;
   }
 `;
 
-// 确认按钮
 const ConfirmButton = styled(Button)`
-  background-color: ${props => props.theme.primary};
-  color: ${props => props.theme.buttonText};
-  border: none;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  
+  &:hover:not(:disabled) {
+    background: var(--color-primary-dark);
+    transform: var(--transform-scale-hover);
+  }
 `;
 
-// 取消按钮
 const CancelButton = styled(Button)`
-  background-color: transparent;
-  color: ${props => props.theme.textSecondary};
-  border: 1px solid ${props => props.theme.border};
+  background: transparent;
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  
+  &:hover:not(:disabled) {
+    background: var(--color-surface-secondary);
+    transform: var(--transform-scale-hover);
+  }
 `;
 
-// 重试按钮
 const RetryButton = styled(Button)`
-  background-color: ${props => props.theme.secondary};
-  color: ${props => props.theme.buttonText};
-  border: none;
+  background: var(--color-secondary);
+  color: var(--color-on-secondary);
+  
+  &:hover:not(:disabled) {
+    background: var(--color-secondary-dark);
+    transform: var(--transform-scale-hover);
+  }
 `;
 
-// 语音识别状态
-const ListeningStatus = styled.div`
-  color: ${props => props.theme.primary};
+const ListeningStatus = styled(motion.div)`
+  ${COMPONENT_LAYOUTS.flex.center};
+  gap: ${UI_CONFIG.spacing.small};
+  padding: ${UI_CONFIG.spacing.medium};
+  background: var(--color-surface-secondary);
+  border-radius: ${UI_CONFIG.borderRadius.large};
+  margin: ${UI_CONFIG.spacing.medium} 0;
+  border: 2px solid ${props => props.isListening ? 'var(--color-primary)' : 'var(--color-border)'};
+  color: var(--color-primary);
   text-align: center;
-  font-size: 14px;
-  margin-top: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
+  font-size: var(--font-size-sm);
+  
+  .listening-icon {
+    width: var(--spacing-lg);
+    height: var(--spacing-lg);
+    border-radius: var(--border-radius-full);
+    background: ${props => props.isListening ? 'var(--color-primary)' : 'var(--color-text-secondary)'};
+    animation: ${props => props.isListening ? 'pulse var(--transition-slow) infinite' : 'none'};
+  }
   
   span {
     display: inline-block;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background-color: ${props => props.theme.primary};
-    animation: pulse 1.5s infinite;
+    width: var(--spacing-xs);
+    height: var(--spacing-xs);
+    border-radius: var(--border-radius-full);
+    background-color: var(--color-primary);
+    animation: pulse var(--transition-slow) infinite;
   }
   
   @keyframes pulse {
-    0% { transform: scale(0.8); opacity: 0.5; }
-    50% { transform: scale(1.2); opacity: 1; }
-    100% { transform: scale(0.8); opacity: 0.5; }
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.2); opacity: 0.7; }
+    100% { transform: scale(1); opacity: 1; }
   }
 `;
 
@@ -172,29 +221,28 @@ const ConfirmationModal = ({
   onRetry,
   onCancel,
   useVoiceConfirmation = true,
-  isListening,
-  isTTSSpeaking,
-  startSTTListening,
-  stopSTTListening
+  voiceCoordinator // 直接接收语音协调器实例
 }) => {
   const { theme } = useTheme();
-  // 仅在组件内部使用时才使用useVoice hook
-  const voiceHook = useVoice();
   const { classifyIntent } = useIntent();
-  const { speak, cancel: cancelTTS } = useTTS();
   
-  // 为了兼容性，如果没有传入外部的语音控制函数，则使用内部的hook
-  const isSTTListening = isListening !== undefined ? isListening : voiceHook.isListening;
-  const transcript = voiceHook.transcript;
-  const startListening = startSTTListening || voiceHook.startListening;
-  const stopListening = stopSTTListening || voiceHook.stopListening;
+  // 使用传入的语音协调器，避免独立的语音hook冲突
+  const isSTTListening = voiceCoordinator?.isSTTActive || false;
+  const isTTSSpeaking = voiceCoordinator?.isTTSActive || false;
+  const transcript = voiceCoordinator?.lastTranscript || '';
+  const startListening = voiceCoordinator?.startListening;
+  const stopListening = voiceCoordinator?.stopListening;
+  const speak = voiceCoordinator?.speak;
+  const cancelTTS = voiceCoordinator?.forceStopAll;
   
   const [isConfirmListening, setIsConfirmListening] = useState(false);
   const [showButtons, setShowButtons] = useState(false);
   const [ttsFinished, setTtsFinished] = useState(false);
+  const { interactionState } = useInteraction();
   
   // 对话框打开时朗读确认文本
   useEffect(() => {
+    
     if (isOpen && confirmText) {
       console.log("ConfirmationModal: 准备播放确认文本。isTTSSpeaking:", isTTSSpeaking);
       setTtsFinished(false);
@@ -204,19 +252,9 @@ const ConfirmationModal = ({
       const timer = setTimeout(() => {
         console.log("ConfirmationModal: 开始播放确认文本...");
         // 添加回调函数，在TTS结束后设置状态
-        speak(confirmText, 'zh-CN', 1, 1, () => {
+        voiceCoordinator.speak(confirmText, () => {
           console.log("ConfirmationModal: TTS播放完成，设置ttsFinished=true");
           setTtsFinished(true);
-          setShowButtons(true);
-          console.log("ConfirmationModal: 显示按钮和语音输入选项");
-          
-          // 如果启用了语音确认，自动启动语音监听
-          if (useVoiceConfirmation) {
-            console.log("ConfirmationModal: 自动启动语音监听");
-            setTimeout(() => {
-              handleStartVoiceListening();
-            }, 300);
-          }
         });
       }, 300);
       
@@ -237,209 +275,357 @@ const ConfirmationModal = ({
         stopListening();
       }
     }
-  }, [isOpen, confirmText, isTTSSpeaking, cancelTTS, isSTTListening, speak, stopListening, useVoiceConfirmation]);
+    
+  }, [isOpen, confirmText, isTTSSpeaking, cancelTTS, isSTTListening, speak, stopListening, useVoiceConfirmation, startListening, interactionState, handleStartVoiceListening, voiceCoordinator]);
   
-  // 在组件挂载或ttsFinished变化时检查状态
+
+  
+  // 在TTS播放完成后处理后续逻辑
   useEffect(() => {
     if (ttsFinished) {
-      console.log("ConfirmationModal: ttsFinished状态已变为true，应该显示语音按钮");
-      setShowButtons(true); // 确保按钮显示
-    }
-    
-    // 添加安全超时，确保即使TTS回调失败也会显示按钮
-    if (isOpen && confirmText && !ttsFinished && !showButtons) {
-      const safetyTimer = setTimeout(() => {
-        console.log("ConfirmationModal: 安全定时器触发，强制显示按钮");
-        setTtsFinished(true);
-        setShowButtons(true);
-      }, 5000); // 5秒后如果按钮还没显示，强制显示
+      console.log("ConfirmationModal: TTS播放完成，处理后续逻辑");
       
-      return () => clearTimeout(safetyTimer);
+      if (useVoiceConfirmation && !isConfirmListening && !isTTSSpeaking) {
+        console.log("ConfirmationModal: 语音确认模式，延迟启动语音识别");
+        // 延迟启动语音识别，确保TTS完全停止
+        const delayTimer = setTimeout(() => {
+          handleStartVoiceListening();
+        }, TIMEOUTS.TTS_TO_STT_DELAY);
+        
+        return () => clearTimeout(delayTimer);
+      } else if (!useVoiceConfirmation && !showButtons) {
+        console.log("ConfirmationModal: 非语音模式，直接显示按钮");
+        setShowButtons(true);
+      }
     }
-  }, [ttsFinished, isOpen, confirmText, showButtons, handleStartVoiceListening]);
+  }, [ttsFinished, useVoiceConfirmation, isConfirmListening, isTTSSpeaking, handleStartVoiceListening, showButtons]);
+  
+  // 安全超时机制，确保即使TTS回调失败也会显示按钮
+   useEffect(() => {
+     if (isOpen && confirmText && !ttsFinished && !showButtons) {
+       const safetyTimer = setTimeout(() => {
+         console.log("ConfirmationModal: 安全定时器触发，强制显示按钮");
+         setTtsFinished(true);
+         setShowButtons(true);
+       }, TIMEOUTS.TTS_TO_STT_DELAY * 2); // 使用更长的安全超时时间
+       
+       return () => clearTimeout(safetyTimer);
+     }
+   }, [isOpen, confirmText, ttsFinished, showButtons]);
   
   // 监听 STT 结果并进行意图分类
   useEffect(() => {
     // 当接收到语音识别结果时处理
-    if (isConfirmListening && transcript) {
+    if (isConfirmListening && transcript && transcript.trim()) {
       console.log("ConfirmationModal: Received transcript for confirmation:", transcript);
       const intent = classifyIntent(transcript);
       console.log("ConfirmationModal: Classified intent:", intent);
       
-      stopListening();
+      // 先停止监听
+      stopListening().catch(e => console.warn("停止监听时出错:", e));
       setIsConfirmListening(false);
       
+      // 根据意图执行相应操作
       switch (intent) {
         case 'CONFIRM':
+          console.log("ConfirmationModal: 用户确认操作");
           onConfirm();
           break;
         case 'RETRY':
+          console.log("ConfirmationModal: 用户选择重试");
           onRetry();
           break;
         case 'CANCEL':
+          console.log("ConfirmationModal: 用户取消操作");
           onCancel();
           break;
         default:
-          console.log("ConfirmationModal: Unclear intent or unrelated speech.");
+          console.log("ConfirmationModal: 未识别的意图，显示按钮供用户选择");
+          // 未识别意图时，显示按钮让用户手动选择
           setShowButtons(true);
           break;
       }
     }
   }, [isConfirmListening, transcript, classifyIntent, stopListening, onConfirm, onRetry, onCancel]);
   
+  // 监听语音识别状态变化，确保在适当时机显示按钮
+  useEffect(() => {
+    // 如果TTS完成且不在语音识别中，且是语音确认模式，则显示操作按钮
+    if (ttsFinished && !isConfirmListening && useVoiceConfirmation && !isTTSSpeaking && !showButtons) {
+      console.log("ConfirmationModal: TTS完成且不在语音识别中，显示操作按钮");
+      setShowButtons(true);
+    }
+  }, [ttsFinished, isConfirmListening, useVoiceConfirmation, isTTSSpeaking, showButtons]);
+  
+  // 监听语音识别错误，确保出错时显示按钮
+  useEffect(() => {
+    if (voiceCoordinator?.errorMessage && isConfirmListening) {
+      console.log("ConfirmationModal: 语音识别出错，显示操作按钮");
+      setIsConfirmListening(false);
+      setShowButtons(true);
+    }
+  }, [voiceCoordinator?.errorMessage, isConfirmListening]);
+  
   // 手动启动语音识别
-  const handleStartVoiceListening = () => {
+  const handleStartVoiceListening = useCallback(async () => {
     console.log("ConfirmationModal: 用户手动点击启动语音识别");
-    setIsConfirmListening(true);
-    // 确保先停止之前可能在进行的识别
-    try {
-      stopListening();
-    } catch (e) {
-      console.log("停止之前的识别时出错:", e);
+    
+    // 防止重复启动或检查交互状态
+    if (isConfirmListening || interactionState === INTERACTION_STATES.TTS_SPEAKING) {
+      console.log("ConfirmationModal: 已在监听中或TTS正在播放，忽略重复启动");
+      return;
     }
     
-    // 短暂延迟后启动新的识别，防止冲突
-    setTimeout(() => {
-      startListening();
-    }, 100);
+    setIsConfirmListening(true);
     
-    // 10秒后自动停止，避免无限等待
-    setTimeout(() => {
+    let retryCount = 0;
+    const maxRetries = 3;
+    
+    const tryStartListening = async () => {
+      try {
+        // 确保先停止之前可能在进行的识别
+        await stopListening();
+        console.log("ConfirmationModal: 已停止之前的识别");
+        
+        // 短暂延迟后启动新的识别，防止冲突
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        if (interactionState !== INTERACTION_STATES.TTS_SPEAKING) {
+          await startListening();
+          console.log("ConfirmationModal: 语音识别已启动");
+        } else {
+          console.log("ConfirmationModal: TTS正在播放，无法启动STT");
+          setIsConfirmListening(false);
+          // 如果无法启动语音识别，显示按钮
+          setShowButtons(true);
+        }
+      } catch (e) {
+          console.warn(`ConfirmationModal: 第${retryCount + 1}次启动失败:`, e.message);
+          
+          // 只在特定错误时重试，避免TTS冲突时的无效重试
+          if (retryCount < maxRetries && e.message.includes('timeout') && !e.message.includes('TTS')) {
+            retryCount++;
+            console.log(`ConfirmationModal: 将在2秒后重试 (${retryCount}/${maxRetries})`);
+            setTimeout(tryStartListening, 2000);
+          } else {
+            if (e.message.includes('TTS is currently active')) {
+              console.log("ConfirmationModal: TTS正在活跃，稍后会自动处理");
+            } else {
+              console.error("ConfirmationModal: 启动语音识别最终失败:", e);
+            }
+            setIsConfirmListening(false);
+            // 语音识别失败时，显示按钮供用户手动操作
+            setShowButtons(true);
+          }
+        }
+    };
+    
+    await tryStartListening();
+    
+    // 使用配置的超时时间自动停止语音识别并显示按钮，避免无限等待
+    const timeoutId = setTimeout(() => {
       if (isConfirmListening) {
-        console.log("ConfirmationModal: 语音识别超时自动停止");
-        stopListening();
+        console.log("ConfirmationModal: 语音识别超时，显示操作按钮");
+        stopListening().catch(e => console.warn("停止监听时出错:", e));
         setIsConfirmListening(false);
+        setShowButtons(true); // 超时后显示按钮
       }
-    }, 10000);
-  };
+    }, TIMEOUTS.VOICE_CONFIRM);
+    
+    return () => clearTimeout(timeoutId);
+  }, [isConfirmListening, stopListening, startListening, interactionState]);
   
   // 手动按钮处理函数
-  const handleConfirm = () => {
-    cancelTTS();
-    if (isConfirmListening) {
-      stopListening();
+  const handleConfirm = useCallback(async () => {
+    console.log("ConfirmationModal: 用户点击确认");
+    try {
+      cancelTTS();
+      if (isConfirmListening) {
+        await stopListening();
+      }
+      setIsConfirmListening(false);
+      onConfirm();
+    } catch (e) {
+      console.error("ConfirmationModal: 处理确认时出错:", e);
+      onConfirm(); // 即使出错也要执行确认
     }
-    onConfirm();
-  };
+  }, [cancelTTS, isConfirmListening, stopListening, onConfirm]);
   
-  const handleRetry = () => {
-    cancelTTS();
-    if (isConfirmListening) {
-      stopListening();
+  const handleRetry = useCallback(async () => {
+    console.log("ConfirmationModal: 用户点击重试");
+    try {
+      cancelTTS();
+      if (isConfirmListening) {
+        await stopListening();
+      }
+      setIsConfirmListening(false);
+      onRetry();
+    } catch (e) {
+      console.error("ConfirmationModal: 处理重试时出错:", e);
+      onRetry(); // 即使出错也要执行重试
     }
-    onRetry();
-  };
+  }, [cancelTTS, isConfirmListening, stopListening, onRetry]);
   
-  const handleCancel = () => {
-    cancelTTS();
-    if (isConfirmListening) {
-      stopListening();
+  const handleCancel = useCallback(async () => {
+    console.log("ConfirmationModal: 用户点击取消");
+    try {
+      cancelTTS();
+      if (isConfirmListening) {
+        await stopListening();
+      }
+      setIsConfirmListening(false);
+      onCancel();
+    } catch (e) {
+      console.error("ConfirmationModal: 处理取消时出错:", e);
+      onCancel(); // 即使出错也要执行取消
     }
-    onCancel();
-  };
+  }, [cancelTTS, isConfirmListening, stopListening, onCancel]);
   
   // 强制每次渲染时记录状态，便于调试
   console.log(`ConfirmationModal渲染: ttsFinished=${ttsFinished}, showButtons=${showButtons}, isConfirmListening=${isConfirmListening}`);
   
-  if (!isOpen) {
-    return null;
-  }
-  
-  // 确保始终显示调试信息
-  const debugInfo = `ttsFinished: ${ttsFinished ? 'true' : 'false'} | showButtons: ${showButtons ? 'true' : 'false'} | isConfirmListening: ${isConfirmListening ? 'true' : 'false'}`;
-  
   return (
-    <ModalOverlay theme={theme} className="confirmation-dialog" data-testid="confirmation-modal">
-      <ModalContent theme={theme} data-testid="confirmation-modal-content">
+    <AnimatePresence>
+      {isOpen && (
+        <ModalOverlay
+          theme={theme}
+          className="confirmation-dialog"
+          data-testid="confirmation-modal"
+          {...ANIMATION_LAYOUTS.fadeIn}
+        >
+          <ModalContent
+            theme={theme}
+            data-testid="confirmation-modal-content"
+            {...ANIMATION_LAYOUTS.scaleIn}
+          >
         <ModalIcon theme={theme}>
           <QuestionCircleOutlined />
         </ModalIcon>
         <ModalTitle theme={theme}>确认操作</ModalTitle>
-        <ModalText theme={theme}>
-          {confirmText}
+        <ModalText theme={theme} data-testid="confirm-text">
+          {cleanConfirmText(confirmText)}
         </ModalText>
         
-        {/* 添加调试信息，帮助排查显示问题 */}
-        <div style={{ fontSize: '12px', color: 'gray', margin: '10px 0', textAlign: 'center' }}>
-          状态: {isTTSSpeaking ? '正在播放TTS' : '未播放TTS'} | 
-          按钮显示: {showButtons ? '是' : '否'} | 
-          TTS完成: {ttsFinished ? '是' : '否'} |
-          正在录音: {isConfirmListening ? '是' : '否'}
+        {/* 交互状态指示器 */}
+        <div style={{ 
+          fontSize: 'var(--font-size-sm)', 
+          color: 'var(--color-text-secondary)', 
+          margin: 'var(--spacing-md) 0', 
+          textAlign: 'center',
+          padding: 'var(--spacing-xs) var(--spacing-sm)',
+          backgroundColor: 'var(--color-surface)',
+          borderRadius: 'var(--border-radius-sm)',
+          border: '1px solid var(--color-border)'
+        }}>
+          {isTTSSpeaking ? (
+            <span style={{ color: 'var(--color-info)' }}>🔊 正在播放确认信息...</span>
+          ) : isConfirmListening ? (
+            <span style={{ color: 'var(--color-success)' }}>🎤 正在聆听您的回答...</span>
+          ) : showButtons ? (
+            <span style={{ color: 'var(--color-text-secondary)' }}>💬 请选择您的操作</span>
+          ) : (
+            <span style={{ color: 'var(--color-warning)' }}>⏳ 准备中...</span>
+          )}
         </div>
         
-        {/* 使用普通HTML元素和内联样式，避免样式组件可能的问题 */}
-        {(ttsFinished || !isTTSSpeaking) && !isConfirmListening && (
-          <div style={{
-            textAlign: 'center',
-            margin: '20px 0',
-          }}>
-            <button 
+        {/* 语音输入按钮 */}
+        {ttsFinished && !isSTTListening && !isConfirmListening && useVoiceConfirmation && interactionState !== INTERACTION_STATES.TTS_SPEAKING && (
+          <motion.div
+            {...ANIMATION_LAYOUTS.slideIn}
+            style={{
+              textAlign: 'center',
+              margin: 'var(--spacing-lg) 0',
+            }}
+          >
+            <Button
+              as={motion.button}
               id="voice-input-button"
               onClick={handleStartVoiceListening}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               style={{
-                backgroundColor: '#8A2BE2',
-                color: 'white',
+                backgroundColor: 'var(--color-secondary)',
+                color: 'var(--color-on-secondary)',
                 border: 'none',
-                borderRadius: '8px',
-                padding: '12px 20px',
-                fontSize: '16px',
-                fontWeight: 'bold',
+                borderRadius: 'var(--border-radius-md)',
+                padding: 'var(--spacing-sm) var(--spacing-lg)',
+                fontSize: 'var(--font-size-md)',
+                fontWeight: 'var(--font-weight-bold)',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 margin: '0 auto',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                boxShadow: 'var(--shadow-md)',
                 width: '80%',
               }}
             >
-              <AudioOutlined style={{ marginRight: '8px', fontSize: '18px' }} /> 
+              <AudioOutlined style={{ marginRight: 'var(--spacing-xs)', fontSize: 'var(--font-size-lg)' }} /> 
               点击开始语音输入
-            </button>
-          </div>
+            </Button>
+          </motion.div>
         )}
         
         {isConfirmListening && (
-          <ListeningStatus theme={theme}>
+          <ListeningStatus
+            theme={theme}
+            isListening={true}
+            {...ANIMATION_LAYOUTS.slideIn}
+          >
             <span></span> 正在聆听您的回答...
           </ListeningStatus>
         )}
         
         {transcript && !isConfirmListening && (
-          <ModalText theme={theme} style={{ fontStyle: 'italic', marginTop: '16px' }}>
+          <ModalText theme={theme} style={{ fontStyle: 'italic', marginTop: 'var(--spacing-md)' }}>
             识别结果: {transcript}
           </ModalText>
         )}
         
-        {showButtons && !isConfirmListening && (
-          <ButtonGroup>
-            <ConfirmButton theme={theme} onClick={handleConfirm} data-testid="confirm-button">
+        {showButtons && (
+          <ButtonGroup
+            as={motion.div}
+            {...ANIMATION_LAYOUTS.slideIn}
+            transition={{ ...ANIMATION_LAYOUTS.slideIn.transition, delay: 0.1 }}
+          >
+            <ConfirmButton
+              theme={theme}
+              onClick={handleConfirm}
+              data-testid="confirm-button"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              disabled={isTTSSpeaking}
+            >
               <CheckOutlined /> 确认
             </ConfirmButton>
-            <RetryButton theme={theme} onClick={handleRetry} data-testid="retry-button">
+            <RetryButton
+              theme={theme}
+              onClick={handleRetry}
+              data-testid="retry-button"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              disabled={isTTSSpeaking}
+            >
               <UndoOutlined /> 重试
             </RetryButton>
-            <CancelButton theme={theme} onClick={handleCancel} data-testid="cancel-button">
+            <CancelButton
+              theme={theme}
+              onClick={handleCancel}
+              data-testid="cancel-button"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              disabled={isTTSSpeaking}
+            >
               <CloseOutlined /> 取消
             </CancelButton>
           </ButtonGroup>
         )}
         
-        {/* 始终显示调试信息 */}
-        <div style={{
-          fontSize: '12px',
-          color: '#999',
-          margin: '8px 0 0 0',
-          padding: '4px',
-          backgroundColor: '#f5f5f5',
-          borderRadius: '4px',
-          textAlign: 'center',
-        }}>
-          {debugInfo}
-        </div>
-      </ModalContent>
-    </ModalOverlay>
+          </ModalContent>
+        </ModalOverlay>
+      )}
+    </AnimatePresence>
   );
 };
 
-export default ConfirmationModal; 
+export default ConfirmationModal;

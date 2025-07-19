@@ -311,7 +311,7 @@ const Settings = () => {
                     type="text" 
                     id="api-endpoint-input"
                     defaultValue="https://api.example.com" 
-                    style={{ width: '180px' }}
+                    style={{ width: 'var(--input-width-md)' }}
                   />
                 </SettingRow>
                 
@@ -328,7 +328,7 @@ const Settings = () => {
                     defaultValue={30} 
                     min={5} 
                     max={120}
-                    style={{ width: '80px' }}
+                    style={{ width: 'var(--input-width-sm)' }}
                   />
                 </SettingRow>
               </SettingsGroup>
@@ -360,7 +360,7 @@ const Settings = () => {
                     type="text" 
                     id="username-input"
                     defaultValue="用户名" 
-                    style={{ width: '180px' }}
+                    style={{ width: 'var(--input-width-md)' }}
                   />
                 </SettingRow>
                 
@@ -375,7 +375,7 @@ const Settings = () => {
                     type="email" 
                     id="email-input"
                     defaultValue="user@example.com" 
-                    style={{ width: '180px' }}
+                    style={{ width: 'var(--input-width-md)' }}
                   />
                 </SettingRow>
                 
@@ -441,4 +441,4 @@ const Settings = () => {
   );
 };
 
-export default Settings; 
+export default Settings;

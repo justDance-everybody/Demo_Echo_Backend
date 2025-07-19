@@ -6,57 +6,57 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 15px 0; 
-  background-color: #1E1E2F; 
-  border-top: 1px solid #333; 
-  z-index: 100; 
+  padding: var(--spacing-md) 0; 
+  background-color: var(--color-surface); 
+  border-top: 1px solid var(--color-border); 
+  z-index: var(--z-index-fixed); 
 }
 
 .recorder-button {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%; 
-  background-color: #4FD1C5; 
+  width: var(--button-size-lg);
+  height: var(--button-size-lg);
+  border-radius: var(--border-radius-full); 
+  background-color: var(--color-primary); 
   border: none;
-  color: #1E1E2F; 
-  font-size: 14px;
-  font-weight: bold;
+  color: var(--color-on-primary); 
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
   cursor: pointer;
   display: flex;
   justify-content: center;
   align-items: center;
   text-align: center;
-  transition: background-color 0.3s ease, transform 0.2s ease;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  transition: var(--transition-default);
+  box-shadow: var(--shadow-md);
 }
 
 .recorder-button:hover {
-  background-color: #3dbbab; 
+  background-color: var(--color-primary-hover); 
 }
 
 .recorder-button:active {
-    transform: scale(0.95); 
+    transform: var(--transform-scale-down); 
 }
 
 .recorder-button.listening {
-  background-color: #F56565; 
-  color: white;
-  animation: pulse 1.5s infinite ease-in-out;
+  background-color: var(--color-error); 
+  color: var(--color-on-error);
+  animation: pulse var(--animation-duration-slow) infinite ease-in-out;
 }
 
 .recorder-button:disabled {
-    background-color: #4A5568; 
+    background-color: var(--color-disabled); 
     cursor: not-allowed;
-    opacity: 0.6; /* Add opacity for disabled state */
+    opacity: var(--opacity-disabled);
 }
 
 @keyframes pulse {
-  0% { box-shadow: 0 0 0 0 rgba(245, 101, 101, 0.7); }
-  70% { box-shadow: 0 0 0 10px rgba(245, 101, 101, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(245, 101, 101, 0); }
+  0% { box-shadow: 0 0 0 0 var(--color-error-alpha-70); }
+  70% { box-shadow: 0 0 0 10px var(--color-error-alpha-0); }
+  100% { box-shadow: 0 0 0 0 var(--color-error-alpha-0); }
 }
 
 .voice-recorder-container p {
-    color: #A0AEC0; 
-    margin-left: 15px;
-} 
+    color: var(--color-text-secondary); 
+    margin-left: var(--spacing-md);
+}

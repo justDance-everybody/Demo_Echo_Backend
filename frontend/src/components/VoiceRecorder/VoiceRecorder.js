@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { UI_CONFIG } from '../../config/uiConfig';
+import { INTERACTION_STATES, TIMEOUTS } from '../../config/constants';
+import { COMPONENT_LAYOUTS } from '../../styles/layouts';
 import './VoiceRecorder.css'; 
 
 const VoiceRecorder = ({ onResult, onError, setStatus, disabled }) => { // Added disabled prop
@@ -13,7 +16,7 @@ const VoiceRecorder = ({ onResult, onError, setStatus, disabled }) => { // Added
             
             // Configuration for the recognition instance
             recog.continuous = false; // Stop listening after the first pause in speech
-            recog.lang = 'zh-CN'; // Set language to Chinese (Mandarin, Simplified)
+            recog.lang = UI_CONFIG.interactions.voice.language; // Set language from config
             recog.interimResults = false; // We only want final results
             recog.maxAlternatives = 1; // Get only the most likely transcript
 
@@ -22,7 +25,7 @@ const VoiceRecorder = ({ onResult, onError, setStatus, disabled }) => { // Added
                 console.log('Voice recognition started (initial input).');
                 setIsListening(true); // Update local listening state
                 if (typeof setStatus === 'function') {
-                    setStatus('listening'); // Update global status passed from parent
+                    setStatus(INTERACTION_STATES.LISTENING); // Update global status passed from parent
                 }
             };
 
@@ -50,7 +53,7 @@ const VoiceRecorder = ({ onResult, onError, setStatus, disabled }) => { // Added
                 setIsListening(false);
                 // Optionally reset status to idle if needed
                 if (typeof setStatus === 'function') {
-                    setStatus('idle');
+                    setStatus(INTERACTION_STATES.IDLE);
                 }
             };
 
@@ -104,7 +107,7 @@ const VoiceRecorder = ({ onResult, onError, setStatus, disabled }) => { // Added
                      onError("Failed to start listening");
                      setIsListening(false); 
                      if (typeof setStatus === 'function') {
-                         setStatus('idle'); 
+                         setStatus(INTERACTION_STATES.IDLE); 
                      }
                  }
             }
@@ -129,4 +132,4 @@ const VoiceRecorder = ({ onResult, onError, setStatus, disabled }) => { // Added
     );
 };
 
-export default VoiceRecorder; 
+export default VoiceRecorder;

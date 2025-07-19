@@ -1,6 +1,11 @@
 import axios from 'axios';
 
+// 从环境变量获取API配置
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3000';
+const API_PREFIX = process.env.REACT_APP_API_PREFIX || '/api/v1';
+
 const api = axios.create({
+  baseURL: API_BASE_URL,
   timeout: 15000, 
 });
 
@@ -71,12 +76,18 @@ const setAuthToken = (token) => {
 // 用户登录
 const login = async (username, password) => {
   try {
-    const response = await api.post('/api/auth/login', {
-      username,
-      password
+    // 根据对接指南，登录接口使用form-data格式
+    const formData = new URLSearchParams();
+    formData.append('username', username);
+    formData.append('password', password);
+    
+    const response = await api.post(`${API_PREFIX}/auth/token`, formData, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
     });
     
-    // 确保返回成功状态和处理用户角色
+    // 后端返回TokenResponse格式，包含access_token, user_id, username, role等字段
     return {
       success: true,
       token: response.data.access_token,
@@ -88,9 +99,11 @@ const login = async (username, password) => {
     };
   } catch (error) {
     console.error('登录失败:', error);
+    // 处理HTTP错误响应
+    const errorMessage = error.response?.data?.detail || error.message || '登录失败，请稍后再试';
     return {
       success: false,
-      message: error.message || '登录失败，请稍后再试'
+      message: errorMessage
     };
   }
 };
@@ -98,7 +111,7 @@ const login = async (username, password) => {
 // 用户注册
 const register = async (username, password, email) => {
   try {
-    const response = await api.post('/api/auth/register', {
+    const response = await api.post(`${API_PREFIX}/auth/register`, {
       username,
       password,
       email
@@ -125,7 +138,7 @@ const register = async (username, password, email) => {
 // 获取用户信息
 const getUserInfo = async () => {
   try {
-    const response = await api.get('/api/auth/me');
+    const response = await api.get(`${API_PREFIX}/auth/me`);
     return response.data;
   } catch (error) {
     console.error('获取用户信息失败:', error);
@@ -136,7 +149,7 @@ const getUserInfo = async () => {
 // 刷新令牌
 const refreshToken = async () => {
   try {
-    const response = await api.post('/api/auth/refresh');
+    const response = await api.post(`${API_PREFIX}/auth/refresh`);
     return response.data;
   } catch (error) {
     console.error('刷新令牌失败:', error);
@@ -149,7 +162,7 @@ const refreshToken = async () => {
 const interpret = async (transcript, sessionId, userId) => {
     try {
         console.log(`发送interpret请求，携带sessionId: ${sessionId}`);
-        const response = await api.post('/api/v1/interpret', {
+        const response = await api.post(`${API_PREFIX}/interpret`, {
             query: transcript, 
             sessionId: sessionId,
             userId: userId,
@@ -200,7 +213,7 @@ const execute = async (toolId, params, sessionId, userId) => {
         
         console.log("准备发送execute请求数据:", requestData);
         
-        const response = await api.post('/api/v1/execute', requestData);
+        const response = await api.post(`${API_PREFIX}/execute`, requestData);
         
         console.log("Execute API Response:", response);
         
@@ -222,7 +235,7 @@ const execute = async (toolId, params, sessionId, userId) => {
 const getTools = async () => {
     try {
         console.log("获取工具列表...");
-        const response = await api.get('/api/v1/tools');
+        const response = await api.get(`${API_PREFIX}/tools`);
         console.log("工具列表响应:", response.data);
         return response.data.tools; // 直接返回工具数组
     } catch (error) {
@@ -235,7 +248,7 @@ const getTools = async () => {
 const getToolById = async (toolId) => {
   try {
     console.log(`获取工具ID: ${toolId} 的详情`);
-    const response = await api.get(`/api/v1/tools/${toolId}`);
+    const response = await api.get(`${API_PREFIX}/tools/${toolId}`);
     console.log("工具详情响应:", response.data);
     return response.data;
   } catch (error) {
@@ -250,7 +263,7 @@ const getToolById = async (toolId) => {
 const getDeveloperServices = async () => {
   try {
     console.log("获取开发者服务列表...");
-    const response = await api.get('/api/dev/tools');
+    const response = await api.get(`${API_PREFIX}/dev/tools`);
     console.log("开发者服务列表响应:", response.data);
     return response.data.services;
   } catch (error) {
@@ -263,7 +276,7 @@ const getDeveloperServices = async () => {
 const createDeveloperService = async (serviceData) => {
   try {
     console.log("创建新服务...", serviceData);
-    const response = await api.post('/api/dev/tools', serviceData);
+    const response = await api.post(`${API_PREFIX}/dev/tools`, serviceData);
     console.log("创建服务响应:", response.data);
     return response.data;
   } catch (error) {
@@ -276,7 +289,7 @@ const createDeveloperService = async (serviceData) => {
 const getDeveloperServiceById = async (serviceId) => {
   try {
     console.log(`获取开发者服务ID: ${serviceId} 的详情`);
-    const response = await api.get(`/api/dev/tools/${serviceId}`);
+    const response = await api.get(`${API_PREFIX}/dev/tools/${serviceId}`);
     console.log("开发者服务详情响应:", response.data);
     return response.data;
   } catch (error) {
@@ -289,7 +302,7 @@ const getDeveloperServiceById = async (serviceId) => {
 const updateDeveloperService = async (serviceId, updateData) => {
   try {
     console.log(`更新开发者服务ID: ${serviceId}`, updateData);
-    const response = await api.put(`/api/dev/tools/${serviceId}`, updateData);
+    const response = await api.put(`${API_PREFIX}/dev/tools/${serviceId}`, updateData);
     console.log("更新服务响应:", response.data);
     return response.data;
   } catch (error) {
@@ -302,7 +315,7 @@ const updateDeveloperService = async (serviceId, updateData) => {
 const deleteDeveloperService = async (serviceId) => {
   try {
     console.log(`删除开发者服务ID: ${serviceId}`);
-    const response = await api.delete(`/api/dev/tools/${serviceId}`);
+    const response = await api.delete(`${API_PREFIX}/dev/tools/${serviceId}`);
     console.log("删除服务响应:", response.data);
     return response.data;
   } catch (error) {
@@ -315,7 +328,7 @@ const deleteDeveloperService = async (serviceId) => {
 const uploadApiPackage = async (formData) => {
   try {
     console.log("上传API包...");
-    const response = await api.post('/api/dev/upload', formData, {
+    const response = await api.post(`${API_PREFIX}/dev/upload`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -332,7 +345,7 @@ const uploadApiPackage = async (formData) => {
 const getDeveloperApplications = async () => {
   try {
     console.log("获取开发者应用列表...");
-    const response = await api.get('/api/dev/apps');
+    const response = await api.get(`${API_PREFIX}/dev/apps`);
     console.log("开发者应用列表响应:", response.data);
     return response.data.applications;
   } catch (error) {
@@ -345,7 +358,7 @@ const getDeveloperApplications = async () => {
 const createDeveloperApplication = async (applicationData) => {
   try {
     console.log("创建新应用...", applicationData);
-    const response = await api.post('/api/dev/apps', applicationData);
+    const response = await api.post(`${API_PREFIX}/dev/apps`, applicationData);
     console.log("创建应用响应:", response.data);
     return response.data;
   } catch (error) {
@@ -358,7 +371,7 @@ const createDeveloperApplication = async (applicationData) => {
 const testSavedApiService = async (serviceId, testData) => {
   try {
     console.log(`测试已保存的开发者服务ID: ${serviceId}`, testData);
-    const response = await api.post(`/api/dev/tools/${serviceId}/test`, testData);
+    const response = await api.post(`${API_PREFIX}/dev/tools/${serviceId}/test`, testData);
     console.log("测试服务响应:", response.data);
     return response.data;
   } catch (error) {
@@ -375,12 +388,86 @@ const testUnsavedDeveloperTool = async (toolConfiguration) => {
     console.log("测试未保存的服务配置:", toolConfiguration);
     // This endpoint /api/dev/tools/test is NEW and needs to be implemented in the backend
     // and mocked in MSW. It receives the full tool config and test input.
-    const response = await api.post('/api/dev/tools/test', toolConfiguration);
+    const response = await api.post(`${API_PREFIX}/dev/tools/test`, toolConfiguration);
     console.log("测试未保存的服务响应:", response.data);
     return response.data; // Expected: { success: boolean, raw_response?: any, error?: string }
   } catch (error) {
     console.error('测试未保存的服务配置失败:', error);
     throw error; // Let the interceptor handle formatting the error
+  }
+};
+
+// 兼容性方法：将chat和voice请求映射到interpret接口
+const sendChatMessage = async (query, userId, sessionId, context) => {
+  try {
+    console.log('Chat请求转换为interpret请求:', { query, userId, sessionId });
+    const response = await interpret(query, sessionId, userId);
+    return response;
+  } catch (error) {
+    console.error('Chat请求失败:', error);
+    throw error;
+  }
+};
+
+const sendVoiceRequest = async (voiceText, userId, sessionId, context) => {
+  try {
+    console.log('Voice请求转换为interpret请求:', { voiceText, userId, sessionId });
+    const response = await interpret(voiceText, sessionId, userId);
+    return response;
+  } catch (error) {
+    console.error('Voice请求失败:', error);
+    throw error;
+  }
+};
+
+// 获取服务列表（兼容旧接口）
+const getServices = async () => {
+  try {
+    console.log('获取服务列表（通过工具接口）');
+    const tools = await getTools();
+    // 转换为旧格式以保持兼容性
+    return {
+      status: 'success',
+      data: {
+        services: tools.map(tool => ({
+          id: tool.tool_id,
+          name: tool.name,
+          description: tool.description,
+          type: tool.type,
+          icon: 'api', // 默认图标
+          color: 'var(--color-primary-light)' // 默认颜色
+        }))
+      }
+    };
+  } catch (error) {
+    console.error('获取服务列表失败:', error);
+    throw error;
+  }
+};
+
+// MCP服务执行（兼容旧接口）
+const executeMcpService = async (serverId, query, options = {}) => {
+  try {
+    console.log('MCP服务执行转换为标准执行流程:', { serverId, query, options });
+    
+    // 首先解析意图
+    const interpretation = await interpret(query, options.sessionId, options.userId);
+    
+    // 然后执行工具
+    if (interpretation.intent) {
+      const result = await execute(
+        interpretation.intent,
+        interpretation.params || {},
+        interpretation.sessionId,
+        options.userId
+      );
+      return result;
+    } else {
+      throw new Error('无法解析用户意图');
+    }
+  } catch (error) {
+    console.error('MCP服务执行失败:', error);
+    throw error;
   }
 };
 
@@ -390,20 +477,27 @@ const apiClientInstance = {
   post: (url, data, config) => api.post(url, data, config),
   put: (url, data, config) => api.put(url, data, config),
   delete: (url, config) => api.delete(url, config),
-  patch: (url, data, config) => api.patch(url, data, config), // Added patch for completeness
+  patch: (url, data, config) => api.patch(url, data, config),
 
-  // You can also choose to expose specific, named functions through this default export if preferred by components
+  // 认证相关
   setAuthToken,
   login,
   register,
   getUserInfo,
   refreshToken,
+  
+  // 核心AI功能（后端标准接口）
   interpret,
   execute,
   getTools,
   getToolById,
-  // If there are specific developer tool functions that components might use via `apiClient.someFunc()`,
-  // they could be added here too. For now, DeveloperConsolePage uses the generic get, put, delete.
+  
+  // 兼容性接口（映射到标准接口）
+  sendChatMessage,
+  sendVoiceRequest,
+  getServices,
+  executeMcpService,
+  
   // 开发者API接口
   getDeveloperServices,
   createDeveloperService,
@@ -413,8 +507,8 @@ const apiClientInstance = {
   uploadApiPackage,
   getDeveloperApplications,
   createDeveloperApplication,
-  testSavedApiService,          // Renamed original testApiService
-  testUnsavedDeveloperTool,     // Added new method
+  testSavedApiService,
+  testUnsavedDeveloperTool,
 };
 
-export default apiClientInstance; 
+export default apiClientInstance;

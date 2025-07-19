@@ -221,6 +221,11 @@ class IntentService:
             )
             
             confirmation_text = response.choices[0].message.content.strip()
+            
+            # 清理可能的编码问题和特殊字符
+            confirmation_text = confirmation_text.replace('\\n', ' ').replace('\\t', ' ')
+            confirmation_text = ' '.join(confirmation_text.split())  # 规范化空白字符
+            
             logger.info(f"生成的确认文本: {confirmation_text}")
             
             # 确保确认文本是一个问句

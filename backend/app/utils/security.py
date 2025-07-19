@@ -13,28 +13,8 @@ from app.config import settings
 from app.models.user import User
 from app.utils.db import get_db, get_async_db_session
 
-# 自定义OAuth2认证类，允许没有token的情况
-class OptionalOAuth2PasswordBearer(OAuth2PasswordBearer):
-    """
-    扩展的OAuth2PasswordBearer，允许没有令牌
-    """
-    def __init__(self, tokenUrl: str, auto_error: bool = False):
-        super().__init__(tokenUrl=tokenUrl, auto_error=auto_error)
-        
-    async def __call__(self, request: Request) -> Optional[str]:
-        authorization = request.headers.get("Authorization")
-        scheme, param = get_authorization_scheme_param(authorization)
-        
-        if not authorization or scheme.lower() != "bearer":
-            return None
-            
-        return param
-
 # 定义身份验证相关的异常和依赖项
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_PREFIX}/auth/token")
-
-# 可选认证，不会因为没有token而抛出异常
-optional_oauth2_scheme = OptionalOAuth2PasswordBearer(tokenUrl=f"{settings.API_PREFIX}/auth/token")
 
 # 使用bcrypt算法处理密码哈希
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -150,38 +130,23 @@ async def get_current_active_user(current_user: User = Depends(get_current_user)
     #     raise HTTPException(status_code=400, detail="用户已禁用")
     return current_user
 
-# 可选的用户验证依赖（不引发错误，而是返回None）
-async def get_optional_user(
-    token: Optional[str] = Depends(optional_oauth2_scheme), 
-    db: AsyncSession = Depends(get_async_db_session)
-) -> Optional[User]:
+# 获取管理员用户
+async def get_admin_user(current_user: User = Depends(get_current_user)) -> User:
     """
-    可选验证用户，如果令牌无效则返回None而不是引发异常
+    验证当前用户是否为管理员
     
     Args:
-        token: JWT令牌（可选）
-        db: 数据库会话
+        current_user: 当前登录的用户对象
         
     Returns:
-        用户对象，如果验证失败则返回None
+        验证为管理员的用户对象
+        
+    Raises:
+        HTTPException: 如果用户不是管理员
     """
-    if not token:
-        return None
-        
-    try:
-        # 解码JWT令牌
-        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
-        user_id: int = int(payload.get("sub"))
-        if user_id is None:
-            return None
-            
-        # 从数据库获取用户
-        from sqlalchemy.future import select
-        stmt = select(User).where(User.id == user_id)
-        result = await db.execute(stmt)
-        user = result.scalar_one_or_none()
-        
-        return user
-    except (JWTError, ValueError):
-        # 如果解码失败或user_id不是整数，返回None
-        return None 
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="需要管理员权限才能访问此资源"
+        )
+    return current_user

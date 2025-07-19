@@ -15,13 +15,14 @@ import GlobalStyles from './styles/GlobalStyles';
 // Start MSW worker in development if REACT_APP_USE_MOCKS is true
 if (process.env.NODE_ENV === 'development' && process.env.REACT_APP_USE_MOCKS === 'true') {
   console.log('Starting MSW for mocking API calls...');
-  import('./mocks/browser').then(({ worker }) => {
+  // Use dynamic import with webpack magic comment to make it optional
+  import(/* webpackIgnore: true */ './mocks/browser').then(({ worker }) => {
     worker.start({
       onUnhandledRequest: 'bypass', // or 'warn' or a function
     });
     console.log('MSW worker started.');
   }).catch(err => {
-    console.error('Failed to start MSW worker:', err);
+    console.warn('MSW not available, continuing without mocks:', err.message);
   });
 }
 
@@ -110,4 +111,4 @@ root.render(
     </AntConfigProvider>
     </ThemeProvider>
   </React.StrictMode>
-); 
+);

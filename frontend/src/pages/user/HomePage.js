@@ -2,60 +2,61 @@ import React, { useState, useEffect, useContext } from 'react';
 import { Typography, Button, Space, Card, Row, Col, Spin, Layout, message } from 'antd';
 import { AudioOutlined, AudioMutedOutlined, ReloadOutlined, SearchOutlined, RobotOutlined, GlobalOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import styled from 'styled-components';
-import axios from 'axios';
+import apiClient from '../../services/apiClient';
 import VoiceDialog from '../../components/VoiceDialog';
 import { ThemeContext } from '../../theme/ThemeProvider';
+import { UI_CONFIG } from '../../config/uiConfig';
 
 const { Title } = Typography;
 const { Content } = Layout;
 
 // 样式组件
 const HomeContainer = styled(Content)`
-  padding: 20px;
-  min-height: calc(100vh - 64px);
+  padding: var(--spacing-lg);
+  min-height: calc(100vh - var(--header-height));
 `;
 
 const Banner = styled.div`
-  padding: 20px 24px;
+  padding: var(--spacing-lg) var(--spacing-xl);
   background: ${props => props.theme.secondary};
-  border-radius: 8px;
-  margin-bottom: 24px;
-  color: white;
+  border-radius: var(--border-radius-lg);
+  margin-bottom: var(--spacing-xl);
+  color: var(--color-on-primary);
 `;
 
 const StyledCard = styled(Card)`
   height: 100%;
   cursor: pointer;
-  border-radius: 8px;
-  transition: all 0.3s;
-  background: ${props => props.theme === 'dark' ? '#1f1f1f' : 'white'};
-  border-color: ${props => props.theme === 'dark' ? '#303030' : '#f0f0f0'};
+  border-radius: var(--border-radius-lg);
+  transition: var(--transition-default);
+  background: ${props => props.theme === 'dark' ? 'var(--color-surface-dark)' : 'var(--color-surface)'};
+  border-color: ${props => props.theme === 'dark' ? 'var(--color-border-dark)' : 'var(--color-border)'};
   
   &:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    transform: var(--transform-translate-hover);
+    box-shadow: var(--shadow-lg);
   }
 `;
 
 const IconContainer = styled.div`
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
+  width: var(--icon-size-xl);
+  height: var(--icon-size-xl);
+  border-radius: var(--border-radius-full);
   background: ${props => props.color};
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 16px;
-  color: white;
-  font-size: 24px;
+  margin-bottom: var(--spacing-md);
+  color: var(--color-on-primary);
+  font-size: var(--font-size-xl);
 `;
 
 const CardTitle = styled(Typography.Title)`
-  margin-bottom: 8px !important;
+  margin-bottom: var(--spacing-xs) !important;
 `;
 
 const CardDescription = styled(Typography.Paragraph)`
-  color: ${props => props.theme === 'dark' ? '#aaa' : '#666'};
+  color: ${props => props.theme === 'dark' ? 'var(--color-text-secondary-dark)' : 'var(--color-text-secondary)'};
 `;
 
 const HomePage = () => {
@@ -73,18 +74,26 @@ const HomePage = () => {
   const fetchMcpServers = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('/api/test-service/mcp-servers');
-      setMcpServers(response.data.servers);
+      const response = await apiClient.getServices();
+      
+      // 转换服务格式为MCP服务器格式
+      const servers = response.data?.services?.map(service => ({
+        id: service.id,
+        name: service.name,
+        description: service.description
+      })) || [];
+      
+      setMcpServers(servers);
       
       // 成功获取到服务器列表
-      if (response.data.servers && response.data.servers.length > 0) {
-        console.log('成功获取MCP服务器列表:', response.data.servers);
+      if (servers.length > 0) {
+        console.log('成功获取服务列表:', servers);
       } else {
-        console.warn('获取到的MCP服务器列表为空');
+        console.warn('获取到的服务列表为空');
         message.warning('没有可用的服务，部分功能可能无法使用');
       }
     } catch (error) {
-      console.error('获取MCP服务列表失败:', error);
+      console.error('获取服务列表失败:', error);
       
       // 显示更详细的错误信息
       if (error.response) {
@@ -127,25 +136,25 @@ const HomePage = () => {
     const services = {
       'playwright': {
         icon: <RobotOutlined />,
-        color: '#1890ff',
+        color: 'var(--color-primary)',
         title: '浏览器助手',
         description: '智能网页浏览与交互服务'
       },
       'MiniMax': {
         icon: <RobotOutlined />,
-        color: '#722ed1',
+        color: 'var(--color-secondary)',
         title: '智能聊天',
         description: '基于MiniMax大模型的智能对话'
       },
       'amap-maps': {
         icon: <GlobalOutlined />,
-        color: '#52c41a',
+        color: 'var(--color-success)',
         title: '地图服务',
         description: '提供地点查询与导航功能'
       },
       'web3-rpc': {
         icon: <ThunderboltOutlined />,
-        color: '#fa8c16',
+        color: 'var(--color-warning)',
         title: '区块链服务',
         description: '区块链钱包交互与管理'
       }
@@ -153,7 +162,7 @@ const HomePage = () => {
 
     return services[serviceId] || {
       icon: <SearchOutlined />,
-      color: '#f5222d',
+      color: 'var(--color-error)',
       title: serviceId,
       description: '通用AI服务'
     };
@@ -164,8 +173,8 @@ const HomePage = () => {
       <Banner theme={theme.mode}>
         <Row align="middle" justify="space-between">
           <Col>
-            <Title level={2} style={{ color: 'white', margin: 0 }}>Echo智能助手</Title>
-            <Typography.Paragraph style={{ color: 'rgba(255, 255, 255, 0.8)', marginBottom: 0 }}>
+            <Title level={2} style={{ color: 'var(--color-on-primary)', margin: 'var(--spacing-none)' }}>Echo智能助手</Title>
+            <Typography.Paragraph style={{ color: 'var(--color-on-primary-secondary)', marginBottom: 'var(--spacing-none)' }}>
               多功能AI语音助手，为您提供各种智能服务
             </Typography.Paragraph>
           </Col>
@@ -185,9 +194,9 @@ const HomePage = () => {
       </Banner>
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '40px' }}>
+        <div style={{ textAlign: 'var(--text-align-center)', padding: 'var(--spacing-xxl)' }}>
           <Spin size="large" />
-          <p style={{ marginTop: '16px' }}>正在加载服务...</p>
+          <p style={{ marginTop: 'var(--spacing-md)' }}>正在加载服务...</p>
         </div>
       ) : (
         <Row gutter={[24, 24]}>
@@ -200,7 +209,7 @@ const HomePage = () => {
                   hoverable
                   onClick={() => handleOpenVoiceDialog(server.id)}
                 >
-                  <div style={{ textAlign: 'center' }}>
+                  <div style={{ textAlign: 'var(--text-align-center)' }}>
                     <IconContainer color={color}>
                       {icon}
                     </IconContainer>
@@ -223,4 +232,4 @@ const HomePage = () => {
   );
 };
 
-export default HomePage; 
+export default HomePage;

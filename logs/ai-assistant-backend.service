@@ -1,0 +1,41 @@
+[Unit]
+Description=AI Assistant Backend Service
+After=network.target mysql.service
+Wants=network.target
+Requires=mysql.service
+
+[Service]
+Type=simple
+User=devbox
+Group=devbox
+WorkingDirectory=/home/devbox/project/backend
+Environment=PATH=/home/devbox/project/backend/venv/bin:/usr/local/bin:/usr/bin:/bin
+Environment=PYTHONPATH=/home/devbox/project/backend:/home/devbox/project/MCP_Client/src
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/devbox/project/backend/venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 3000
+ExecReload=/bin/kill -HUP $MAINPID
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=30
+Restart=always
+RestartSec=10
+StartLimitInterval=60
+StartLimitBurst=3
+
+# 健康检查
+ExecStartPost=/bin/sleep 5
+ExecStartPost=/bin/bash -c 'for i in {1..30}; do curl -f http://localhost:3000/health && break || sleep 2; done'
+
+# 日志配置
+StandardOutput=append:/home/devbox/project/backend/logs/systemd.log
+StandardError=append:/home/devbox/project/backend/logs/systemd_error.log
+SyslogIdentifier=ai-assistant-backend
+
+# 安全配置
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/home/devbox/project/backend /home/devbox/project/logs
+
+[Install]
+WantedBy=multi-user.target

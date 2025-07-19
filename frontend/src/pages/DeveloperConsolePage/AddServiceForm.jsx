@@ -336,7 +336,7 @@ const AddServiceForm = ({ onServiceAdded }) => {
       <h2>添加新服务</h2>
       {/* Display the saveError state message if it exists */}
       {saveError && (
-        <p style={{ color: 'red', backgroundColor: '#ffebee', border: '1px solid red', padding: '10px', borderRadius: '4px', marginBottom: '1rem' }}>
+        <p style={{ color: 'var(--color-error)', backgroundColor: 'var(--color-error-bg)', border: 'var(--border-width-sm) solid var(--color-error)', padding: 'var(--spacing-md)', borderRadius: 'var(--border-radius-sm)', marginBottom: 'var(--spacing-lg)' }}>
           保存错误: {saveError}
         </p>
       )}
@@ -428,4 +428,4 @@ const AddServiceForm = ({ onServiceAdded }) => {
   );
 };
 
-export default AddServiceForm; 
+export default AddServiceForm;

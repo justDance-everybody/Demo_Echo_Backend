@@ -565,7 +565,7 @@ const DeveloperConsole = () => {
             
             {testResult && (
               <>
-                <h3 style={{ marginTop: '20px' }}>测试结果</h3>
+                <h3 style={{ marginTop: 'var(--spacing-lg)' }}>测试结果</h3>
                 <CodeBlock>
                   {JSON.stringify(testResult, null, 2)}
                 </CodeBlock>
@@ -589,7 +589,7 @@ const DeveloperConsole = () => {
       
       {showCreateForm && (
         <Card>
-          <Title style={{ marginBottom: '20px' }}>创建新服务</Title>
+          <Title style={{ marginBottom: 'var(--spacing-lg)' }}>创建新服务</Title>
           
           <FormGroup>
             <Label htmlFor="service-name">服务名称 *</Label>
@@ -850,4 +850,4 @@ const DeveloperConsole = () => {
   );
 };
 
-export default DeveloperConsole; 
+export default DeveloperConsole;

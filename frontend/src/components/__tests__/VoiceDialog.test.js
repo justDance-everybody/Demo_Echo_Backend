@@ -1,12 +1,13 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import axios from 'axios';
+import apiClient from '../../services/apiClient';
 import VoiceDialog from '../VoiceDialog';
 import { ThemeContext } from '../../theme/ThemeProvider';
 
-// 模拟 axios
-jest.mock('axios');
+// Mock apiClient
+jest.mock('../../services/apiClient');
+const mockedApiClient = apiClient;
 
 // 模拟语音识别
 global.SpeechRecognition = jest.fn().mockImplementation(() => ({
@@ -49,11 +50,11 @@ describe('VoiceDialog 组件', () => {
     jest.clearAllMocks();
     
     // 模拟成功的服务器请求
-    axios.get.mockResolvedValue({
-      data: {
-        servers: mockMcpServers
-      }
-    });
+     mockedApiClient.getServices.mockResolvedValue({
+       data: {
+         services: mockMcpServers
+       }
+     });
   });
   
   // 包装渲染函数
@@ -74,7 +75,7 @@ describe('VoiceDialog 组件', () => {
     
     // 等待服务器数据加载完成
     await waitFor(() => {
-      expect(axios.get).toHaveBeenCalledWith('/api/test-service/mcp-servers');
+      expect(mockedApiClient.getServices).toHaveBeenCalled();
     });
   });
   
@@ -84,7 +85,7 @@ describe('VoiceDialog 组件', () => {
     
     // 等待服务器数据加载完成
     await waitFor(() => {
-      expect(axios.get).toHaveBeenCalledWith('/api/test-service/mcp-servers');
+      expect(mockedApiClient.getServices).toHaveBeenCalled();
     });
     
     // 验证服务器列表显示
@@ -116,7 +117,7 @@ describe('VoiceDialog 组件', () => {
   // 测试错误处理
   test('处理服务器加载错误', async () => {
     // 模拟请求失败
-    axios.get.mockRejectedValue(new Error('Network error'));
+    mockedApiClient.getServices.mockRejectedValue(new Error('Network error'));
     
     renderVoiceDialog();
     
@@ -156,4 +157,4 @@ describe('VoiceDialog 组件', () => {
     // 这取决于组件内部实现，可能需要调整
     expect(recordButton).toHaveTextContent(/停止|正在录音/i);
   });
-}); 
+});

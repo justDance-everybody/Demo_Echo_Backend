@@ -163,11 +163,11 @@ const VoiceAssistant = () => {
             
             <Divider />
             
-            <div style={{ textAlign: 'center', padding: '20px 0' }}>
+            <div style={{ textAlign: 'var(--text-align-center)', padding: 'var(--spacing-lg) 0' }}>
               {stage === SessionStages.EXECUTING && (
-                <div style={{ marginBottom: '20px' }}>
+                <div style={{ marginBottom: 'var(--spacing-lg)' }}>
                   <Spin size="large" />
-                  <p style={{ marginTop: '10px', color: theme.textSecondary }}>
+                  <p style={{ marginTop: 'var(--spacing-xs)', color: 'var(--color-text-secondary)' }}>
                     正在处理您的请求...
                   </p>
                 </div>
@@ -209,7 +209,7 @@ const VoiceAssistant = () => {
               您可以通过语音使用以下工具：
             </p>
             
-            <ul style={{ color: theme.text, paddingLeft: '20px' }}>
+            <ul style={{ color: 'var(--color-text)', paddingLeft: 'var(--spacing-lg)' }}>
               <li>查询信息</li>
               <li>控制设备</li>
               <li>发送消息</li>
@@ -220,7 +220,7 @@ const VoiceAssistant = () => {
             
             <Divider />
             
-            <p style={{ color: theme.textSecondary, fontSize: '13px' }}>
+            <p style={{ color: 'var(--color-text-secondary)', fontSize: 'var(--font-size-xs)' }}>
               示例：<br />
               "帮我查一下最近的天气情况"<br />
               "给张三发条消息说我晚点到"<br />
@@ -243,4 +243,4 @@ const VoiceAssistant = () => {
   );
 };
 
-export default VoiceAssistant; 
+export default VoiceAssistant;

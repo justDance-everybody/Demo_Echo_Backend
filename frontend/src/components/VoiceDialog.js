@@ -2,8 +2,9 @@ import React, { useState, useContext, useRef, useEffect } from 'react';
 import styled from 'styled-components';
 import { message, Spin, Alert, Radio, Card, Space } from 'antd';
 import { AudioOutlined, AudioMutedOutlined, CloseOutlined, ApiOutlined, SmileOutlined, BankOutlined, ThunderboltOutlined } from '@ant-design/icons';
-import axios from 'axios';
+import apiClient from '../services/apiClient';
 import { ThemeContext } from '../theme/ThemeProvider';
+import { UI_CONFIG } from '../config/uiConfig';
 
 // 对话框容器
 const DialogOverlay = styled.div`
@@ -12,100 +13,103 @@ const DialogOverlay = styled.div`
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: ${props => props.theme.dialogOverlay};
+  background-color: var(--color-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: var(--z-index-modal);
 `;
 
 const DialogContent = styled.div`
-  background-color: ${props => props.theme.dialogBackground};
-  border-radius: 12px;
+  background-color: var(--color-surface);
+  border-radius: ${UI_CONFIG.borderRadius.large};
   width: 90%;
   max-width: 500px;
-  padding: 24px;
-  box-shadow: 0 4px 20px ${props => props.theme.shadowColor};
+  padding: ${UI_CONFIG.spacing.large};
+  box-shadow: var(--shadow-lg);
   position: relative;
 `;
 
 const CloseButton = styled.button`
   position: absolute;
-  top: 16px;
-  right: 16px;
+  top: ${UI_CONFIG.spacing.medium};
+  right: ${UI_CONFIG.spacing.medium};
   background: none;
   border: none;
   cursor: pointer;
-  color: ${props => props.theme.secondaryTextColor};
-  font-size: 20px;
+  color: var(--color-text-secondary);
+  font-size: ${UI_CONFIG.typography.sizes.large};
   display: flex;
   align-items: center;
   justify-content: center;
   
   &:hover {
-    color: ${props => props.theme.textColor};
+    color: var(--color-text);
   }
 `;
 
 const DialogTitle = styled.h2`
-  color: ${props => props.theme.textColor};
-  margin-bottom: 16px;
-  font-size: 1.5rem;
+  color: var(--color-text);
+  margin-bottom: ${UI_CONFIG.spacing.medium};
+  font-size: ${UI_CONFIG.typography.sizes.xlarge};
   text-align: center;
 `;
 
 const DialogText = styled.div`
-  color: ${props => props.theme.textColor};
-  margin-bottom: 24px;
+  color: var(--color-text);
+  margin-bottom: ${UI_CONFIG.spacing.large};
   min-height: 60px;
   max-height: 200px;
   overflow-y: auto;
-  line-height: 1.6;
+  line-height: ${UI_CONFIG.typography.lineHeights.relaxed};
 `;
 
 const RecordButton = styled.button`
-  background-color: ${props => props.isRecording ? '#ff4d4f' : props.theme.buttonBackground};
-  color: ${props => props.theme.buttonText};
+  background-color: ${props => props.isRecording ? 'var(--color-error)' : 'var(--color-primary)'};
+  color: var(--color-on-primary);
   border: none;
-  border-radius: 50%;
+  border-radius: var(--border-radius-full);
   width: 60px;
   height: 60px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
+  font-size: ${UI_CONFIG.typography.sizes.xlarge};
   margin: 0 auto;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: ${UI_CONFIG.transitions.fast};
   
   &:hover {
-    transform: scale(1.05);
+    transform: var(--transform-scale-hover);
   }
   
   &:disabled {
-    background-color: ${props => props.theme.borderColor};
+    background-color: var(--color-border);
     cursor: not-allowed;
+    opacity: var(--opacity-disabled);
   }
 `;
 
 const StatusAlert = styled(Alert)`
-  margin-bottom: 16px;
+  margin-bottom: ${UI_CONFIG.spacing.medium};
 `;
 
 const MCPServerSelector = styled.div`
-  margin-bottom: 16px;
-  border-radius: 8px;
+  margin-bottom: ${UI_CONFIG.spacing.medium};
+  border-radius: ${UI_CONFIG.borderRadius.medium};
   overflow: hidden;
 `;
 
 const MCPServerCard = styled(Card)`
   cursor: pointer;
-  border: 2px solid ${props => props.selected ? props.theme.buttonBackground : 'transparent'};
-  margin-bottom: 8px;
+  border: 2px solid ${props => props.selected ? 'var(--color-primary)' : 'transparent'};
+  margin-bottom: ${UI_CONFIG.spacing.small};
+  transition: ${UI_CONFIG.transitions.fast};
   
   &:hover {
-    border-color: ${props => props.theme.buttonBackground};
+    border-color: var(--color-primary);
     opacity: 0.9;
+    transform: var(--transform-scale-hover);
   }
 `;
 
@@ -136,23 +140,31 @@ const VoiceDialog = ({ isOpen, onClose, initialService }) => {
       setLoadingServers(true);
       setError(null);
       
-      const response = await axios.get('/api/test-service/mcp-servers');
+      const response = await apiClient.getServices();
       
-      if (response.data.servers) {
-        setMcpServers(response.data.servers);
+      if (response.data && response.data.services) {
+        // 转换服务格式为MCP服务器格式
+        const servers = response.data.services.map(service => ({
+          id: service.id,
+          name: service.name,
+          description: service.description,
+          type: service.type || 'mcp'
+        }));
+        
+        setMcpServers(servers);
         
         // 如果有服务器且没有选中的服务器，选择第一个
-        if (response.data.servers.length > 0 && !selectedServerId) {
-          setSelectedServerId(response.data.servers[0].id);
+        if (servers.length > 0 && !selectedServerId) {
+          setSelectedServerId(servers[0].id);
         }
         
         // 自动选择地图服务和语音服务
-        autoSelectServices(response.data.servers);
+        autoSelectServices(servers);
       } else {
-        setError('获取MCP服务器列表失败');
+        setError('获取服务列表失败');
       }
     } catch (error) {
-      console.error('获取MCP服务器列表失败:', error);
+      console.error('获取服务列表失败:', error);
       setError('无法连接到服务器，请重试');
     } finally {
       setLoadingServers(false);
@@ -308,12 +320,16 @@ const VoiceDialog = ({ isOpen, onClose, initialService }) => {
       // 显示详细的请求信息
       setResponseText(`正在处理: "${text}"，当前使用服务ID: ${selectedServerId}`);
       
-      // 调用后端API，传递地图服务ID和语音服务ID
-      const response = await axios.post('/api/test-service/voice', {
-        voiceText: text,
-        mapServerId: selectedMapServerId,
-        ttsServerId: selectedTtsServerId
-      });
+      // 使用统一的API客户端发送语音请求
+      const response = await apiClient.sendVoiceRequest(
+        text,
+        'user123', // 默认用户ID，后续可以从用户上下文获取
+        `session-${Date.now()}`, // 生成会话ID
+        {
+          mapServerId: selectedMapServerId,
+          ttsServerId: selectedTtsServerId
+        }
+      );
       
       console.log('响应数据:', response.data);
       
@@ -470,13 +486,13 @@ const VoiceDialog = ({ isOpen, onClose, initialService }) => {
     // 为不同服务设置不同图标
     const getServerIcon = (serverId) => {
       const icons = {
-        'playwright': <SmileOutlined style={{ fontSize: '20px' }} />,
-        'MiniMax': <ApiOutlined style={{ fontSize: '20px' }} />,
-        'amap-maps': <BankOutlined style={{ fontSize: '20px' }} />,
-        'web3-rpc': <ThunderboltOutlined style={{ fontSize: '20px' }} />
+        'playwright': <SmileOutlined style={{ fontSize: 'var(--icon-size-lg)' }} />,
+    'MiniMax': <ApiOutlined style={{ fontSize: 'var(--icon-size-lg)' }} />,
+    'amap-maps': <BankOutlined style={{ fontSize: 'var(--icon-size-lg)' }} />,
+    'web3-rpc': <ThunderboltOutlined style={{ fontSize: 'var(--icon-size-lg)' }} />
       };
       
-      return icons[serverId] || <ApiOutlined style={{ fontSize: '20px' }} />;
+      return icons[serverId] || <ApiOutlined style={{ fontSize: 'var(--icon-size-lg)' }} />;
     };
     
     return (
@@ -489,20 +505,20 @@ const VoiceDialog = ({ isOpen, onClose, initialService }) => {
       >
         <Space>
           <div style={{ 
-            width: '36px', 
-            height: '36px', 
-            borderRadius: '50%', 
-            background: isSelected ? theme.buttonBackground : '#f0f0f0',
+            width: 'var(--button-size-md)', 
+            height: 'var(--button-size-md)', 
+            borderRadius: 'var(--border-radius-full)', 
+            background: isSelected ? 'var(--color-primary)' : 'var(--color-surface)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: isSelected ? 'white' : '#666'
+            color: isSelected ? 'var(--color-on-primary)' : 'var(--color-text-secondary)'
           }}>
             {getServerIcon(server.id)}
           </div>
           <div>
             <strong>{server.name}</strong>
-            <div style={{ fontSize: '12px', color: 'gray' }}>{server.description}</div>
+            <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)' }}>{server.description}</div>
           </div>
         </Space>
       </MCPServerCard>
@@ -531,9 +547,9 @@ const VoiceDialog = ({ isOpen, onClose, initialService }) => {
         
         {/* MCP服务器选择区域 */}
         <MCPServerSelector>
-          <h3 style={{ marginBottom: '12px' }}>选择AI服务:</h3>
+          <h3 style={{ marginBottom: 'var(--spacing-sm)' }}>选择AI服务:</h3>
           {loadingServers ? (
-            <div style={{ textAlign: 'center', padding: '20px' }}>
+            <div style={{ textAlign: 'center', padding: 'var(--spacing-lg)' }}>
               <Spin size="small" />
               <p>加载服务列表...</p>
             </div>
@@ -550,12 +566,12 @@ const VoiceDialog = ({ isOpen, onClose, initialService }) => {
           {isLoading ? (
             <div style={{ textAlign: 'center' }}>
               <Spin size="large" />
-              <p style={{ marginTop: 16 }}>{responseText || '正在处理...'}</p>
+              <p style={{ marginTop: 'var(--spacing-md)' }}>{responseText || '正在处理...'}</p>
             </div>
           ) : isRecording ? (
             <>
               <p>您说的是：{transcriptText || '...'}</p>
-              <p style={{ fontSize: '12px', color: theme.secondaryTextColor }}>
+              <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)' }}>
                 继续说话或点击按钮结束录音
               </p>
             </>
@@ -574,7 +590,7 @@ const VoiceDialog = ({ isOpen, onClose, initialService }) => {
         </RecordButton>
         
         {!isRecording && !isLoading && !responseText && (
-          <p style={{ textAlign: 'center', marginTop: '12px', fontSize: '12px', color: theme.secondaryTextColor }}>
+          <p style={{ textAlign: 'center', marginTop: 'var(--spacing-sm)', fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)' }}>
             点击麦克风图标开始语音对话
           </p>
         )}
@@ -583,4 +599,4 @@ const VoiceDialog = ({ isOpen, onClose, initialService }) => {
   );
 };
 
-export default VoiceDialog; 
+export default VoiceDialog;

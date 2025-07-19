@@ -1,4 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { checkMicrophonePermission } from '../utils/microphoneUtils';
+import voiceStateManager from '../utils/VoiceStateManager';
 
 /**
  * 语音识别钩子函数
@@ -13,6 +15,7 @@ const useVoice = () => {
   const retryCountRef = useRef(0);
   const maxRetries = 3;
   const isStoppingRef = useRef(false); // 新增一个ref来跟踪停止状态
+  const currentRequestIdRef = useRef(null);
 
   // 初始化语音识别
   useEffect(() => {
@@ -50,28 +53,40 @@ const useVoice = () => {
     }
   }, [isListening]);
 
-  // 检查麦克风权限
-  const checkMicrophonePermission = useCallback(async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // 成功获取麦克风权限
-      console.log('[useVoice] 成功获取麦克风权限');
-      // 释放媒体流
-      stream.getTracks().forEach(track => track.stop());
-      return true;
-    } catch (err) {
-      console.error('[useVoice] 获取麦克风权限失败:', err);
-      setError(`麦克风权限错误: ${err.message}`);
-      return false;
-    }
-  }, []);
+
 
   // 安全地停止语音识别
   const safeStopRecognition = useCallback(() => {
     return new Promise(resolve => {
-      if (!recognitionRef.current || !isListening) {
-        // 如果没有初始化或已经停止，直接返回
-        console.log("[useVoice] 没有需要停止的语音识别会话");
+      if (!recognitionRef.current) {
+        console.log("[useVoice] 语音识别未初始化，无需停止");
+        setIsListening(false);
+        isStoppingRef.current = false;
+        resolve();
+        return;
+      }
+      
+      // 如果已经在停止过程中，等待完成
+      if (isStoppingRef.current) {
+        console.log("[useVoice] 已在停止过程中，等待完成");
+        const checkInterval = setInterval(() => {
+          if (!isStoppingRef.current) {
+            clearInterval(checkInterval);
+            resolve();
+          }
+        }, 50);
+        // 最多等待2秒
+        setTimeout(() => {
+          clearInterval(checkInterval);
+          isStoppingRef.current = false;
+          resolve();
+        }, 2000);
+        return;
+      }
+      
+      // 如果没有在监听，直接返回
+      if (!isListening) {
+        console.log("[useVoice] 语音识别未在监听状态，无需停止");
         resolve();
         return;
       }
@@ -79,16 +94,38 @@ const useVoice = () => {
       // 标记为正在停止中
       isStoppingRef.current = true;
       
+      // 设置超时保护，防止永远等待
+      const stopTimeout = setTimeout(() => {
+        console.warn("[useVoice] 停止语音识别超时，强制完成");
+        isStoppingRef.current = false;
+        setIsListening(false);
+        resolve();
+      }, 3000);
+      
       // 设置一个函数，在onend事件后解析promise
       const originalOnEnd = recognitionRef.current.onend;
       recognitionRef.current.onend = (event) => {
+        clearTimeout(stopTimeout);
         // 调用原始onend处理函数
-        if (originalOnEnd) originalOnEnd(event);
+        if (originalOnEnd && typeof originalOnEnd === 'function') {
+          try {
+            originalOnEnd(event);
+          } catch (e) {
+            console.warn("[useVoice] 调用原始onend处理函数出错:", e);
+          }
+        }
         
         // 标记停止完成
         isStoppingRef.current = false;
         console.log('[useVoice] 语音识别已完全停止');
         setIsListening(false);
+        
+        // 释放语音状态管理器中的STT状态
+        if (currentRequestIdRef.current) {
+          voiceStateManager.releaseSTT(currentRequestIdRef.current);
+          currentRequestIdRef.current = null;
+        }
+        
         resolve();
       };
       
@@ -97,6 +134,7 @@ const useVoice = () => {
         recognitionRef.current.stop();
       } catch (e) {
         console.log("[useVoice] 停止语音识别出错 (可能已经停止):", e);
+        clearTimeout(stopTimeout);
         isStoppingRef.current = false;
         setIsListening(false);
         resolve();
@@ -108,12 +146,16 @@ const useVoice = () => {
   const startListening = useCallback(async () => {
     console.log("[useVoice] Attempting to start listening...");
     
-    // 如果已经在监听，先停止再重新开始
+    // 防止重复启动 - 更严格的检查
     if (isListening || isStoppingRef.current) {
-      console.log("[useVoice] 已经在监听或正在停止中，等待停止完成后再启动");
-      await safeStopRecognition();
-      // 短暂延迟确保完全停止
-      await new Promise(resolve => setTimeout(resolve, 300));
+      console.log(`[useVoice] 语音识别状态冲突: isListening=${isListening}, isStopping=${isStoppingRef.current}`);
+      return;
+    }
+    
+    // 检查是否已有活跃的请求
+    if (currentRequestIdRef.current) {
+      console.log('[useVoice] 已有活跃的STT请求，跳过启动');
+      return;
     }
     
     setError(null);
@@ -134,19 +176,28 @@ const useVoice = () => {
     }
     
     try {
+       // 请求STT状态
+       const requestId = await voiceStateManager.requestSTTStart();
+       currentRequestIdRef.current = requestId;
       // 重置事件处理程序
       // 开始识别时触发
       recognitionRef.current.onstart = () => {
-        console.log('[useVoice] Voice recognition started');
+        console.log(`[useVoice] Voice recognition started with ID: ${requestId}`);
         retryCountRef.current = 0; // 成功开始后重置重试计数
         setIsListening(true);
       };
       
       // 结束识别时触发
       recognitionRef.current.onend = () => {
-        console.log('[useVoice] Voice recognition ended');
+        console.log(`[useVoice] Voice recognition ended for ${requestId}`);
         isStoppingRef.current = false;
         setIsListening(false);
+        
+        // 释放状态
+        if (currentRequestIdRef.current === requestId) {
+          voiceStateManager.releaseSTT(requestId);
+          currentRequestIdRef.current = null;
+        }
       };
 
       // 收到结果时触发
@@ -162,7 +213,7 @@ const useVoice = () => {
       
       // 发生错误时触发
       recognitionRef.current.onerror = (event) => {
-        console.error('[useVoice] Voice recognition error:', event.error);
+        console.error(`[useVoice] Voice recognition error for ${requestId}:`, event.error);
         
         let errorMessage = '语音识别发生错误';
         let shouldRetry = false;
@@ -186,6 +237,11 @@ const useVoice = () => {
           case 'aborted':
             // 通常是由用户或程序主动中断，不需要显示错误
             console.log('[useVoice] 语音识别被中止');
+            // 释放状态
+            if (currentRequestIdRef.current === requestId) {
+              voiceStateManager.releaseSTT(requestId);
+              currentRequestIdRef.current = null;
+            }
             return;
           default:
             errorMessage = `语音识别错误: ${event.error}`;
@@ -194,6 +250,12 @@ const useVoice = () => {
         
         setError(errorMessage);
         setIsListening(false);
+        
+        // 释放状态
+        if (currentRequestIdRef.current === requestId) {
+          voiceStateManager.releaseSTT(requestId);
+          currentRequestIdRef.current = null;
+        }
         
         // 自动重试逻辑
         if (shouldRetry && retryCountRef.current < maxRetries) {
@@ -215,21 +277,58 @@ const useVoice = () => {
       };
 
       // 启动语音识别前等待一段时间确保一切就绪
-      console.log("[useVoice] 准备启动语音识别...");
-      setTimeout(() => {
+      console.log(`[useVoice] 准备启动语音识别，请求ID: ${requestId}`);
+      
+      // 添加启动保护，防止在已经启动的情况下重复启动
+      const startTimeout = setTimeout(() => {
+        // 再次检查状态，防止在延迟期间状态发生变化
+        if (isListening || isStoppingRef.current || currentRequestIdRef.current !== requestId) {
+          console.log("[useVoice] 启动前检查：状态已变化，取消启动");
+          // 释放STT状态
+          if (currentRequestIdRef.current === requestId) {
+            voiceStateManager.releaseSTT(requestId);
+            currentRequestIdRef.current = null;
+          }
+          return;
+        }
+        
         try {
           console.log("[useVoice] 调用 recognition.start()...");
           recognitionRef.current.start();
         } catch (error) {
           console.error('[useVoice] 启动语音识别失败:', error);
-          setError('启动语音识别失败: ' + error.message);
-          setIsListening(false);
+          
+          // 释放STT状态
+          if (currentRequestIdRef.current === requestId) {
+            voiceStateManager.releaseSTT(requestId);
+            currentRequestIdRef.current = null;
+          }
+          
+          // 检查是否是因为已经启动而失败
+          if (error.message && error.message.includes('already started')) {
+            console.log("[useVoice] 语音识别已经启动，设置状态为监听中");
+            setIsListening(true);
+          } else {
+            setError('启动语音识别失败: ' + error.message);
+            setIsListening(false);
+          }
         }
-      }, 300);
+      }, 500); // 增加延迟时间
+      
+      // 返回清理函数
+      return () => {
+        clearTimeout(startTimeout);
+      };
       
     } catch (error) {
-      console.error('[useVoice] Error setting up speech recognition:', error);
-      setError('设置语音识别失败');
+      console.error('[useVoice] 请求STT状态失败:', error);
+      // 只记录非TTS冲突和超时错误
+      if (!error.message.includes('TTS is currently active') && 
+          !error.message.includes('STT request timeout')) {
+        setError(error.message);
+      } else {
+        console.log('[useVoice] TTS冲突或超时，不设置错误状态');
+      }
       setIsListening(false);
     }
   }, [checkMicrophonePermission, safeStopRecognition, isListening]);
@@ -260,4 +359,4 @@ const useVoice = () => {
   };
 };
 
-export default useVoice; 
+export default useVoice;

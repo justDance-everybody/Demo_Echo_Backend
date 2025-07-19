@@ -123,7 +123,7 @@ const MainContent = styled.div`
   flex-direction: column;
   
   @media (min-width: 768px) {
-    margin-left: ${props => props.hasSideNav ? '240px' : '0'};
+    margin-left: ${props => props.hasSideNav ? 'var(--sidebar-width)' : '0'};
   }
 `;
 
@@ -393,4 +393,4 @@ const AppLayout = ({
   );
 };
 
-export default AppLayout; 
+export default AppLayout;

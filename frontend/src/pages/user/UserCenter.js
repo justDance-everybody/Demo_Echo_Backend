@@ -112,45 +112,45 @@ const UserCenter = () => {
           prefix={<SoundOutline />} 
           onClick={() => navigate('/settings/voice')}
           arrow={true}
+          description="调整语音识别和语音合成参数"
         >
           语音设置
-          <List.Item.Description>调整语音识别和语音合成参数</List.Item.Description>
         </List.Item>
         
         <List.Item 
           prefix={<SetOutline />}
           onClick={toggleTheme}
           extra={theme === 'light' ? '浅色' : '深色'}
+          description="切换浅色/深色主题"
         >
           主题模式
-          <List.Item.Description>切换浅色/深色主题</List.Item.Description>
         </List.Item>
         
         <List.Item 
           prefix={<LockOutline />}
           onClick={() => navigate('/settings/security')}
           arrow={true}
+          description="修改密码、绑定手机"
         >
           账户安全
-          <List.Item.Description>修改密码、绑定手机</List.Item.Description>
         </List.Item>
         
         <List.Item 
           prefix={<MessageOutline />}
           onClick={() => navigate('/settings/notifications')}
           arrow={true}
+          description="设置消息提醒方式"
         >
           消息通知
-          <List.Item.Description>设置消息提醒方式</List.Item.Description>
         </List.Item>
         
         <List.Item 
           prefix={<GlobalOutline />}
           onClick={() => navigate('/settings/language')}
           arrow={true}
+          description="切换界面语言"
         >
           语言设置
-          <List.Item.Description>切换界面语言</List.Item.Description>
         </List.Item>
       </SettingsList>
       
@@ -166,4 +166,4 @@ const UserCenter = () => {
   );
 };
 
-export default UserCenter; 
+export default UserCenter;

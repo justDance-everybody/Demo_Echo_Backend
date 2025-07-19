@@ -92,19 +92,19 @@ const ResultDetails = styled.div`
 
 // 动作按钮
 const ActionButton = styled.button`
-  background-color: ${props => props.theme.primary};
-  color: ${props => props.theme.buttonText};
+  background-color: var(--color-primary);
+  color: var(--color-on-primary);
   border: none;
-  border-radius: 8px;
-  padding: 8px 16px;
-  font-size: 14px;
-  font-weight: 500;
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-xs) var(--spacing-md);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: var(--transition-default);
   
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 2px 8px ${props => props.theme.shadowColor};
+    transform: var(--transform-translate-hover);
+    box-shadow: var(--shadow-md);
   }
   
   &:active {
@@ -141,13 +141,13 @@ const ResultDisplay = ({
   const getStatusIcon = useCallback(() => {
     switch (status) {
       case 'success':
-        return <CheckCircleOutlined data-testid="success-icon" style={{ color: '#52c41a', fontSize: 24 }} />;
+        return <CheckCircleOutlined data-testid="success-icon" style={{ color: 'var(--color-success)', fontSize: 'var(--icon-size-lg)' }} />;
       case 'warning':
-        return <WarningOutlined data-testid="warning-icon" style={{ color: '#f5222d', fontSize: 24 }} />;
+        return <WarningOutlined data-testid="warning-icon" style={{ color: 'var(--color-warning)', fontSize: 'var(--icon-size-lg)' }} />;
       case 'error':
-        return <ExclamationCircleOutlined data-testid="error-icon" style={{ color: '#f5222d', fontSize: 24 }} />;
+        return <ExclamationCircleOutlined data-testid="error-icon" style={{ color: 'var(--color-error)', fontSize: 'var(--icon-size-lg)' }} />;
       default:
-        return <InfoCircleOutlined data-testid="info-icon" style={{ color: '#1890ff', fontSize: 24 }} />;
+        return <InfoCircleOutlined data-testid="info-icon" style={{ color: 'var(--color-info)', fontSize: 'var(--icon-size-lg)' }} />;
     }
   }, [status]);
   
@@ -264,11 +264,11 @@ const ResultDisplay = ({
       )}
       
       {(onDismiss || onAction) && (
-        <div style={{ marginTop: '20px', textAlign: 'right' }}>
+        <div style={{ marginTop: 'var(--spacing-lg)', textAlign: 'right' }}>
           {onDismiss && (
             <button 
               onClick={() => { cancelTTS(); onDismiss(); }} 
-              style={{ marginRight: '10px' }}
+              style={{ marginRight: 'var(--spacing-xs)' }}
             >
               关闭
             </button>
@@ -287,4 +287,4 @@ const ResultDisplay = ({
   );
 };
 
-export default ResultDisplay; 
+export default ResultDisplay;

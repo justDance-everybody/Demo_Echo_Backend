@@ -3,97 +3,97 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 40px;
+  height: var(--component-height-md);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #F8F8F8;
-  z-index: 50;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: background-color 0.3s ease;
-  padding: 0 20px;
+  color: var(--color-text-primary);
+  z-index: var(--z-index-sticky);
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition-default);
+  padding: 0 var(--spacing-lg);
 }
 
 .status-text {
   margin: 0;
-  font-size: 16px;
-  font-weight: 500;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
   display: flex;
   align-items: center;
-  transition: color 0.3s ease;
+  transition: var(--transition-default);
 }
 
 .status-text::before {
   content: '';
   display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  margin-right: 8px;
-  transition: background-color 0.3s ease;
+  width: var(--spacing-xs);
+  height: var(--spacing-xs);
+  border-radius: var(--border-radius-full);
+  margin-right: var(--spacing-sm);
+  transition: var(--transition-default);
 }
 
 /* 不同状态的样式 */
 .status-idle {
-  background-color: #2A2A40;
+  background-color: var(--color-surface-variant);
 }
 
 .status-idle .status-text::before {
-  background-color: #bbbbbb;
+  background-color: var(--color-text-secondary);
 }
 
 .status-listening {
-  background-color: #4FD1C5;
-  color: #1E1E2F;
+  background-color: var(--color-primary);
+  color: var(--color-on-primary);
 }
 
 .status-listening .status-text::before {
-  background-color: #1E1E2F;
-  animation: pulse 1.5s infinite;
+  background-color: var(--color-on-primary);
+  animation: pulse var(--animation-duration-slow) infinite;
 }
 
 .status-thinking {
-  background-color: #8C54FF;
+  background-color: var(--color-secondary);
 }
 
 .status-thinking .status-text::before {
-  background-color: #ffffff;
-  animation: pulse 1.5s infinite;
+  background-color: var(--color-on-secondary);
+  animation: pulse var(--animation-duration-slow) infinite;
 }
 
 .status-confirming {
-  background-color: #4F90FF;
+  background-color: var(--color-info);
 }
 
 .status-confirming .status-text::before {
-  background-color: #ffffff;
-  animation: pulse 1.5s infinite;
+  background-color: var(--color-on-info);
+  animation: pulse var(--animation-duration-slow) infinite;
 }
 
 .status-executing {
-  background-color: #FF9900;
+  background-color: var(--color-warning);
 }
 
 .status-executing .status-text::before {
-  background-color: #ffffff;
-  animation: pulse 1.5s infinite;
+  background-color: var(--color-on-warning);
+  animation: pulse var(--animation-duration-slow) infinite;
 }
 
 .status-speaking {
-  background-color: #4F90FF;
+  background-color: var(--color-info);
 }
 
 .status-speaking .status-text::before {
-  background-color: #ffffff;
-  animation: pulse 1.5s infinite;
+  background-color: var(--color-on-info);
+  animation: pulse var(--animation-duration-slow) infinite;
 }
 
 .status-error {
-  background-color: #FF5252;
+  background-color: var(--color-error);
 }
 
 .status-error .status-text::before {
-  background-color: #ffffff;
+  background-color: var(--color-on-error);
 }
 
 @keyframes pulse {
@@ -111,8 +111,8 @@
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: var(--breakpoint-mobile)) {
   .status-text {
-    font-size: 14px;
+    font-size: var(--font-size-sm);
   }
-} 
+}

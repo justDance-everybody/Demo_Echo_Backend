@@ -427,7 +427,13 @@ export function speakWithFix(text, voice = null, rate = 1.3, pitch = 1, onEnd = 
     };
     
     utterance.onerror = (event) => {
-      console.error("TTS播放错误:", event.error);
+      // 只记录非中断错误，减少日志噪音
+      if (event.error !== 'interrupted') {
+        console.error("TTS播放错误:", event.error);
+      } else {
+        console.log("TTS播放被中断（正常情况）:", event.error);
+      }
+      
       if (onEnd) {
         try {
           onEnd(); // 直接调用回调，不使用setTimeout
@@ -447,23 +453,28 @@ export function speakWithFix(text, voice = null, rate = 1.3, pitch = 1, onEnd = 
         if (navigator.userAgent.indexOf('Chrome') !== -1) {
           // 更合理的超时计算策略
           // 基础时间 + 每字符时间
-          let baseTimeout = 2000; // 增加基础超时
-          let charTimeout = 300; // 增加每字符时间
+          let baseTimeout = 1500; // 减少基础超时
+          let charTimeout = 200; // 减少每字符时间
           let maxDuration = baseTimeout + text.length * charTimeout; 
           
           // 限制最大超时时间，确保不超过Chrome的安全界限
-          maxDuration = Math.min(maxDuration, 30000); // 增加最大超时到30秒
+          maxDuration = Math.min(maxDuration, 20000); // 减少最大超时到20秒
           
           // 限制最小超时时间
-          maxDuration = Math.max(maxDuration, 3000); // 确保至少有3秒
+          maxDuration = Math.max(maxDuration, 2000); // 减少最小超时到2秒
 
           console.log(`[TtsPolyfill] speakWithFix: Calculated Chrome timeout: ${maxDuration}ms for ${text.length} chars`);
           
-          setTimeout(() => {
+          const chromeTimeout = setTimeout(() => {
             // 检查时需要确认 synth 对象仍然存在
             if (window.speechSynthesis && window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
               console.log("Chrome安全超时：强制结束语音播放");
-              synth.cancel();
+              try {
+                synth.cancel();
+              } catch (e) {
+                console.warn("强制取消TTS时出错:", e);
+              }
+              
               if (onEnd) {
                 try {
                   onEnd(); // 直接调用回调
@@ -473,6 +484,11 @@ export function speakWithFix(text, voice = null, rate = 1.3, pitch = 1, onEnd = 
               }
             }
           }, maxDuration);
+          
+          // 返回清理函数
+          return () => {
+            clearTimeout(chromeTimeout);
+          };
         }
         
         return true;

@@ -100,7 +100,7 @@ cp .env.example .env
 APP_NAME=Echo
 ENV=development
 DEBUG=true
-PORT=8000
+PORT=3000
 
 # 数据库配置
 DB_USER=myuser
@@ -194,10 +194,26 @@ pm2 start ecosystem.config.js
 ```
 
 ### 启动前端服务
+
 ```bash
-cd frontend
-npm start
+# 开发模式（Mock数据，无需后端）
+./start-frontend.sh start dev
+
+# 生产模式（自动检测后端进程）
+./start-frontend.sh start prod
+
+# 查看状态和日志
+./start-frontend.sh status
+./start-frontend.sh logs
+
+# 停止服务
+./start-frontend.sh stop
+
+# 查看帮助
+./start-frontend.sh help
 ```
+
+**核心特性：** 智能后端检测、自动端口分配、多模式启动、实时监控
 
 ### 直接启动MCP_Client（可选）
 ```bash
@@ -359,4 +375,4 @@ pytest
 
 ---
 
-> 文档更新时间：2025-05-14 
+> 文档更新时间：2025-05-14

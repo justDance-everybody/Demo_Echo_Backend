@@ -25,13 +25,13 @@ class ErrorBoundary extends React.Component {
     if (this.state.hasError) {
       // 自定义错误UI
       return (
-        <div 
-          style={{ padding: '20px', color: '#ff4d4f', backgroundColor: '#fff1f0', borderRadius: '4px', margin: '20px' }}
+        <div
+        style={{ padding: 'var(--spacing-lg)', color: 'var(--color-error)', backgroundColor: 'var(--color-error-background)', borderRadius: 'var(--border-radius-sm)', margin: 'var(--spacing-lg)' }}
           data-testid="error-boundary-fallback"
         >
           <h2>应用遇到问题</h2>
           <p>我们正在努力解决这个问题，请稍后再试。</p>
-          <details style={{ whiteSpace: 'pre-wrap', marginTop: '10px' }}>
+          <details style={{ whiteSpace: 'pre-wrap', marginTop: 'var(--spacing-xs)' }}>
             <summary>查看详细错误信息</summary>
             <p>{this.state.error && this.state.error.toString()}</p>
             <div>
@@ -40,7 +40,7 @@ class ErrorBoundary extends React.Component {
           </details>
           <button 
             onClick={() => window.location.reload()} 
-            style={{ marginTop: '10px', padding: '5px 10px', border: 'none', borderRadius: '4px', backgroundColor: '#1890ff', color: 'white', cursor: 'pointer' }}
+            style={{ marginTop: 'var(--spacing-xs)', padding: 'var(--spacing-xs) var(--spacing-sm)', border: 'none', borderRadius: 'var(--border-radius-sm)', backgroundColor: 'var(--color-primary)', color: 'var(--color-on-primary)', cursor: 'pointer' }}
           >
             刷新页面
           </button>
@@ -53,4 +53,4 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-export default ErrorBoundary; 
+export default ErrorBoundary;

@@ -62,7 +62,9 @@ export const AuthProvider = ({ children }) => {
       const response = await apiClient.login(username, password);
       
       if (response.success) {
-        setAuth(response.user, response.token, response.user?.role);
+        // 修复token字段不匹配的问题
+        const authToken = response.token || response.access_token;
+        setAuth(response.user, authToken, response.user?.role);
         toast.success('登录成功');
         return true;
       } else {
@@ -72,7 +74,7 @@ export const AuthProvider = ({ children }) => {
         return false;
       }
     } catch (err) {
-      const errorMessage = err.response?.data?.message || '登录失败，请稍后再试';
+      const errorMessage = err.message || err.response?.data?.message || '登录失败，请稍后再试';
       setError(errorMessage);
       setLoading(false);
       toast.error(errorMessage);
@@ -89,7 +91,9 @@ export const AuthProvider = ({ children }) => {
       const response = await apiClient.register(username, password, email);
       
       if (response.success) {
-        setAuth(response.user, response.token, response.user?.role);
+        // 修复token字段不匹配的问题
+        const authToken = response.token || response.access_token;
+        setAuth(response.user, authToken, response.user?.role);
         toast.success('注册成功');
         return true;
       } else {
@@ -99,7 +103,7 @@ export const AuthProvider = ({ children }) => {
         return false;
       }
     } catch (err) {
-      const errorMessage = err.response?.data?.message || '注册失败，请稍后再试';
+      const errorMessage = err.message || err.response?.data?.message || '注册失败，请稍后再试';
       setError(errorMessage);
       setLoading(false);
       toast.error(errorMessage);
@@ -124,24 +128,18 @@ export const AuthProvider = ({ children }) => {
       // 获取用户信息
       const userData = await apiClient.getUserInfo();
       
-      if (userData.success) {
-        setUser(userData.user);
-        setRole(userData.user?.role || 'user');
+      if (userData && userData.id) {
+        // 后端返回的是直接的用户数据，不是包装在success字段中
+        setUser(userData);
+        setRole(userData.role || 'user');
         setIsAuthenticated(true);
       } else {
-        // 如果token无效，尝试刷新token
-        try {
-          const refreshResult = await apiClient.refreshToken();
-          if (refreshResult.success) {
-            setAuth(refreshResult.user, refreshResult.token, refreshResult.user?.role);
-          } else {
-            clearAuth();
-          }
-        } catch (refreshErr) {
-          clearAuth();
-        }
+        // 如果token无效，清除认证状态
+        clearAuth();
       }
     } catch (err) {
+      // token无效或网络错误，清除认证状态
+      console.log('Token验证失败，清除认证状态:', err.message);
       clearAuth();
     }
   }, [token]);
@@ -172,4 +170,4 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-export default AuthProvider; 
+export default AuthProvider;

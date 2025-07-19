@@ -62,7 +62,7 @@ class Settings(BaseSettings):
     LOG_FILE: str = Field(default="logs/api.log", env="LOG_FILE")
     
     # CORS配置
-    CORS_ORIGINS: List[str] = Field(default=["http://localhost:3000","http://localhost:8000","*"], env="CORS_ORIGINS")
+    CORS_ORIGINS: List[str] = Field(default=["http://localhost:3000","http://localhost:3001","http://localhost:8000","*"], env="CORS_ORIGINS")
     
     # JWT配置
     JWT_SECRET: str = Field(default="your-secret-key", env="JWT_SECRET")
@@ -110,4 +110,4 @@ settings = Settings()
 # # 验证配置加载 (可选，用于调试)
 # if __name__ == "__main__":
 #     print(settings.dict())
-#     print(f"Database URL: {settings.DATABASE_URL}") 
+#     print(f"Database URL: {settings.DATABASE_URL}")

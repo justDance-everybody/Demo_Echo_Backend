@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { Row, Col, Spin } from 'antd';
 import ServiceCard from './ServiceCard';
-import { serviceAPI } from '../service/api';
+import apiClient from '../services/apiClient';
 
 const ServiceListContainer = styled.div`
   margin-top: 24px;
@@ -31,10 +31,55 @@ const ServiceList = ({ onServiceSelect }) => {
     const fetchServices = async () => {
       try {
         setLoading(true);
-        const response = await serviceAPI.getServiceList();
+        const response = await apiClient.getServices();
         setServices(response.data.services || []);
       } catch (error) {
         console.error('获取服务列表失败:', error);
+        // 提供默认服务列表作为后备
+        setServices([
+          {
+            id: 'voice-translate',
+            name: '同声传译',
+            icon: 'translate',
+            description: '即时语音翻译，支持多语种',
+            color: 'var(--color-primary-light)',
+          },
+          {
+            id: 'blockchain-transfer',
+            name: '链上转账',
+            icon: 'money',
+            description: '语音控制，链上转账更便捷',
+            color: 'var(--color-primary-light)',
+          },
+          {
+            id: 'asset-check',
+            name: '资产查询',
+            icon: 'wallet',
+            description: '语音查询余额，交易记录一目了然',
+            color: 'var(--color-primary-light)',
+          },
+          {
+            id: 'defi-assistant',
+            name: 'DeFi 助手',
+            icon: 'chart',
+            description: '智能 DeFi 收益管理，语音操控',
+            color: 'var(--color-primary-light)',
+          },
+          {
+            id: 'nft-manager',
+            name: 'NFT 管家',
+            icon: 'picture',
+            description: '语音管理 NFT，交易行情查看',
+            color: 'var(--color-primary-light)',
+          },
+          {
+            id: 'more-services',
+            name: '查看更多',
+            icon: 'more',
+            description: '更多服务即将上线',
+            color: 'var(--color-primary-light)',
+          },
+        ]);
       } finally {
         setLoading(false);
       }
@@ -71,4 +116,4 @@ const ServiceList = ({ onServiceSelect }) => {
   );
 };
 
-export default ServiceList; 
+export default ServiceList;

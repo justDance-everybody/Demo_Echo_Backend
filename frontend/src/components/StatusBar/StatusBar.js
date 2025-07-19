@@ -1,23 +1,24 @@
 import React from 'react';
+import { INTERACTION_STATES } from '../../config/constants';
 import './StatusBar.css'; 
 
 const StatusBar = ({ currentStatus }) => {
 
     const getStatusText = (status) => {
         switch (status) {
-            case 'idle':
+            case INTERACTION_STATES.IDLE:
                 return '空闲，等待语音输入';
-            case 'listening':
+            case INTERACTION_STATES.LISTENING:
                 return '正在监听...';
-            case 'thinking':
+            case INTERACTION_STATES.THINKING:
                 return '正在思考...';
-            case 'confirming':
+            case INTERACTION_STATES.CONFIRMING:
                 return '等待确认';
-            case 'executing':
+            case INTERACTION_STATES.EXECUTING:
                 return '正在执行...';
-            case 'speaking':
+            case INTERACTION_STATES.SPEAKING:
                 return '正在播报...';
-            case 'error':
+            case INTERACTION_STATES.ERROR:
                 return '发生错误，请重试';
             default:
                 return '未知状态';
@@ -31,4 +32,4 @@ const StatusBar = ({ currentStatus }) => {
     );
 };
 
-export default StatusBar; 
+export default StatusBar;

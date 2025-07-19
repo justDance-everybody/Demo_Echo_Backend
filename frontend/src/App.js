@@ -8,6 +8,7 @@ import Settings from './pages/Settings/index';
 import { ToastService } from './components/common/Toast';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { InteractionProvider } from './contexts/InteractionContext';
 import NavBar from './components/NavBar';
 import ProtectedRoute from './components/ProtectedRoute';
 import UserCenter from './pages/user/UserCenter';
@@ -20,11 +21,12 @@ function App() {
     <Router>
       <ThemeProvider>
         <AuthProvider>
-          <ToastService />
-          <div className="App">
-            <NavBar />
-            <div className="content-wrapper">
-              <Routes>
+          <InteractionProvider>
+            <ToastService />
+            <div className="App">
+              <NavBar />
+              <div className="content-wrapper">
+                <Routes>
                 <Route path="/" element={<MainPage />} />
                 <Route path="/auth" element={<AuthPage />} />
                 <Route path="/services" element={<ServicesPage />} />
@@ -52,9 +54,10 @@ function App() {
                 } />
                 <Route path="/test" element={<TestPage />} />
                 <Route path="*" element={<div>页面不存在</div>} />
-              </Routes>
+                </Routes>
+              </div>
             </div>
-          </div>
+          </InteractionProvider>
         </AuthProvider>
       </ThemeProvider>
     </Router>

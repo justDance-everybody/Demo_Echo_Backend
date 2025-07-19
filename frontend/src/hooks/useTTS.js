@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { initTTS, getBestTWVoice, speakWithFix, speakStreaming } from '../utils/TtsPolyfill';
+import voiceStateManager from '../utils/VoiceStateManager';
 
 /**
  * Custom Hook for Text-to-Speech (TTS) synthesis.
@@ -18,6 +19,7 @@ const useTTS = () => {
     
     // 使用ref来存储speakStream函数引用，解决循环依赖问题
     const speakStreamRef = useRef(null);
+    const currentRequestIdRef = useRef(null);
 
     // 初始化语音修复
     useEffect(() => {
@@ -135,6 +137,12 @@ const useTTS = () => {
                 setActiveStreaming(null);
             }
             
+            // 释放TTS状态
+            if (currentRequestIdRef.current) {
+                voiceStateManager.releaseTTS(currentRequestIdRef.current);
+                currentRequestIdRef.current = null;
+            }
+            
             // 重置进度
             setProgress({ current: 0, total: 0 });
             
@@ -164,7 +172,7 @@ const useTTS = () => {
         }
         
         // 实际执行语音播放的内部函数
-        function performSpeak() {
+        async function performSpeak() {
             console.log(`准备播放文本: "${text}", 语言: ${lang}, 语速: ${rate}, 音高: ${pitch}`);
             
             // 处理可选参数，如果第二个参数是函数，说明它是onEnd回调
@@ -185,23 +193,49 @@ const useTTS = () => {
                 return false;
             }
 
+            try {
+                // 请求TTS状态
+                const requestId = await voiceStateManager.requestTTSStart();
+                currentRequestIdRef.current = requestId;
+                console.log(`获得TTS权限，请求ID: ${requestId}`);
+            } catch (error) {
+                console.error('无法获得TTS权限:', error);
+                if (onEnd && typeof onEnd === 'function') {
+                    setTimeout(onEnd, 10);
+                }
+                return false;
+            }
+
             // 创建增强的回调函数，确保只被调用一次
             let callbackCalled = false;
+            const callbackId = Date.now() + Math.random(); // 为每次播放生成唯一ID
+            
             const enhancedCallback = () => {
-                if (callbackCalled) return; // 防止多次调用
+                if (callbackCalled) {
+                    console.log(`[TTS-${callbackId}] 回调已被调用，忽略重复调用`);
+                    return; // 防止多次调用
+                }
                 callbackCalled = true;
                 
-                console.log("TTS播放完成，执行回调");
+                console.log(`[TTS-${callbackId}] TTS播放完成，执行回调`);
+                
+                // 释放TTS状态
+                if (currentRequestIdRef.current) {
+                    voiceStateManager.releaseTTS(currentRequestIdRef.current);
+                    currentRequestIdRef.current = null;
+                }
+                
                 setIsSpeaking(false);
+                
                 if (onEnd && typeof onEnd === 'function') {
-                    console.log("调用播放完成回调函数");
+                    console.log(`[TTS-${callbackId}] 调用播放完成回调函数`);
                     try {
                         // 延迟执行回调，确保状态更新已完成
                         setTimeout(() => {
                             onEnd();
-                        }, 200); // 增加延迟确保组件状态已更新
+                        }, 100); // 减少延迟，提高响应性
                     } catch (e) {
-                        console.error("执行TTS回调函数时出错:", e);
+                        console.error(`[TTS-${callbackId}] 执行TTS回调函数时出错:`, e);
                     }
                 }
             };
@@ -231,8 +265,14 @@ const useTTS = () => {
             }
             
             // 强制取消任何正在进行的语音，防止重复播放
-            console.log("取消任何正在进行的语音");
-            synth.cancel(); 
+            console.log(`[TTS-${callbackId}] 取消任何正在进行的语音`);
+            try {
+                synth.cancel();
+                // 等待取消操作完成
+                await new Promise(resolve => setTimeout(resolve, 100));
+            } catch (e) {
+                console.warn(`[TTS-${callbackId}] 取消语音时出错:`, e);
+            } 
 
             const utterance = new SpeechSynthesisUtterance(text);
             console.log("已创建语音合成话语对象");
@@ -264,39 +304,56 @@ const useTTS = () => {
             };
             
             utterance.onerror = (event) => {
-                console.error("TTS播放错误:", event.error);
-                // 即使出错也调用回调，确保流程继续
-                enhancedCallback();
+                // 只记录非中断错误
+                if (event.error !== 'interrupted') {
+                    console.error("TTS播放错误:", event.error);
+                } else {
+                    console.log("TTS被中断");
+                }
+                
+                // 只在非中断错误时调用回调，避免触发重试
+                if (event.error !== 'interrupted') {
+                    enhancedCallback();
+                }
             };
 
             // 设置超时保护，避免播放卡住
-            const timeoutMs = Math.min(5000 + text.length * 60, 40000); // 动态超时：基础5秒 + 每字符60ms，最长40秒
+            const timeoutMs = Math.min(3000 + text.length * 80, 30000); // 动态超时：基础3秒 + 每字符80ms，最长30秒
             const safetyTimeout = setTimeout(() => {
-                console.warn(`TTS播放超时保护触发(${timeoutMs}ms)，强制调用回调`);
+                console.warn(`[TTS-${callbackId}] TTS播放超时保护触发(${timeoutMs}ms)，强制调用回调`);
+                if (synth && synth.speaking) {
+                    synth.cancel();
+                }
                 enhancedCallback();
             }, timeoutMs);
 
             // 确保语音队列为空，然后开始播放
-            setTimeout(() => {
+            const playTimeout = setTimeout(() => {
                 try {
+                    // 再次检查是否已被取消
+                    if (callbackCalled) {
+                        console.log(`[TTS-${callbackId}] 播放前检查：已被取消，跳过播放`);
+                        return;
+                    }
+                    
                     // 开始播放
-                    console.log("TTS speak方法已调用");
+                    console.log(`[TTS-${callbackId}] TTS speak方法已调用`);
                     synth.speak(utterance);
 
                     // 强制更新状态
                     setTimeout(() => {
-                        if (synth.speaking) {
+                        if (synth.speaking && !callbackCalled) {
                             setIsSpeaking(true);
                         }
-                    }, 100);
+                    }, 50);
                     
                     // 检查是否在合理时间内开始播放
                     const speakingCheckTimer = setTimeout(() => {
                         if (!synth.speaking && !callbackCalled) {
-                            console.warn("TTS似乎没有开始播放，可能出现问题");
+                            console.warn(`[TTS-${callbackId}] TTS似乎没有开始播放，可能出现问题`);
                             enhancedCallback();
                         }
-                    }, 1500); // 增加检查时间
+                    }, 1000); // 减少检查时间
                     
                     // 清理函数
                     return () => {
@@ -304,11 +361,20 @@ const useTTS = () => {
                         clearTimeout(speakingCheckTimer);
                     };
                 } catch (error) {
-                    console.error("播放文本时出错:", error);
+                    console.error(`[TTS-${callbackId}] 播放文本时出错:`, error);
                     clearTimeout(safetyTimeout);
                     enhancedCallback();
                 }
-            }, 200); // 增加延迟，确保之前的调用已完全清除
+            }, 150); // 减少延迟，提高响应性
+            
+            // 返回清理函数
+            return () => {
+                clearTimeout(playTimeout);
+                clearTimeout(safetyTimeout);
+                if (synth && synth.speaking) {
+                    synth.cancel();
+                }
+            };
 
             return true;
         }
@@ -330,7 +396,7 @@ const useTTS = () => {
         }
         
         // 内部封装实际开始流式播放的逻辑
-        function startStreamingAfterCancel() {
+        async function startStreamingAfterCancel() {
             console.log(`准备流式播放文本: "${text.substring(0, 30)}${text.length > 30 ? '...' : ''}", 语言: ${lang}`);
             
             // 处理可选参数，如果第二个参数是函数，说明它是onEnd回调
@@ -345,6 +411,19 @@ const useTTS = () => {
             // 对空文本进行处理
             if (!text || text.trim() === '') {
                 console.warn("无文本需要播放");
+                if (onEnd && typeof onEnd === 'function') {
+                    setTimeout(onEnd, 5);
+                }
+                return false;
+            }
+
+            try {
+                // 请求TTS状态
+                const requestId = await voiceStateManager.requestTTSStart();
+                currentRequestIdRef.current = requestId;
+                console.log(`获得流式TTS权限，请求ID: ${requestId}`);
+            } catch (error) {
+                console.error('无法获得流式TTS权限:', error);
                 if (onEnd && typeof onEnd === 'function') {
                     setTimeout(onEnd, 5);
                 }
@@ -372,6 +451,13 @@ const useTTS = () => {
                 callbackCalled = true;
                 
                 console.log("流式播放完成，执行回调");
+                
+                // 释放TTS状态
+                if (currentRequestIdRef.current) {
+                    voiceStateManager.releaseTTS(currentRequestIdRef.current);
+                    currentRequestIdRef.current = null;
+                }
+                
                 setIsSpeaking(false);
                 setActiveStreaming(null);
                 setProgress({ current: 0, total: 0 });
@@ -498,4 +584,4 @@ const useTTS = () => {
     };
 };
 
-export default useTTS; 
+export default useTTS;

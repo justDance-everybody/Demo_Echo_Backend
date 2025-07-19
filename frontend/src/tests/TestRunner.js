@@ -21,20 +21,20 @@ const TEST_STATUS = {
 const styles = {
   container: {
     position: 'fixed',
-    right: '20px',
-    bottom: '20px',
-    width: '400px',
-    backgroundColor: '#fff',
+    right: 'var(--spacing-lg)',
+    bottom: 'var(--spacing-lg)',
+    width: 'var(--dialog-width-md)',
+    backgroundColor: 'var(--color-background)',
     boxShadow: '0 0 10px rgba(0,0,0,0.2)',
-    borderRadius: '8px',
+    borderRadius: 'var(--border-radius-md)',
     zIndex: 10000,
     overflow: 'hidden',
     fontFamily: 'Arial, sans-serif',
-    fontSize: '14px'
+    fontSize: 'var(--font-size-sm)'
   },
   header: {
     padding: '12px 15px',
-    backgroundColor: '#f0f0f0',
+    backgroundColor: 'var(--color-background-secondary)',
     borderBottom: '1px solid #ddd',
     display: 'flex',
     justifyContent: 'space-between',
@@ -42,12 +42,12 @@ const styles = {
   },
   title: {
     margin: 0,
-    fontSize: '16px',
+    fontSize: 'var(--font-size-md)',
     fontWeight: 'bold'
   },
   content: {
-    padding: '15px',
-    maxHeight: '400px',
+    padding: 'var(--spacing-md)',
+    maxHeight: 'var(--dialog-max-height)',
     overflowY: 'auto'
   },
   footer: {
@@ -58,111 +58,111 @@ const styles = {
   },
   button: {
     padding: '6px 12px',
-    backgroundColor: '#007bff',
-    color: '#fff',
+    backgroundColor: 'var(--color-primary)',
+    color: 'var(--color-on-primary)',
     border: 'none',
-    borderRadius: '4px',
+    borderRadius: 'var(--border-radius-sm)',
     cursor: 'pointer'
   },
   testList: {
-    marginBottom: '15px'
+    marginBottom: 'var(--spacing-md)'
   },
   testItem: {
     padding: '8px 10px',
-    marginBottom: '5px',
-    borderRadius: '4px',
+    marginBottom: 'var(--spacing-xs)',
+    borderRadius: 'var(--border-radius-sm)',
     border: '1px solid #ddd',
     cursor: 'pointer',
     display: 'flex',
     justifyContent: 'space-between'
   },
   testSelected: {
-    backgroundColor: '#e6f7ff',
-    borderColor: '#91d5ff'
+    backgroundColor: 'var(--color-primary-alpha-10)',
+    borderColor: 'var(--color-primary-border)'
   },
   statusBadge: {
     display: 'inline-block',
     padding: '2px 6px',
-    borderRadius: '10px',
-    fontSize: '12px',
+    borderRadius: 'var(--border-radius-lg)',
+    fontSize: 'var(--font-size-xs)',
     fontWeight: 'bold',
     textAlign: 'center',
-    minWidth: '60px'
+    minWidth: 'var(--component-height-lg)'
   },
   results: {
-    padding: '10px',
-    borderRadius: '4px',
-    backgroundColor: '#f9f9f9',
-    marginTop: '10px'
+    padding: 'var(--spacing-sm)',
+    borderRadius: 'var(--border-radius-sm)',
+    backgroundColor: 'var(--color-background-light)',
+    marginTop: 'var(--spacing-sm)'
   },
   error: {
-    color: '#ff4d4f',
-    backgroundColor: '#fff1f0',
-    padding: '8px',
-    borderRadius: '4px',
-    marginTop: '10px'
+    color: 'var(--color-error)',
+    backgroundColor: 'var(--color-error-background)',
+    padding: 'var(--spacing-xs)',
+    borderRadius: 'var(--border-radius-sm)',
+    marginTop: 'var(--spacing-sm)'
   },
   statusColors: {
-    idle: { background: '#d9d9d9', color: '#606060' },
-    running: { background: '#1890ff', color: '#fff' },
-    passed: { background: '#52c41a', color: '#fff' },
-    failed: { background: '#ff4d4f', color: '#fff' },
-    error: { background: '#faad14', color: '#fff' }
+    idle: { background: 'var(--color-neutral)', color: 'var(--color-text-secondary)' },
+    running: { background: 'var(--color-primary)', color: 'var(--color-on-primary)' },
+    passed: { background: 'var(--color-success)', color: 'var(--color-on-primary)' },
+    failed: { background: 'var(--color-error)', color: 'var(--color-on-primary)' },
+    error: { background: 'var(--color-warning)', color: 'var(--color-on-primary)' }
   },
   progressBar: {
-    height: '4px',
-    backgroundColor: '#f0f0f0',
-    marginTop: '5px',
-    borderRadius: '2px',
+    height: 'var(--border-width-thick)',
+    backgroundColor: 'var(--color-background-secondary)',
+    marginTop: 'var(--spacing-xs)',
+    borderRadius: 'var(--border-radius-xs)',
     overflow: 'hidden'
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#1890ff',
+    backgroundColor: 'var(--color-primary)',
     transition: 'width 0.3s ease'
   },
   logViewer: {
-    marginTop: '10px',
-    padding: '10px',
-    backgroundColor: '#f5f5f5',
-    borderRadius: '4px',
-    maxHeight: '150px',
+    marginTop: 'var(--spacing-sm)',
+    padding: 'var(--spacing-sm)',
+    backgroundColor: 'var(--color-background-light)',
+    borderRadius: 'var(--border-radius-sm)',
+    maxHeight: 'var(--dialog-text-max-height)',
     overflowY: 'auto',
     fontFamily: 'monospace',
-    fontSize: '12px'
+    fontSize: 'var(--font-size-xs)'
   },
   log: {
     margin: '3px 0',
     lineHeight: 1.4
   },
-  logInfo: { color: '#1890ff' },
-  logWarn: { color: '#faad14' },
-  logError: { color: '#ff4d4f' },
+  logInfo: { color: 'var(--color-primary)' },
+    logWarn: { color: 'var(--color-warning)' },
+    logError: { color: 'var(--color-error)' },
   testPanel: {
     backgroundColor: 'var(--surface)',
-    borderRadius: '8px',
+    borderRadius: 'var(--border-radius-md)',
     boxShadow: '0 3px 6px var(--shadow)',
-    padding: '20px',
-    marginBottom: '20px',
+    padding: 'var(--spacing-lg)',
+    marginBottom: 'var(--spacing-lg)',
     transition: 'background-color 0.3s, box-shadow 0.3s'
   },
   testHeader: {
-    fontSize: '18px',
+    fontSize: 'var(--font-size-lg)',
     fontWeight: 'bold',
-    marginBottom: '15px',
+    marginBottom: 'var(--spacing-md)',
     color: 'var(--text)'
   },
   testRow: {
-    marginBottom: '10px',
+    marginBottom: 'var(--spacing-sm)',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center' 
   },
   testResult: {
-    marginTop: '10px',
-    padding: '10px',
+    marginTop: 'var(--spacing-sm)',
+    padding: 'var(--spacing-sm)',
     backgroundColor: 'var(--background)',
-    borderRadius: '4px',
+    borderRadius: 'var(--border-radius-sm)',
     color: 'var(--text)',
     transition: 'background-color 0.3s, color 0.3s'
   }
@@ -399,14 +399,14 @@ const TestRunner = () => {
       <button 
         style={{
           position: 'fixed',
-          right: '20px',
-          bottom: '20px',
+          right: 'var(--spacing-lg)',
+    bottom: 'var(--spacing-lg)',
           zIndex: 10000,
           padding: '6px 12px',
-          backgroundColor: '#007bff',
-          color: '#fff',
+          backgroundColor: 'var(--color-primary)',
+      color: 'var(--color-on-primary)',
           border: 'none',
-          borderRadius: '4px',
+          borderRadius: 'var(--border-radius-sm)',
           cursor: 'pointer'
         }}
         onClick={() => setShowRunner(true)}
@@ -425,7 +425,7 @@ const TestRunner = () => {
             background: 'none', 
             border: 'none', 
             cursor: 'pointer', 
-            fontSize: '16px' 
+            fontSize: 'var(--font-size-md)' 
           }}
           onClick={() => setShowRunner(false)}
         >
@@ -487,10 +487,10 @@ const TestRunner = () => {
           <button 
             style={{
               ...styles.button,
-              backgroundColor: '#fff',
-              color: '#007bff',
+              backgroundColor: 'var(--color-background)',
+      color: 'var(--color-primary)',
               border: '1px solid #007bff',
-              marginLeft: '8px'
+              marginLeft: 'var(--spacing-xs)'
             }}
             onClick={clearLogs}
           >
@@ -500,7 +500,7 @@ const TestRunner = () => {
         <button 
           style={{
             ...styles.button,
-            backgroundColor: '#52c41a'
+            backgroundColor: 'var(--color-success)'
           }}
           onClick={exportLogs}
         >
@@ -540,7 +540,7 @@ const TestRunner = () => {
           </Card>
         )}
         
-        <Card title="手动测试" size="small" style={{marginTop: '15px'}}>
+        <Card title="手动测试" size="small" style={{marginTop: 'var(--spacing-md)'}}>
           <p>使用右下角的主题切换按钮测试主题切换功能。切换后，页面颜色应立即变化。</p>
           <Space>
             <Button onClick={toggleTheme}>
@@ -553,4 +553,4 @@ const TestRunner = () => {
   );
 };
 
-export default TestRunner; 
+export default TestRunner;
