@@ -1,0 +1,19 @@
+feat: 优化auto-git-deploy脚本实现动态分支检测和智能推送
+
+主要变更:
+- 移除硬编码的分支名称，实现动态分支检测
+- 添加当前分支自动识别功能(git branch --show-current)
+- 调整推送目标从origin改为demo_echo远程仓库
+- 增强脚本适用性，支持任意分支的自动推送
+- 优化用户体验，显示当前分支信息
+
+技术改进:
+- 使用$(git branch --show-current)动态获取分支名
+- 推送命令改为git push demo_echo $current_branch
+- 保持原有的交互式提交信息输入功能
+- 确保脚本在不同分支下都能正确工作
+
+影响范围:
+- auto-git-deploy.sh脚本功能增强
+- 提升开发流程的自动化程度
+- 减少手动修改脚本的需求

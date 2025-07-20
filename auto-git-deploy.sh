@@ -12,7 +12,10 @@ fi
 echo "🧠 提交中..."
 git commit -m "$msg"
 
+echo "🔍 检测当前分支..."
+current_branch=$(git branch --show-current)
+echo "📍 当前分支: $current_branch"
 echo "🚀 推送到 GitHub..."
-git push origin master
+git push demo_echo $current_branch
 
 echo "✅ 完成：代码已推送到 GitHub！"
