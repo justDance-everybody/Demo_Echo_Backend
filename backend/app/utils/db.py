@@ -196,6 +196,10 @@ def get_db() -> Generator:
     finally:
         session.close()
 
+def get_db_url():
+    """获取数据库URL"""
+    return settings.DATABASE_URL
+
 # 初始化数据库 (使用同步引擎创建表)
 def init_db():
     """初始化数据库，创建所有表 (使用同步引擎)"""
@@ -207,4 +211,4 @@ def init_db():
         logger.error(f"数据库表创建失败: {e}")
         raise
 
-# ... (移除连接池监听器代码) ... 
+# ... (移除连接池监听器代码) ...

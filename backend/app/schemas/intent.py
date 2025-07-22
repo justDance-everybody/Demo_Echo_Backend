@@ -122,3 +122,23 @@ class InterpretSuccessResponse(BaseModel):
         alias_priority = 2  # 给别名高优先级
 
 # --- 新的响应 Schema --- END
+
+
+# --- 确认请求和响应 Schema --- BEGIN
+
+class ConfirmRequest(BaseModel):
+    """用户确认请求模型"""
+    
+    sessionId: str = Field(..., description="会话ID")
+    confirmed: bool = Field(..., description="用户是否确认执行")
+
+
+class ConfirmResponse(BaseModel):
+    """确认执行响应模型"""
+    
+    sessionId: str = Field(..., description="会话ID")
+    success: bool = Field(..., description="是否执行成功")
+    content: Optional[str] = Field(None, description="执行结果内容")
+    error: Optional[str] = Field(None, description="错误信息")
+
+# --- 确认请求和响应 Schema --- END

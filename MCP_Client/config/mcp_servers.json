@@ -49,7 +49,7 @@
       "description": "提供多链区块链服务",
       "command": "node",
       "args": [
-        "/home/devbox/Echo/MCP_server/web3-mcp/build/index.js"
+        "/home/devbox/project/MCP_server/web3-mcp/build/index.js"
       ],
       "env": {
         "SOLANA_RPC_URL": "https://mainnet.helius-rpc.com/?api-key=a2dabf39-8fdf-48db-babf-735dba7ac91f"
@@ -70,4 +70,4 @@
       "delay": 2
     }
   }
-} 
+}

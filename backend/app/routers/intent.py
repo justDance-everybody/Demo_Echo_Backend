@@ -5,6 +5,8 @@ from app.controllers.intent_controller import intent_controller
 from app.schemas.intent import (
     IntentRequest,
     InterpretSuccessResponse,
+    ConfirmRequest,
+    ConfirmResponse,
 )
 from app.models.user import User
 from app.utils.security import get_current_user
@@ -42,3 +44,26 @@ async def process_intent(
     
     # 调用控制器时传递 request 和 db
     return await intent_controller.process_intent(request=request, db=db)
+
+
+@router.post("/confirm", 
+             response_model=ConfirmResponse,
+             response_model_exclude_none=False)
+async def confirm_execution(
+    request: ConfirmRequest = Body(...),
+    db: AsyncSession = Depends(get_async_db_session),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    处理用户确认执行请求。当用户确认执行工具调用时，系统将执行相应的工具并返回结果。
+    
+    Args:
+        request: 确认请求
+        db: 数据库会话 (由 FastAPI 注入)
+        current_user: 当前认证用户 (由JWT令牌提供)
+        
+    Returns:
+        确认执行响应
+    """
+    # 调用控制器处理确认执行
+    return await intent_controller.process_confirmation(request=request, db=db, user_id=current_user.id)

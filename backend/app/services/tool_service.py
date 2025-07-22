@@ -22,8 +22,8 @@ class ToolService:
         """
         logger.info("获取工具列表")
         
-        # 从数据库查询所有工具
-        result = await db.execute(select(Tool))
+        # 从数据库查询所有活跃状态的工具
+        result = await db.execute(select(Tool).where(Tool.status == "active"))
         tools = result.scalars().all()
         
         # 格式化工具列表
@@ -50,4 +50,4 @@ class ToolService:
 
 
 # 创建工具服务实例
-tool_service = ToolService() 
+tool_service = ToolService()

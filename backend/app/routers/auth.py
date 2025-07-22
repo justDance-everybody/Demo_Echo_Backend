@@ -153,6 +153,27 @@ async def login_for_access_token(
         role=user.role
     )
 
+# 用户登录（兼容性端点）
+@router.post("/login", response_model=TokenResponse)
+async def login(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: AsyncSession = Depends(get_async_db_session)
+):
+    """
+    用户登录获取访问令牌（兼容性端点）
+    
+    Args:
+        form_data: 表单数据，包含用户名和密码
+        db: 数据库会话
+        
+    Returns:
+        访问令牌和相关信息
+        
+    Raises:
+        HTTPException: 如果用户名或密码错误
+    """
+    return await login_for_access_token(form_data, db)
+
 # 获取当前用户
 @router.get("/me", response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_current_user)):
@@ -169,4 +190,4 @@ async def get_me(current_user: User = Depends(get_current_user)):
         id=current_user.id,
         username=current_user.username,
         role=current_user.role
-    ) 
+    )

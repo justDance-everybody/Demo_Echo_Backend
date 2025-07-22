@@ -14,7 +14,11 @@ from app.models.user import User
 from app.utils.db import get_db, get_async_db_session
 
 # 定义身份验证相关的异常和依赖项
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_PREFIX}/auth/token")
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl=f"{settings.API_PREFIX}/auth/token",
+    description="Bearer令牌认证。请在此处输入您的访问令牌。",
+    scheme_name="Bearer认证"
+)
 
 # 使用bcrypt算法处理密码哈希
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -148,5 +152,26 @@ async def get_admin_user(current_user: User = Depends(get_current_user)) -> User
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="需要管理员权限才能访问此资源"
+        )
+    return current_user
+
+# 获取开发者用户
+async def get_developer_user(current_user: User = Depends(get_current_user)) -> User:
+    """
+    验证用户是否具有开发者或管理员权限
+    
+    Args:
+        current_user: 当前登录的用户对象
+        
+    Returns:
+        验证为开发者或管理员的用户对象
+        
+    Raises:
+        HTTPException: 如果用户不是开发者或管理员
+    """
+    if current_user.role not in ['developer', 'admin']:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="需要开发者或管理员权限"
         )
     return current_user

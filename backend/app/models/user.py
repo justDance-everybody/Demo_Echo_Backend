@@ -1,5 +1,6 @@
 from sqlalchemy import Column, BigInteger, String, JSON, DateTime, Boolean, SmallInteger, Enum
 from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 from app.utils.db import Base
 
 class User(Base):
@@ -17,5 +18,9 @@ class User(Base):
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, nullable=True)
     
+    # 关系定义
+    tools = relationship("Tool", back_populates="developer")
+    apps = relationship("App", back_populates="developer")
+    
     def __repr__(self):
-        return f"<User(id={self.id}, username={self.username})>" 
+        return f"<User(id={self.id}, username={self.username})>"
