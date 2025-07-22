@@ -12,6 +12,8 @@ from app.schemas.intent import (
     InterpretToolCallResponse,
     InterpretDirectResponse,
     InterpretSuccessResponse,
+    ConfirmRequest,
+    ConfirmResponse,
 )
 
 # 定义统一的成功响应类型 (已移动到 schema 文件)
@@ -125,6 +127,73 @@ class IntentController:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"处理意图请求时发生意外错误: {str(e)}",
+            )
+
+
+    async def process_confirmation(
+        self, request: ConfirmRequest, db: AsyncSession, user_id: int
+    ) -> ConfirmResponse:
+        """
+        处理用户确认执行请求
+        
+        Args:
+            request: 确认请求
+            db: 数据库会话
+            user_id: 用户ID
+            
+        Returns:
+            确认执行响应
+        """
+        try:
+            session_id = request.sessionId
+            logger.info(f"🔍 [CONFIRM_DEBUG] 收到确认请求，session_id: {session_id}, user_id: {user_id}, confirmed: {request.confirmed}")
+            
+            # 如果用户取消执行
+            if not request.confirmed:
+                logger.info(f"🔍 [CONFIRM_DEBUG] 用户取消了操作")
+                return ConfirmResponse(
+                    sessionId=session_id,
+                    success=True,
+                    content="操作已取消",
+                    error=None
+                )
+            
+            logger.info(f"🔍 [CONFIRM_DEBUG] 开始执行确认的工具调用，session_id: {session_id}")
+            
+            # 用户确认执行，调用服务层处理
+            logger.info(f"🔍 [CONFIRM_DEBUG] 调用 intent_service.execute_confirmed_tools，参数: session_id={session_id}, user_id={user_id}")
+            result = await intent_service.execute_confirmed_tools(
+                session_id=session_id,
+                user_id=user_id,
+                db=db
+            )
+            
+            logger.info(f"🔍 [CONFIRM_DEBUG] intent_service.execute_confirmed_tools 返回结果: {result}")
+            
+            if result.get("success"):
+                logger.info(f"🔍 [CONFIRM_DEBUG] 工具执行成功，构造成功响应")
+                return ConfirmResponse(
+                    sessionId=session_id,
+                    success=True,
+                    content=result.get("content", "操作执行成功"),
+                    error=None
+                )
+            else:
+                logger.error(f"🔍 [CONFIRM_DEBUG] 工具执行失败: {result.get('error')}")
+                return ConfirmResponse(
+                    sessionId=session_id,
+                    success=False,
+                    content=None,
+                    error=result.get("error", "执行失败")
+                )
+                
+        except Exception as e:
+            logger.error(f"🔍 [CONFIRM_DEBUG] 确认处理异常: {e}")
+            import traceback
+            logger.error(f"🔍 [CONFIRM_DEBUG] 异常堆栈: {traceback.format_exc()}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"处理确认请求时发生错误: {str(e)}"
             )
 
 

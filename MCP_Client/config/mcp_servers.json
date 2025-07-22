@@ -49,7 +49,7 @@
       "description": "提供多链区块链服务",
       "command": "node",
       "args": [
-        "/home/devbox/Echo/MCP_server/web3-mcp/build/index.js"
+        "/home/devbox/project/MCP_server/web3-mcp/build/index.js"
       ],
       "env": {
         "SOLANA_RPC_URL": "REDACTED_REVOKED_KEY"
@@ -70,4 +70,4 @@
       "delay": 2
     }
   }
-} 
+}

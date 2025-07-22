@@ -98,32 +98,54 @@ class ExecuteService:
 
             # 2. 根据工具类型决定执行方式
             if tool.type == "mcp":
-                # 2.1 执行 MCP 工具
-                target_server = tool.server_name
-                if not target_server:
-                    logger.error(f"服务层：MCP工具 '{tool_id}' 未配置 server_name")
+                # 执行 MCP 工具
+                logger.info(f"服务层：检测到 MCP 类型工具: tool_id={tool_id}")
+                
+                # 检查MCP服务器状态
+                from app.services.mcp_manager import mcp_manager
+                server_status = mcp_manager.get_server_status(tool.server_name)
+                
+                if server_status and server_status.marked_failed:
+                    error_msg = f"MCP服务器 {tool.server_name} 已被标记为失败，无法执行工具 {tool_id}"
+                    logger.warning(error_msg)
                     return ExecuteResponse(
                         tool_id=tool_id,
                         success=False,
                         data=None,
                         error={
-                            "code": "MCP_SERVER_NOT_CONFIGURED",
-                            "message": f"MCP工具 '{tool_id}' 未配置目标服务器",
+                            "code": "MCP_SERVER_FAILED",
+                            "message": error_msg,
                         },
                         session_id=session_id,
                     )
-
-                logger.info(
-                    f"服务层：准备调用 MCP 工具 '{tool_id}' on server '{target_server}'"
-                )
+                
+                # 确保服务器正在运行
+                if not server_status or not server_status.running:
+                    logger.info(f"MCP服务器 {tool.server_name} 未运行，尝试启动...")
+                    try:
+                        await mcp_manager.start_server(tool.server_name)
+                    except Exception as start_err:
+                        logger.error(f"启动MCP服务器 {tool.server_name} 失败: {start_err}")
+                        return ExecuteResponse(
+                            tool_id=tool_id,
+                            success=False,
+                            data=None,
+                            error={
+                                "code": "MCP_SERVER_START_FAILED",
+                                "message": f"无法启动MCP服务器 {tool.server_name}: {start_err}",
+                            },
+                            session_id=session_id,
+                        )
+                
+                # 执行MCP工具
+                target_server = tool.server_name
                 mcp_result = await mcp_client.execute_tool(
                     tool_id=tool_id, params=params, target_server=target_server
                 )
-
-                # 检查MCP客户端返回的结果结构
+                
                 if mcp_result.get("success"):
                     raw_result = mcp_result.get("result", {}).get("message", "")
-                    # --- [修改开始] 调用 LLM 总结 ---
+                    # 调用 LLM 总结
                     try:
                         logger.debug(f"准备调用 LLM 总结 MCP 工具 '{tool_id}' 的结果。")
                         summary_prompt = (
@@ -134,15 +156,13 @@ class ExecuteService:
                         )
                         summary_response = (
                             await openai_client.client.chat.completions.create(
-                                model=settings.LLM_MODEL,  # 使用主 LLM 模型
+                                model=settings.LLM_MODEL,
                                 messages=[{"role": "user", "content": summary_prompt}],
-                                temperature=0.2,  # 总结任务温度可以低一些
-                                max_tokens=250,  # 限制总结长度
+                                temperature=0.2,
+                                max_tokens=250,
                             )
                         )
-                        tts_message = summary_response.choices[
-                            0
-                        ].message.content.strip()
+                        tts_message = summary_response.choices[0].message.content.strip()
                         logger.info(f"LLM 成功总结了 MCP 工具 '{tool_id}' 的结果。")
                     except Exception as llm_err:
                         logger.error(
@@ -150,16 +170,14 @@ class ExecuteService:
                             exc_info=True,
                         )
                         tts_message = f"已成功执行工具 {tool_id}。"
-                    # --- [修改结束] ---
-
-                    # 修改响应结构，使用 data 字段
+                
                     response_data = {"tts_message": tts_message}
                     response = ExecuteResponse(
                         tool_id=tool_id,
                         success=True,
                         data=response_data,
                         error=None,
-                        session_id=session_id,  # 确保 session_id 被包含
+                        session_id=session_id,
                     )
                     logger.info(f"服务层：MCP 工具执行成功: tool_id={tool_id}")
                     if session_id and session:
@@ -173,7 +191,7 @@ class ExecuteService:
                         except Exception as db_err:
                             logger.error(f"Database error during execute_end success log/status update for session {session_id}: {db_err}", exc_info=True)
                             await db.rollback()
-
+                
                 else:
                     # 执行失败 (由MCP客户端包装器返回失败信息)
                     error_info = mcp_result.get(
@@ -188,7 +206,7 @@ class ExecuteService:
                         success=False,
                         data=None,
                         error=error_info,
-                        session_id=session_id,  # 确保 session_id 被包含
+                        session_id=session_id,
                     )
                     logger.warning(
                         f"服务层：MCP 工具执行失败 (MCP client error): tool_id={tool_id}, error={error_info}"
@@ -204,6 +222,7 @@ class ExecuteService:
                         except Exception as db_err:
                             logger.error(f"Database error during execute_end error log/status update for session {session_id}: {db_err}", exc_info=True)
                             await db.rollback()
+
 
             elif tool.type == "http":
                 # 2.2 执行 HTTP 工具 (T020-7-9)
@@ -245,8 +264,11 @@ class ExecuteService:
                         session_id=session_id,
                     )
 
+                # 获取全局超时配置，优先使用app_config中的timeout，否则使用默认值
+                global_timeout = float(app_config.get("timeout", 30)) if app_config else 30.0
+                
                 # 准备调用外部 HTTP API
-                async with httpx.AsyncClient(timeout=30.0) as client:  # 设置默认超时
+                async with httpx.AsyncClient(timeout=global_timeout) as client:  # 使用动态超时
                     try:
                         if platform == "dify":
                             # --- 实现调用 Dify API 的逻辑 ---

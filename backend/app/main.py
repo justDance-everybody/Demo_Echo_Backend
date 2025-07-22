@@ -5,14 +5,20 @@ from pathlib import Path
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, APIRouter, Request, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse, JSONResponse, Response
+from fastapi.responses import RedirectResponse, JSONResponse, Response, HTMLResponse
+from fastapi.templating import Jinja2Templates
 from loguru import logger
 from starlette.middleware.base import BaseHTTPMiddleware
-from app.routers import intent, execute, tools, auth
+from app.routers import intent, execute, tools, auth, dev_tools, dev_apps, mcp_status
 from app.config import settings
 from app.utils.db import init_db
+from app.services.mcp_manager import mcp_manager
 import time
 import json
+from pathlib import Path
+
+# 设置模板目录
+templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 
 # 配置日志
 LOGS_DIR = Path(settings.LOG_FILE).parent
@@ -85,16 +91,32 @@ async def lifespan(app: FastAPI):
     # 应用启动时执行
     logger.info("应用启动中...")
     init_db()  # 初始化数据库
+    
+    # 启动MCP服务器管理器
+    try:
+        logger.info("正在启动MCP服务器管理器...")
+        await mcp_manager.start_all_servers()
+        await mcp_manager.start_monitoring()
+        logger.info("✅ MCP服务器管理器启动完成")
+    except Exception as e:
+        logger.error(f"❌ MCP服务器管理器启动失败: {e}")
+    
     yield
+    
     # 应用关闭时执行
     logger.info("应用关闭中...")
+    try:
+        await mcp_manager.stop_monitoring()
+        logger.info("✅ MCP服务器监控已停止")
+    except Exception as e:
+        logger.error(f"❌ 停止MCP服务器监控时发生错误: {e}")
 
 # 创建应用
 app = FastAPI(
     title=settings.APP_NAME,
     description="意图识别和处理API",
     version=settings.VERSION,
-    docs_url="/docs",
+    docs_url=None,  # 禁用默认的docs
     redoc_url="/redoc",
     lifespan=lifespan,
 )
@@ -114,13 +136,31 @@ app.add_middleware(SecurityAuditMiddleware)
 # 创建健康检查路由
 health_router = APIRouter(tags=["health"])
 
-@health_router.get("/health")
+@health_router.get("/health",
+                  summary="健康检查",
+                  description="检查系统运行状态，返回当前时间戳和状态信息。")
 async def health_check():
     """健康检查接口"""
     return {"status": "ok", "timestamp": time.time()}
 
+# 自定义Swagger UI路由
+@app.get("/docs", include_in_schema=False)
+async def custom_swagger_ui_html(request: Request):
+    """自定义Swagger UI页面"""
+    return templates.TemplateResponse(
+        "swagger_ui.html", 
+        {
+            "request": request,
+            "title": settings.APP_NAME,
+            "openapi_url": app.openapi_url
+        }
+    )
+
 # 添加根路由，重定向到文档页面
-@app.get("/", include_in_schema=False)
+@app.get("/", 
+         include_in_schema=False,
+         summary="根路径",
+         description="重定向到API文档页面。")
 async def root():
     """重定向到API文档"""
     return RedirectResponse(url="/docs")
@@ -131,6 +171,10 @@ app.include_router(intent.router, prefix=settings.API_PREFIX, tags=["intent"])
 app.include_router(execute.router, prefix=settings.API_PREFIX, tags=["execute"])
 app.include_router(tools.router, prefix=settings.API_PREFIX, tags=["tools"])
 app.include_router(auth.router, prefix=settings.API_PREFIX, tags=["auth"])
+app.include_router(dev_tools.router, prefix=settings.API_PREFIX, tags=["dev-tools"])
+app.include_router(mcp_status.router, prefix=settings.API_PREFIX, tags=["mcp-status"])
+# app.include_router(dev_apps.router, prefix=settings.API_PREFIX, tags=["dev-apps"])  # 已关闭DEV-APPS功能
+# app.include_router(admin.router, prefix=settings.API_PREFIX, tags=["admin"])  # admin路由暂未实现
 
 # 路由冲突检测和安全审计
 route_paths = {}
@@ -152,7 +196,7 @@ if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
         "app.main:app",
-        host="0.0.0.0",
-        port=8000,
+        host=settings.HOST,
+        port=settings.PORT,
         reload=settings.DEBUG
     )

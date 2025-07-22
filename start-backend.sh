@@ -62,8 +62,8 @@ validate_environment() {
     fi
     
     # 检查虚拟环境
-    if [ ! -f "$BACKEND_DIR/venv/bin/activate" ]; then
-        log_message "ERROR" "虚拟环境不存在: $BACKEND_DIR/venv"
+    if [ ! -f "$(pwd)/.venv/bin/activate" ]; then
+        log_message "ERROR" "虚拟环境不存在: $(pwd)/.venv"
         return 1
     fi
     
@@ -167,8 +167,8 @@ check_dependencies() {
             errors+=("后端目录不存在: $BACKEND_DIR")
         fi
         
-        if [ ! -d "$BACKEND_DIR/venv" ]; then
-            errors+=("Python虚拟环境不存在: $BACKEND_DIR/venv")
+        if [ ! -d "$(pwd)/.venv" ]; then
+            errors+=("Python虚拟环境不存在: $(pwd)/.venv")
         fi
         
         if [ ! -f "$BACKEND_DIR/app/main.py" ]; then
@@ -230,9 +230,9 @@ check_dependencies() {
     done
     
     # 检查Python包（需要串行执行）
-    if [ -f "$BACKEND_DIR/venv/bin/activate" ]; then
+    if [ -f "$(pwd)/.venv/bin/activate" ]; then
         cd "$BACKEND_DIR" || return 1
-        source venv/bin/activate
+        source ../.venv/bin/activate
         
         if ! python -c "import fastapi, uvicorn" 2>/dev/null; then
             log_message "ERROR" "缺少必要的Python包"
@@ -250,6 +250,84 @@ check_dependencies() {
     fi
     
     log_message "SUCCESS" "依赖检查通过"
+    return 0
+}
+
+# 查找后端相关进程
+find_backend_processes() {
+    local processes=()
+    
+    # 查找uvicorn进程
+    while IFS= read -r line; do
+        if [ ! -z "$line" ]; then
+            processes+=("$line")
+        fi
+    done < <(ps aux | grep -E "(uvicorn.*app\.main:app|python.*uvicorn.*3000)" | grep -v grep | awk '{print $2}')
+    
+    # 查找占用3000端口的进程
+    local port_pids=$(lsof -ti:$SERVICE_PORT 2>/dev/null || true)
+    if [ ! -z "$port_pids" ]; then
+        for pid in $port_pids; do
+            if [[ ! " ${processes[@]} " =~ " ${pid} " ]]; then
+                processes+=("$pid")
+            fi
+        done
+    fi
+    
+    printf '%s\n' "${processes[@]}"
+}
+
+# 智能清理后端进程
+cleanup_backend_processes() {
+    log_message "INFO" "🔍 检查现有后端进程..."
+    
+    local processes=()
+    while IFS= read -r pid; do
+        if [ ! -z "$pid" ]; then
+            processes+=("$pid")
+        fi
+    done < <(find_backend_processes)
+    
+    if [ ${#processes[@]} -eq 0 ]; then
+        log_message "SUCCESS" "✅ 没有发现运行中的后端进程"
+        return 0
+    fi
+    
+    log_message "WARNING" "发现 ${#processes[@]} 个运行中的后端进程，正在清理..."
+    
+    local cleaned=0
+    for pid in "${processes[@]}"; do
+        if kill -0 "$pid" 2>/dev/null; then
+            local cmd=$(ps -p "$pid" -o cmd --no-headers 2>/dev/null || echo "未知命令")
+            log_message "INFO" "停止进程 PID=$pid, CMD=$cmd"
+            
+            # 先尝试优雅停止
+            if kill -TERM "$pid" 2>/dev/null; then
+                # 等待进程结束
+                local wait_time=0
+                while [ $wait_time -lt 5 ] && kill -0 "$pid" 2>/dev/null; do
+                    sleep 1
+                    wait_time=$((wait_time + 1))
+                done
+                
+                if kill -0 "$pid" 2>/dev/null; then
+                    log_message "WARNING" "进程 $pid 未响应，强制杀死"
+                    kill -KILL "$pid" 2>/dev/null || true
+                    sleep 1
+                fi
+                
+                cleaned=$((cleaned + 1))
+                log_message "SUCCESS" "进程 $pid 已停止"
+            else
+                log_message "WARNING" "无法停止进程 $pid"
+            fi
+        fi
+    done
+    
+    # 等待确保进程完全停止
+    sleep 2
+    
+    log_message "SUCCESS" "✅ 已清理 $cleaned 个后端进程"
     return 0
 }
 
@@ -354,6 +432,9 @@ check_service_status() {
 start_backend_service() {
     log_message "INFO" "启动后端服务..."
     
+    # 1. 首先清理现有进程
+    cleanup_backend_processes
+    
     # 检查锁文件
     if [ -f "$LOCK_FILE" ]; then
         local lock_pid=$(cat "$LOCK_FILE" 2>/dev/null)
@@ -386,14 +467,14 @@ start_backend_service() {
     # 启动服务
     local log_file="$BACKEND_LOG_DIR/backend_$(date +%Y%m%d_%H%M%S).log"
     
-    log_message "INFO" "启动命令: source venv/bin/activate && python -m uvicorn app.main:app --host 0.0.0.0 --port $SERVICE_PORT"
+    log_message "INFO" "启动命令: source ../.venv/bin/activate && python -m uvicorn app.main:app --host 0.0.0.0 --port $SERVICE_PORT"
     log_message "INFO" "日志文件: $log_file"
     
     # 使用安全的方式写入PID文件
     (
         flock -x 200
         nohup bash -c "
-            source venv/bin/activate && \
+            source ../.venv/bin/activate && \
             python -m uvicorn app.main:app --host 0.0.0.0 --port $SERVICE_PORT
         " > "$log_file" 2>&1 &
         
@@ -450,43 +531,13 @@ start_backend_service() {
 stop_backend_service() {
     log_message "INFO" "停止后端服务..."
     
-    local stopped=false
+    # 使用智能清理功能停止所有相关进程
+    cleanup_backend_processes
     
-    # 通过PID文件停止
-    if [ -f "$PID_FILE" ]; then
-        local pid=$(cat "$PID_FILE")
-        if kill -0 "$pid" 2>/dev/null; then
-            log_message "INFO" "正在停止服务 (PID: $pid)..."
-            kill -TERM "$pid" 2>/dev/null
-            
-            # 等待进程结束
-            local wait_time=0
-            while [ $wait_time -lt 10 ] && kill -0 "$pid" 2>/dev/null; do
-                sleep 1
-                wait_time=$((wait_time + 1))
-            done
-            
-            if kill -0 "$pid" 2>/dev/null; then
-                log_message "WARNING" "强制终止服务 (PID: $pid)"
-                kill -KILL "$pid" 2>/dev/null
-            fi
-            
-            stopped=true
-        fi
-        rm -f "$PID_FILE"
-    fi
+    # 清理PID文件和锁文件
+    rm -f "$PID_FILE" "$LOCK_FILE"
     
-    # 强制清理端口
-    force_cleanup_port "$SERVICE_PORT"
-    
-    # 清理锁文件
-    rm -f "$LOCK_FILE"
-    
-    if $stopped; then
-        log_message "SUCCESS" "后端服务已停止"
-    else
-        log_message "INFO" "没有发现运行中的后端服务"
-    fi
+    log_message "SUCCESS" "后端服务已停止"
 }
 
 # 重启服务
@@ -495,6 +546,42 @@ restart_backend_service() {
     stop_backend_service
     sleep 2
     start_backend_service
+}
+
+# 安全启动模式（集成进程管理）
+safe_start_backend() {
+    log_message "INFO" "🚀 安全启动模式 - 自动检测并清理重复进程"
+    
+    # 1. 验证环境
+    if ! validate_environment; then
+        log_message "ERROR" "环境验证失败"
+        return 1
+    fi
+    
+    # 2. 检查依赖
+    if ! check_dependencies; then
+        log_message "ERROR" "依赖检查失败"
+        return 1
+    fi
+    
+    # 3. 启动服务（内部会自动清理进程）
+    if start_backend_service; then
+        echo ""
+        log_message "SUCCESS" "✅ 后端服务启动成功！"
+        log_message "INFO" "📍 服务地址: http://localhost:$SERVICE_PORT"
+        log_message "INFO" "📖 API文档: http://localhost:$SERVICE_PORT/docs"
+        log_message "INFO" "🔍 健康检查: http://localhost:$SERVICE_PORT/health"
+        echo ""
+        log_message "INFO" "管理命令:"
+        log_message "INFO" "  停止服务: $0 stop"
+        log_message "INFO" "  重启服务: $0 restart"
+        log_message "INFO" "  查看状态: $0 status"
+        log_message "INFO" "  监控服务: $0 monitor"
+        return 0
+    else
+        log_message "ERROR" "❌ 后端服务启动失败，请检查日志"
+        return 1
+    fi
 }
 
 # 服务监控循环
@@ -884,12 +971,13 @@ show_help() {
     echo "用法: $0 {start|stop|restart|monitor|status|cleanup|install-service|uninstall-service|help}"
     echo ""
     echo "基础命令:"
-    echo -e "  ${GREEN}start${NC}    - 启动后端服务"
-    echo -e "  ${RED}stop${NC}     - 停止后端服务"
-    echo -e "  ${YELLOW}restart${NC}  - 重启后端服务"
-    echo -e "  ${BLUE}monitor${NC}  - 启动服务监控（自动重启）"
-    echo -e "  ${CYAN}status${NC}   - 显示服务状态和日志"
-    echo -e "  ${PURPLE}cleanup${NC}  - 强制清理所有相关进程和文件"
+    echo -e "  ${GREEN}start${NC}      - 启动后端服务"
+    echo -e "  ${GREEN}safe-start${NC} - 安全启动（自动清理重复进程）"
+    echo -e "  ${RED}stop${NC}       - 停止后端服务"
+    echo -e "  ${YELLOW}restart${NC}    - 重启后端服务"
+    echo -e "  ${BLUE}monitor${NC}    - 启动服务监控（自动重启）"
+    echo -e "  ${CYAN}status${NC}     - 显示服务状态和日志"
+    echo -e "  ${PURPLE}cleanup${NC}    - 强制清理所有相关进程和文件"
     echo ""
     echo "系统服务命令:"
     echo -e "  ${GREEN}install-service${NC}   - 安装为系统服务（开机自启动）"
@@ -1076,6 +1164,10 @@ main() {
             fi
             
             start_backend_service
+            ;;
+        safe-start)
+            CURRENT_MODE="safe-start"
+            safe_start_backend
             ;;
         stop)
             CURRENT_MODE="stop"

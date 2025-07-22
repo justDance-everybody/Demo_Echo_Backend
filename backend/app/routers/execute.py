@@ -16,8 +16,8 @@ router = APIRouter()
     "/execute", 
     response_model=ExecuteResponse, 
     response_model_exclude_none=False,
-    summary="Execute a specific tool",
-    description="Executes the specified tool with the given parameters and returns the result."
+    summary="执行指定工具",
+    description="使用给定参数执行指定工具并返回结果。"
 )
 # @stable(tested=2025-04-30, test_script=backend/test_api.py)
 async def execute_tool(
@@ -26,7 +26,7 @@ async def execute_tool(
     current_user: User = Depends(get_current_user)
 ) -> ExecuteResponse:
     """
-    Endpoint to execute a tool.
+    执行工具的端点。
     
     Args:
         request: 执行工具请求

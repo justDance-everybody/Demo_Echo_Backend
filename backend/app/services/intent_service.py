@@ -90,13 +90,31 @@ class IntentService:
                 # 如果没有工具，可以直接让 LLM 回复，或者返回特定错误
                 # 这里我们选择让 LLM 尝试直接回复
 
-            # 简化Prompt
+            # 改进的Prompt，更明确地指导工具使用
             prompt_prefix = (
-                "你是一个助手。请判断用户的请求是闲聊还是需要调用工具。"
-                "如果需要用工具，直接调用合适的工具；如果是闲聊，直接回复。"
-                "\n\n当你决定调用工具时，请同时生成一个简短的确认文本，以问句形式询问用户你的理解是否正确。"
-                "确认文本应该简洁地复述用户的请求，包含关键信息（如地点、时间等），并以'您想要...'的方式表述，以问号结尾。"
-                "\n用户请求："
+                "你是一个智能助手，拥有多种工具来帮助用户完成任务。请仔细分析用户的请求，理解其真实意图，并根据可用的工具决定是否需要调用工具。\n\n"
+                "**分析原则：**\n"
+                "1. 仔细理解用户请求的核心意图和所需信息类型\n"
+                "2. 查看可用工具的功能描述，找到最匹配用户需求的工具\n"
+                "3. 优先使用工具来获取实时信息、执行操作或处理数据\n"
+                "4. 只有在纯粹的闲聊对话时才直接回复\n\n"
+                "**工具使用指导：**\n"
+                "- 搜索信息：使用browser_navigate工具访问搜索引擎（如Google、百度）\n"
+                "- 查询天气：使用maps_weather等地图天气工具\n"
+                "- 查询位置：使用maps_search等地图搜索工具\n"
+                "- 计算任务：使用calculator相关工具\n"
+                "- 文本处理：使用text_processor相关工具\n"
+                "- 加密货币：使用crypto相关工具\n\n"
+                "**重要提示：**\n"
+                "- 对于\"搜索\"、\"查找\"、\"了解\"等信息获取请求，应使用browser_navigate工具访问相应的搜索网站\n"
+                "- 对于天气查询，应使用maps_weather工具\n"
+                "- 对于位置查询，应使用maps_search工具\n\n"
+                "**直接回复情况（仅限以下）：**\n"
+                "- 纯粹的问候和闲聊（如\"你好\"、\"今天过得怎么样\"）\n"
+                "- 简单的常识问答（不需要实时数据）\n"
+                "- 情感表达和一般性建议\n\n"
+                "当决定调用工具时，请生成简洁的确认文本，以问句形式复述用户的核心需求。\n\n"
+                "用户请求："
             )
             messages = [{"role": "user", "content": prompt_prefix + query}]
 
@@ -154,6 +172,10 @@ class IntentService:
                     f"{log_prefix}LLM 决定调用工具: {tool_names}"
                 )
                 logger.info(f"{log_prefix}确认文本: {confirm_text_candidate}")
+
+                # 将工具调用信息存储到会话中，等待用户确认
+                if session_id and user_id is not None:
+                    await self._store_pending_tools(db, session_id, user_id, parsed_tool_calls, query)
 
                 return {
                     "type": "tool_call",
@@ -238,9 +260,235 @@ class IntentService:
             # 返回简单的通用确认文本，也使用问句形式
             return "您确认要执行这个操作吗？"
 
-    # 移除或注释掉不再需要的 get_tool_executions 方法
-    # async def get_tool_executions(self, intent_data: Dict[str, Any]) -> List[Dict[str, Any]]:
-    #     ...
+    async def _store_pending_tools(
+        self, db: AsyncSession, session_id: str, user_id: int, tool_calls: List[Dict[str, Any]], original_query: str
+    ) -> None:
+        """
+        将待执行的工具信息存储到会话中
+        
+        Args:
+            db: 数据库会话
+            session_id: 会话ID
+            user_id: 用户ID
+            tool_calls: 工具调用列表
+            original_query: 用户原始查询
+        """
+        try:
+            from app.models.session import Session
+            from app.models.log import Log
+            
+            # 获取会话
+            result = await db.execute(select(Session).where(Session.session_id == session_id))
+            session = result.scalars().first()
+            
+            if session:
+                # 更新会话状态为等待确认
+                session.status = 'waiting_confirm'
+                db.add(session)
+                
+                # 记录待执行的工具信息到日志中
+                tool_info = {
+                    "tool_calls": tool_calls,
+                    "original_query": original_query
+                }
+                
+                pending_log = Log(
+                    session_id=session_id,
+                    step='pending_tools',
+                    status='waiting',
+                    message=json.dumps(tool_info, ensure_ascii=False)
+                )
+                db.add(pending_log)
+                
+                await db.commit()
+                logger.info(f"[Session: {session_id}] 已存储待执行工具信息")
+            else:
+                logger.warning(f"[Session: {session_id}] 会话不存在，无法存储工具信息")
+                
+        except Exception as e:
+            logger.error(f"[Session: {session_id}] 存储待执行工具信息失败: {e}")
+            await db.rollback()
+    
+    async def execute_confirmed_tools(
+        self, session_id: str, user_id: int, db: AsyncSession
+    ) -> Dict[str, Any]:
+        """
+        执行用户确认的工具
+        
+        Args:
+            session_id: 会话ID
+            user_id: 用户ID
+            db: 数据库会话
+            
+        Returns:
+            执行结果字典
+        """
+        try:
+            from app.models.session import Session
+            from app.models.log import Log
+            from app.services.execute_service import ExecuteService
+            
+            logger.info(f"[Session: {session_id}] 开始执行确认的工具")
+            
+            # 获取会话
+            result = await db.execute(select(Session).where(Session.session_id == session_id))
+            session = result.scalars().first()
+            
+            if not session:
+                return {
+                    "success": False,
+                    "error": "会话不存在"
+                }
+            
+            # 获取待执行的工具信息
+            log_result = await db.execute(
+                select(Log).where(
+                    Log.session_id == session_id,
+                    Log.step == 'pending_tools',
+                    Log.status == 'waiting'
+                ).order_by(Log.timestamp.desc())
+            )
+            pending_log = log_result.scalars().first()
+            
+            if not pending_log:
+                return {
+                    "success": False,
+                    "error": "未找到待执行的工具信息"
+                }
+            
+            # 解析工具信息
+            try:
+                tool_info = json.loads(pending_log.message)
+                tool_calls = tool_info.get("tool_calls", [])
+                original_query = tool_info.get("original_query", "")
+            except json.JSONDecodeError:
+                return {
+                    "success": False,
+                    "error": "工具信息格式错误"
+                }
+            
+            if not tool_calls:
+                return {
+                    "success": False,
+                    "error": "没有待执行的工具"
+                }
+            
+            # 更新会话状态为执行中
+            session.status = 'executing'
+            db.add(session)
+            
+            # 更新待执行日志状态
+            pending_log.status = 'processing'
+            db.add(pending_log)
+            
+            await db.commit()
+            
+            # 执行工具
+            execute_service = ExecuteService()
+            results = []
+            all_success = True
+            
+            for tool_call in tool_calls:
+                tool_id = tool_call.get("tool_id")
+                parameters = tool_call.get("parameters", {})
+                
+                logger.info(f"[Session: {session_id}] 执行工具: {tool_id}")
+                
+                result = await execute_service.execute_tool(
+                    tool_id=tool_id,
+                    params=parameters,
+                    db=db,
+                    session_id=session_id,
+                    user_id=user_id,
+                    original_query=original_query
+                )
+                
+                results.append(result)
+                if not result.success:
+                    all_success = False
+                    logger.error(f"[Session: {session_id}] 工具 {tool_id} 执行失败: {result.error}")
+            
+            # 汇总结果
+            if all_success:
+                # 提取所有成功结果的内容
+                content_parts = []
+                for result in results:
+                    if result.data and result.data.get("tts_message"):
+                        content_parts.append(result.data["tts_message"])
+                
+                final_content = "\n".join(content_parts) if content_parts else "操作执行成功"
+                
+                # 更新会话状态为完成
+                session.status = 'done'
+                db.add(session)
+                
+                # 记录成功日志
+                success_log = Log(
+                    session_id=session_id,
+                    step='execute_confirmed',
+                    status='success',
+                    message=final_content
+                )
+                db.add(success_log)
+                
+                await db.commit()
+                
+                logger.info(f"[Session: {session_id}] 所有工具执行成功")
+                return {
+                    "success": True,
+                    "content": final_content
+                }
+            else:
+                # 部分或全部失败
+                error_messages = []
+                for result in results:
+                    if not result.success and result.error:
+                        if isinstance(result.error, dict):
+                            error_messages.append(result.error.get("message", "执行失败"))
+                        else:
+                            error_messages.append(str(result.error))
+                
+                error_content = "执行过程中出现错误: " + "; ".join(error_messages)
+                
+                # 更新会话状态为错误
+                session.status = 'error'
+                db.add(session)
+                
+                # 记录错误日志
+                error_log = Log(
+                    session_id=session_id,
+                    step='execute_confirmed',
+                    status='error',
+                    message=error_content
+                )
+                db.add(error_log)
+                
+                await db.commit()
+                
+                logger.error(f"[Session: {session_id}] 工具执行失败")
+                return {
+                    "success": False,
+                    "error": error_content
+                }
+                
+        except Exception as e:
+            logger.exception(f"[Session: {session_id}] 执行确认工具时发生错误: {e}")
+            
+            # 更新会话状态为错误
+            try:
+                result = await db.execute(select(Session).where(Session.session_id == session_id))
+                session = result.scalars().first()
+                if session:
+                    session.status = 'error'
+                    db.add(session)
+                    await db.commit()
+            except Exception:
+                pass
+            
+            return {
+                "success": False,
+                "error": f"执行过程中发生意外错误: {str(e)}"
+            }
 
 
 # 创建全局意图服务实例
