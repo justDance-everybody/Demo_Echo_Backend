@@ -2218,3 +2218,515 @@ LookupError: 'enabled' is not among the defined enum values. Enum name: None. Po
 2025-07-21 02:38:04.829 | INFO     | app.services.intent_service:generate_confirmation_text:251 - 生成的确认文本: 您想要查询北京的天气情况吗？
 2025-07-21 02:38:04.829 | INFO     | app.services.intent_service:process_intent:171 - [Session: test_session_3] LLM 决定调用工具: ['maps_weather']
 2025-07-21 02:38:04.829 | INFO     | app.services.intent_service:process_intent:174 - [Session: test_session_3] 确认文本: 您想要查询北京的天气情况吗？
+2025-07-22 20:43:39.374 | INFO     | app.main:<module>:39 - 启动应用: AI Assistant API v0.1.0
+2025-07-22 20:43:39.374 | INFO     | app.main:<module>:40 - 数据库: ai_assistant
+2025-07-22 20:43:39.400 | INFO     | app.main:<module>:181 - ============================== Registered Routes ==============================
+2025-07-22 20:43:39.400 | INFO     | app.main:<module>:188 - Path: /openapi.json, Methods: {'GET', 'HEAD'}, Name: openapi
+2025-07-22 20:43:39.401 | INFO     | app.main:<module>:188 - Path: /redoc, Methods: {'GET', 'HEAD'}, Name: redoc_html
+2025-07-22 20:43:39.401 | INFO     | app.main:<module>:188 - Path: /docs, Methods: {'GET'}, Name: custom_swagger_ui_html
+2025-07-22 20:43:39.401 | INFO     | app.main:<module>:188 - Path: /, Methods: {'GET'}, Name: root
+2025-07-22 20:43:39.401 | INFO     | app.main:<module>:188 - Path: /health, Methods: {'GET'}, Name: health_check
+2025-07-22 20:43:39.401 | INFO     | app.main:<module>:188 - Path: /api/v1/interpret, Methods: {'POST'}, Name: process_intent
+2025-07-22 20:43:39.401 | INFO     | app.main:<module>:188 - Path: /api/v1/confirm, Methods: {'POST'}, Name: confirm_execution
+2025-07-22 20:43:39.401 | INFO     | app.main:<module>:188 - Path: /api/v1/execute, Methods: {'POST'}, Name: execute_tool
+2025-07-22 20:43:39.401 | INFO     | app.main:<module>:188 - Path: /api/v1/tools, Methods: {'GET'}, Name: get_tools
+2025-07-22 20:43:39.401 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/register, Methods: {'POST'}, Name: register
+2025-07-22 20:43:39.401 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/token, Methods: {'POST'}, Name: login_for_access_token
+2025-07-22 20:43:39.401 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/login, Methods: {'POST'}, Name: login
+2025-07-22 20:43:39.401 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/me, Methods: {'GET'}, Name: get_me
+2025-07-22 20:43:39.401 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'GET'}, Name: get_developer_tools
+2025-07-22 20:43:39.401 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'POST'}, Name: create_developer_tool
+2025-07-22 20:43:39.401 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'GET'}, Name: get_developer_tool
+2025-07-22 20:43:39.401 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'PUT'}, Name: update_developer_tool
+2025-07-22 20:43:39.402 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'DELETE'}, Name: delete_developer_tool
+2025-07-22 20:43:39.402 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload, Methods: {'POST'}, Name: upload_tool_package
+2025-07-22 20:43:39.402 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload/validate, Methods: {'POST'}, Name: validate_tool_package
+2025-07-22 20:43:39.402 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}/test, Methods: {'POST'}, Name: test_developer_tool
+2025-07-22 20:43:39.402 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/test/batch, Methods: {'POST'}, Name: batch_test_tools
+2025-07-22 20:43:39.402 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status, Methods: {'GET'}, Name: get_mcp_servers_status
+2025-07-22 20:43:39.402 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status/{server_name}, Methods: {'GET'}, Name: get_mcp_server_status
+2025-07-22 20:43:39.402 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/restart/{server_name}, Methods: {'POST'}, Name: restart_mcp_server
+2025-07-22 20:43:39.402 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/start/{server_name}, Methods: {'POST'}, Name: start_mcp_server
+2025-07-22 20:43:39.402 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/stop/{server_name}, Methods: {'POST'}, Name: stop_mcp_server
+2025-07-22 20:43:39.402 | INFO     | app.main:<module>:192 - ==============================================================================
+2025-07-22 20:43:39.403 | INFO     | app.services.unified_execution_service:get_or_create_session:48 - 创建新会话ID: 245bdcb4-52b2-4edc-b875-0177dc747714 for user 1
+2025-07-22 20:43:39.446 | ERROR    | app.services.unified_execution_service:get_session_manager:147 - 会话管理器操作失败: (pymysql.err.IntegrityError) (1452, 'Cannot add or update a child row: a foreign key constraint fails (`ai_assistant`.`sessions`, CONSTRAINT `sessions_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`))')
+[SQL: INSERT INTO sessions (session_id, user_id, status, created_at) VALUES (%s, %s, %s, %s)]
+[parameters: ('245bdcb4-52b2-4edc-b875-0177dc747714', 1, 'parsing', datetime.datetime(2025, 7, 22, 20, 43, 39, 439301))]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+2025-07-22 20:43:39.448 | ERROR    | app.services.unified_execution_service:execute_tool_unified:227 - 统一执行服务失败: 'ExecuteRequest' object has no attribute 'sessionId'
+2025-07-22 20:43:39.448 | ERROR    | app.services.unified_execution_service:get_session_manager:147 - 会话管理器操作失败: 执行失败: 'ExecuteRequest' object has no attribute 'sessionId'
+2025-07-22 20:43:39.448 | ERROR    | app.services.unified_execution_service:log_operation:125 - 记录操作日志失败: test-session-123, 错误: 'created_at' is an invalid keyword argument for Log
+2025-07-22 20:43:39.458 | INFO     | app.services.unified_execution_service:update_session_status:96 - 更新会话状态: test-session-123 -> confirmed
+2025-07-22 20:43:39.458 | INFO     | app.services.intent_service:execute_confirmed_tools:331 - [Session: test-session-123] 开始执行确认的工具
+2025-07-22 20:43:39.472 | INFO     | app.services.unified_execution_service:update_session_status:96 - 更新会话状态: test-session-123 -> completed
+2025-07-22 20:43:39.473 | ERROR    | app.services.unified_execution_service:log_operation:125 - 记录操作日志失败: test-session-123, 错误: 'created_at' is an invalid keyword argument for Log
+2025-07-22 20:43:39.473 | INFO     | app.services.unified_execution_service:confirm_and_execute_unified:303 - 确认执行成功: test-session-123
+2025-07-22 20:44:52.358 | INFO     | app.main:<module>:39 - 启动应用: AI Assistant API v0.1.0
+2025-07-22 20:44:52.358 | INFO     | app.main:<module>:40 - 数据库: ai_assistant
+2025-07-22 20:44:52.385 | INFO     | app.main:<module>:181 - ============================== Registered Routes ==============================
+2025-07-22 20:44:52.385 | INFO     | app.main:<module>:188 - Path: /openapi.json, Methods: {'HEAD', 'GET'}, Name: openapi
+2025-07-22 20:44:52.386 | INFO     | app.main:<module>:188 - Path: /redoc, Methods: {'HEAD', 'GET'}, Name: redoc_html
+2025-07-22 20:44:52.386 | INFO     | app.main:<module>:188 - Path: /docs, Methods: {'GET'}, Name: custom_swagger_ui_html
+2025-07-22 20:44:52.386 | INFO     | app.main:<module>:188 - Path: /, Methods: {'GET'}, Name: root
+2025-07-22 20:44:52.386 | INFO     | app.main:<module>:188 - Path: /health, Methods: {'GET'}, Name: health_check
+2025-07-22 20:44:52.386 | INFO     | app.main:<module>:188 - Path: /api/v1/interpret, Methods: {'POST'}, Name: process_intent
+2025-07-22 20:44:52.386 | INFO     | app.main:<module>:188 - Path: /api/v1/confirm, Methods: {'POST'}, Name: confirm_execution
+2025-07-22 20:44:52.386 | INFO     | app.main:<module>:188 - Path: /api/v1/execute, Methods: {'POST'}, Name: execute_tool
+2025-07-22 20:44:52.386 | INFO     | app.main:<module>:188 - Path: /api/v1/tools, Methods: {'GET'}, Name: get_tools
+2025-07-22 20:44:52.386 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/register, Methods: {'POST'}, Name: register
+2025-07-22 20:44:52.386 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/token, Methods: {'POST'}, Name: login_for_access_token
+2025-07-22 20:44:52.386 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/login, Methods: {'POST'}, Name: login
+2025-07-22 20:44:52.386 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/me, Methods: {'GET'}, Name: get_me
+2025-07-22 20:44:52.386 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'GET'}, Name: get_developer_tools
+2025-07-22 20:44:52.386 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'POST'}, Name: create_developer_tool
+2025-07-22 20:44:52.386 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'GET'}, Name: get_developer_tool
+2025-07-22 20:44:52.386 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'PUT'}, Name: update_developer_tool
+2025-07-22 20:44:52.386 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'DELETE'}, Name: delete_developer_tool
+2025-07-22 20:44:52.387 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload, Methods: {'POST'}, Name: upload_tool_package
+2025-07-22 20:44:52.387 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload/validate, Methods: {'POST'}, Name: validate_tool_package
+2025-07-22 20:44:52.387 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}/test, Methods: {'POST'}, Name: test_developer_tool
+2025-07-22 20:44:52.387 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/test/batch, Methods: {'POST'}, Name: batch_test_tools
+2025-07-22 20:44:52.387 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status, Methods: {'GET'}, Name: get_mcp_servers_status
+2025-07-22 20:44:52.387 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status/{server_name}, Methods: {'GET'}, Name: get_mcp_server_status
+2025-07-22 20:44:52.387 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/restart/{server_name}, Methods: {'POST'}, Name: restart_mcp_server
+2025-07-22 20:44:52.387 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/start/{server_name}, Methods: {'POST'}, Name: start_mcp_server
+2025-07-22 20:44:52.387 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/stop/{server_name}, Methods: {'POST'}, Name: stop_mcp_server
+2025-07-22 20:44:52.387 | INFO     | app.main:<module>:192 - ==============================================================================
+2025-07-22 20:45:20.245 | INFO     | app.main:<module>:39 - 启动应用: AI Assistant API v0.1.0
+2025-07-22 20:45:20.246 | INFO     | app.main:<module>:40 - 数据库: ai_assistant
+2025-07-22 20:45:20.276 | INFO     | app.main:<module>:181 - ============================== Registered Routes ==============================
+2025-07-22 20:45:20.276 | INFO     | app.main:<module>:188 - Path: /openapi.json, Methods: {'GET', 'HEAD'}, Name: openapi
+2025-07-22 20:45:20.276 | INFO     | app.main:<module>:188 - Path: /redoc, Methods: {'GET', 'HEAD'}, Name: redoc_html
+2025-07-22 20:45:20.276 | INFO     | app.main:<module>:188 - Path: /docs, Methods: {'GET'}, Name: custom_swagger_ui_html
+2025-07-22 20:45:20.276 | INFO     | app.main:<module>:188 - Path: /, Methods: {'GET'}, Name: root
+2025-07-22 20:45:20.276 | INFO     | app.main:<module>:188 - Path: /health, Methods: {'GET'}, Name: health_check
+2025-07-22 20:45:20.276 | INFO     | app.main:<module>:188 - Path: /api/v1/interpret, Methods: {'POST'}, Name: process_intent
+2025-07-22 20:45:20.276 | INFO     | app.main:<module>:188 - Path: /api/v1/confirm, Methods: {'POST'}, Name: confirm_execution
+2025-07-22 20:45:20.277 | INFO     | app.main:<module>:188 - Path: /api/v1/execute, Methods: {'POST'}, Name: execute_tool
+2025-07-22 20:45:20.277 | INFO     | app.main:<module>:188 - Path: /api/v1/tools, Methods: {'GET'}, Name: get_tools
+2025-07-22 20:45:20.277 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/register, Methods: {'POST'}, Name: register
+2025-07-22 20:45:20.277 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/token, Methods: {'POST'}, Name: login_for_access_token
+2025-07-22 20:45:20.277 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/login, Methods: {'POST'}, Name: login
+2025-07-22 20:45:20.277 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/me, Methods: {'GET'}, Name: get_me
+2025-07-22 20:45:20.277 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'GET'}, Name: get_developer_tools
+2025-07-22 20:45:20.277 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'POST'}, Name: create_developer_tool
+2025-07-22 20:45:20.277 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'GET'}, Name: get_developer_tool
+2025-07-22 20:45:20.277 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'PUT'}, Name: update_developer_tool
+2025-07-22 20:45:20.277 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'DELETE'}, Name: delete_developer_tool
+2025-07-22 20:45:20.277 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload, Methods: {'POST'}, Name: upload_tool_package
+2025-07-22 20:45:20.278 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload/validate, Methods: {'POST'}, Name: validate_tool_package
+2025-07-22 20:45:20.278 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}/test, Methods: {'POST'}, Name: test_developer_tool
+2025-07-22 20:45:20.278 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/test/batch, Methods: {'POST'}, Name: batch_test_tools
+2025-07-22 20:45:20.278 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status, Methods: {'GET'}, Name: get_mcp_servers_status
+2025-07-22 20:45:20.278 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status/{server_name}, Methods: {'GET'}, Name: get_mcp_server_status
+2025-07-22 20:45:20.278 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/restart/{server_name}, Methods: {'POST'}, Name: restart_mcp_server
+2025-07-22 20:45:20.278 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/start/{server_name}, Methods: {'POST'}, Name: start_mcp_server
+2025-07-22 20:45:20.278 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/stop/{server_name}, Methods: {'POST'}, Name: stop_mcp_server
+2025-07-22 20:45:20.278 | INFO     | app.main:<module>:192 - ==============================================================================
+2025-07-22 20:45:32.707 | INFO     | app.main:<module>:39 - 启动应用: AI Assistant API v0.1.0
+2025-07-22 20:45:32.707 | INFO     | app.main:<module>:40 - 数据库: ai_assistant
+2025-07-22 20:45:32.734 | INFO     | app.main:<module>:181 - ============================== Registered Routes ==============================
+2025-07-22 20:45:32.734 | INFO     | app.main:<module>:188 - Path: /openapi.json, Methods: {'GET', 'HEAD'}, Name: openapi
+2025-07-22 20:45:32.734 | INFO     | app.main:<module>:188 - Path: /redoc, Methods: {'GET', 'HEAD'}, Name: redoc_html
+2025-07-22 20:45:32.734 | INFO     | app.main:<module>:188 - Path: /docs, Methods: {'GET'}, Name: custom_swagger_ui_html
+2025-07-22 20:45:32.735 | INFO     | app.main:<module>:188 - Path: /, Methods: {'GET'}, Name: root
+2025-07-22 20:45:32.735 | INFO     | app.main:<module>:188 - Path: /health, Methods: {'GET'}, Name: health_check
+2025-07-22 20:45:32.735 | INFO     | app.main:<module>:188 - Path: /api/v1/interpret, Methods: {'POST'}, Name: process_intent
+2025-07-22 20:45:32.735 | INFO     | app.main:<module>:188 - Path: /api/v1/confirm, Methods: {'POST'}, Name: confirm_execution
+2025-07-22 20:45:32.735 | INFO     | app.main:<module>:188 - Path: /api/v1/execute, Methods: {'POST'}, Name: execute_tool
+2025-07-22 20:45:32.735 | INFO     | app.main:<module>:188 - Path: /api/v1/tools, Methods: {'GET'}, Name: get_tools
+2025-07-22 20:45:32.735 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/register, Methods: {'POST'}, Name: register
+2025-07-22 20:45:32.735 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/token, Methods: {'POST'}, Name: login_for_access_token
+2025-07-22 20:45:32.735 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/login, Methods: {'POST'}, Name: login
+2025-07-22 20:45:32.735 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/me, Methods: {'GET'}, Name: get_me
+2025-07-22 20:45:32.735 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'GET'}, Name: get_developer_tools
+2025-07-22 20:45:32.736 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'POST'}, Name: create_developer_tool
+2025-07-22 20:45:32.736 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'GET'}, Name: get_developer_tool
+2025-07-22 20:45:32.736 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'PUT'}, Name: update_developer_tool
+2025-07-22 20:45:32.736 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'DELETE'}, Name: delete_developer_tool
+2025-07-22 20:45:32.736 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload, Methods: {'POST'}, Name: upload_tool_package
+2025-07-22 20:45:32.736 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload/validate, Methods: {'POST'}, Name: validate_tool_package
+2025-07-22 20:45:32.736 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}/test, Methods: {'POST'}, Name: test_developer_tool
+2025-07-22 20:45:32.736 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/test/batch, Methods: {'POST'}, Name: batch_test_tools
+2025-07-22 20:45:32.736 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status, Methods: {'GET'}, Name: get_mcp_servers_status
+2025-07-22 20:45:32.736 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status/{server_name}, Methods: {'GET'}, Name: get_mcp_server_status
+2025-07-22 20:45:32.736 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/restart/{server_name}, Methods: {'POST'}, Name: restart_mcp_server
+2025-07-22 20:45:32.737 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/start/{server_name}, Methods: {'POST'}, Name: start_mcp_server
+2025-07-22 20:45:32.737 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/stop/{server_name}, Methods: {'POST'}, Name: stop_mcp_server
+2025-07-22 20:45:32.737 | INFO     | app.main:<module>:192 - ==============================================================================
+2025-07-22 20:45:32.737 | INFO     | app.services.unified_execution_service:get_or_create_session:48 - 创建新会话ID: 806b5da8-ecdb-411a-ba15-32ceef7d416f for user 1
+2025-07-22 20:45:32.780 | ERROR    | app.services.unified_execution_service:get_session_manager:146 - 会话管理器操作失败: (pymysql.err.IntegrityError) (1452, 'Cannot add or update a child row: a foreign key constraint fails (`ai_assistant`.`sessions`, CONSTRAINT `sessions_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`))')
+[SQL: INSERT INTO sessions (session_id, user_id, status, created_at) VALUES (%s, %s, %s, %s)]
+[parameters: ('806b5da8-ecdb-411a-ba15-32ceef7d416f', 1, 'parsing', datetime.datetime(2025, 7, 22, 20, 45, 32, 773780))]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+2025-07-22 20:45:32.781 | INFO     | app.services.unified_execution_service:get_or_create_session:48 - 创建新会话ID: 4b71ebe9-3437-42f7-a382-7515d29db5e0 for user 1
+2025-07-22 20:45:32.789 | ERROR    | app.services.unified_execution_service:execute_tool_unified:226 - 统一执行服务失败: (pymysql.err.IntegrityError) (1452, 'Cannot add or update a child row: a foreign key constraint fails (`ai_assistant`.`sessions`, CONSTRAINT `sessions_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`))')
+[SQL: INSERT INTO sessions (session_id, user_id, status, created_at) VALUES (%s, %s, %s, %s)]
+[parameters: ('4b71ebe9-3437-42f7-a382-7515d29db5e0', 1, 'parsing', datetime.datetime(2025, 7, 22, 20, 45, 32, 784640))]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+2025-07-22 20:45:32.789 | ERROR    | app.services.unified_execution_service:get_session_manager:146 - 会话管理器操作失败: 执行失败: (pymysql.err.IntegrityError) (1452, 'Cannot add or update a child row: a foreign key constraint fails (`ai_assistant`.`sessions`, CONSTRAINT `sessions_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`))')
+[SQL: INSERT INTO sessions (session_id, user_id, status, created_at) VALUES (%s, %s, %s, %s)]
+[parameters: ('4b71ebe9-3437-42f7-a382-7515d29db5e0', 1, 'parsing', datetime.datetime(2025, 7, 22, 20, 45, 32, 784640))]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+2025-07-22 20:45:32.808 | INFO     | app.services.unified_execution_service:update_session_status:96 - 更新会话状态: test-session-123 -> confirmed
+2025-07-22 20:45:32.808 | INFO     | app.services.intent_service:execute_confirmed_tools:331 - [Session: test-session-123] 开始执行确认的工具
+2025-07-22 20:45:32.823 | INFO     | app.services.unified_execution_service:update_session_status:96 - 更新会话状态: test-session-123 -> completed
+2025-07-22 20:45:32.830 | INFO     | app.services.unified_execution_service:confirm_and_execute_unified:302 - 确认执行成功: test-session-123
+2025-07-22 20:46:03.550 | INFO     | app.main:<module>:39 - 启动应用: AI Assistant API v0.1.0
+2025-07-22 20:46:03.550 | INFO     | app.main:<module>:40 - 数据库: ai_assistant
+2025-07-22 20:46:03.577 | INFO     | app.main:<module>:181 - ============================== Registered Routes ==============================
+2025-07-22 20:46:03.577 | INFO     | app.main:<module>:188 - Path: /openapi.json, Methods: {'HEAD', 'GET'}, Name: openapi
+2025-07-22 20:46:03.577 | INFO     | app.main:<module>:188 - Path: /redoc, Methods: {'HEAD', 'GET'}, Name: redoc_html
+2025-07-22 20:46:03.577 | INFO     | app.main:<module>:188 - Path: /docs, Methods: {'GET'}, Name: custom_swagger_ui_html
+2025-07-22 20:46:03.577 | INFO     | app.main:<module>:188 - Path: /, Methods: {'GET'}, Name: root
+2025-07-22 20:46:03.577 | INFO     | app.main:<module>:188 - Path: /health, Methods: {'GET'}, Name: health_check
+2025-07-22 20:46:03.577 | INFO     | app.main:<module>:188 - Path: /api/v1/interpret, Methods: {'POST'}, Name: process_intent
+2025-07-22 20:46:03.577 | INFO     | app.main:<module>:188 - Path: /api/v1/confirm, Methods: {'POST'}, Name: confirm_execution
+2025-07-22 20:46:03.577 | INFO     | app.main:<module>:188 - Path: /api/v1/execute, Methods: {'POST'}, Name: execute_tool
+2025-07-22 20:46:03.577 | INFO     | app.main:<module>:188 - Path: /api/v1/tools, Methods: {'GET'}, Name: get_tools
+2025-07-22 20:46:03.577 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/register, Methods: {'POST'}, Name: register
+2025-07-22 20:46:03.577 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/token, Methods: {'POST'}, Name: login_for_access_token
+2025-07-22 20:46:03.577 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/login, Methods: {'POST'}, Name: login
+2025-07-22 20:46:03.578 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/me, Methods: {'GET'}, Name: get_me
+2025-07-22 20:46:03.578 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'GET'}, Name: get_developer_tools
+2025-07-22 20:46:03.578 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'POST'}, Name: create_developer_tool
+2025-07-22 20:46:03.578 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'GET'}, Name: get_developer_tool
+2025-07-22 20:46:03.578 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'PUT'}, Name: update_developer_tool
+2025-07-22 20:46:03.578 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'DELETE'}, Name: delete_developer_tool
+2025-07-22 20:46:03.578 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload, Methods: {'POST'}, Name: upload_tool_package
+2025-07-22 20:46:03.578 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload/validate, Methods: {'POST'}, Name: validate_tool_package
+2025-07-22 20:46:03.578 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}/test, Methods: {'POST'}, Name: test_developer_tool
+2025-07-22 20:46:03.578 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/test/batch, Methods: {'POST'}, Name: batch_test_tools
+2025-07-22 20:46:03.578 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status, Methods: {'GET'}, Name: get_mcp_servers_status
+2025-07-22 20:46:03.578 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status/{server_name}, Methods: {'GET'}, Name: get_mcp_server_status
+2025-07-22 20:46:03.578 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/restart/{server_name}, Methods: {'POST'}, Name: restart_mcp_server
+2025-07-22 20:46:03.578 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/start/{server_name}, Methods: {'POST'}, Name: start_mcp_server
+2025-07-22 20:46:03.578 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/stop/{server_name}, Methods: {'POST'}, Name: stop_mcp_server
+2025-07-22 20:46:03.578 | INFO     | app.main:<module>:192 - ==============================================================================
+2025-07-22 20:46:39.669 | INFO     | app.main:<module>:39 - 启动应用: AI Assistant API v0.1.0
+2025-07-22 20:46:39.669 | INFO     | app.main:<module>:40 - 数据库: ai_assistant
+2025-07-22 20:46:39.695 | INFO     | app.main:<module>:181 - ============================== Registered Routes ==============================
+2025-07-22 20:46:39.696 | INFO     | app.main:<module>:188 - Path: /openapi.json, Methods: {'HEAD', 'GET'}, Name: openapi
+2025-07-22 20:46:39.696 | INFO     | app.main:<module>:188 - Path: /redoc, Methods: {'HEAD', 'GET'}, Name: redoc_html
+2025-07-22 20:46:39.696 | INFO     | app.main:<module>:188 - Path: /docs, Methods: {'GET'}, Name: custom_swagger_ui_html
+2025-07-22 20:46:39.696 | INFO     | app.main:<module>:188 - Path: /, Methods: {'GET'}, Name: root
+2025-07-22 20:46:39.696 | INFO     | app.main:<module>:188 - Path: /health, Methods: {'GET'}, Name: health_check
+2025-07-22 20:46:39.696 | INFO     | app.main:<module>:188 - Path: /api/v1/interpret, Methods: {'POST'}, Name: process_intent
+2025-07-22 20:46:39.696 | INFO     | app.main:<module>:188 - Path: /api/v1/confirm, Methods: {'POST'}, Name: confirm_execution
+2025-07-22 20:46:39.696 | INFO     | app.main:<module>:188 - Path: /api/v1/execute, Methods: {'POST'}, Name: execute_tool
+2025-07-22 20:46:39.696 | INFO     | app.main:<module>:188 - Path: /api/v1/tools, Methods: {'GET'}, Name: get_tools
+2025-07-22 20:46:39.697 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/register, Methods: {'POST'}, Name: register
+2025-07-22 20:46:39.697 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/token, Methods: {'POST'}, Name: login_for_access_token
+2025-07-22 20:46:39.697 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/login, Methods: {'POST'}, Name: login
+2025-07-22 20:46:39.697 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/me, Methods: {'GET'}, Name: get_me
+2025-07-22 20:46:39.697 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'GET'}, Name: get_developer_tools
+2025-07-22 20:46:39.697 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'POST'}, Name: create_developer_tool
+2025-07-22 20:46:39.697 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'GET'}, Name: get_developer_tool
+2025-07-22 20:46:39.697 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'PUT'}, Name: update_developer_tool
+2025-07-22 20:46:39.697 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'DELETE'}, Name: delete_developer_tool
+2025-07-22 20:46:39.698 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload, Methods: {'POST'}, Name: upload_tool_package
+2025-07-22 20:46:39.698 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload/validate, Methods: {'POST'}, Name: validate_tool_package
+2025-07-22 20:46:39.698 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}/test, Methods: {'POST'}, Name: test_developer_tool
+2025-07-22 20:46:39.698 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/test/batch, Methods: {'POST'}, Name: batch_test_tools
+2025-07-22 20:46:39.698 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status, Methods: {'GET'}, Name: get_mcp_servers_status
+2025-07-22 20:46:39.698 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status/{server_name}, Methods: {'GET'}, Name: get_mcp_server_status
+2025-07-22 20:46:39.698 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/restart/{server_name}, Methods: {'POST'}, Name: restart_mcp_server
+2025-07-22 20:46:39.698 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/start/{server_name}, Methods: {'POST'}, Name: start_mcp_server
+2025-07-22 20:46:39.698 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/stop/{server_name}, Methods: {'POST'}, Name: stop_mcp_server
+2025-07-22 20:46:39.698 | INFO     | app.main:<module>:192 - ==============================================================================
+2025-07-22 20:46:39.699 | INFO     | app.services.unified_execution_service:get_or_create_session:48 - 创建新会话ID: 8d61ec48-5d22-434e-9e26-91c0b578c8e3 for user 5
+2025-07-22 20:46:39.752 | INFO     | app.services.unified_execution_service:get_or_create_session:67 - 创建新会话: 8d61ec48-5d22-434e-9e26-91c0b578c8e3
+2025-07-22 20:46:39.760 | INFO     | app.services.unified_execution_service:update_session_status:96 - 更新会话状态: 8d61ec48-5d22-434e-9e26-91c0b578c8e3 -> testing
+2025-07-22 20:46:39.770 | INFO     | app.services.unified_execution_service:get_or_create_session:48 - 创建新会话ID: d2cdc015-3024-4779-abbc-4e3803f8d5fd for user 5
+2025-07-22 20:46:39.785 | INFO     | app.services.unified_execution_service:get_or_create_session:67 - 创建新会话: d2cdc015-3024-4779-abbc-4e3803f8d5fd
+2025-07-22 20:46:39.800 | INFO     | app.services.unified_execution_service:update_session_status:96 - 更新会话状态: d2cdc015-3024-4779-abbc-4e3803f8d5fd -> executing
+2025-07-22 20:46:39.800 | INFO     | app.services.execute_service:execute_tool:49 - 服务层：开始执行工具: tool_id=test_tool, session_id=d2cdc015-3024-4779-abbc-4e3803f8d5fd
+2025-07-22 20:46:39.816 | INFO     | app.services.execute_service:execute_tool:74 - Updated session d2cdc015-3024-4779-abbc-4e3803f8d5fd status to executing and logged start.
+2025-07-22 20:46:39.821 | ERROR    | app.services.execute_service:execute_tool:87 - 服务层：未找到工具: tool_id=test_tool
+2025-07-22 20:46:39.829 | INFO     | app.services.unified_execution_service:update_session_status:96 - 更新会话状态: d2cdc015-3024-4779-abbc-4e3803f8d5fd -> completed
+2025-07-22 20:46:39.839 | ERROR    | app.services.unified_execution_service:update_session_status:99 - 更新会话状态失败: d2cdc015-3024-4779-abbc-4e3803f8d5fd, 错误: Unconsumed column names: error_message
+2025-07-22 20:46:39.841 | ERROR    | app.services.unified_execution_service:execute_tool_unified:226 - 统一执行服务失败: Unconsumed column names: error_message
+2025-07-22 20:46:39.841 | ERROR    | app.services.unified_execution_service:get_session_manager:146 - 会话管理器操作失败: 执行失败: Unconsumed column names: error_message (sessionId: d2cdc015-3024-4779-abbc-4e3803f8d5fd)
+2025-07-22 20:46:39.858 | INFO     | app.services.unified_execution_service:update_session_status:96 - 更新会话状态: test-session-123 -> confirmed
+2025-07-22 20:46:39.858 | INFO     | app.services.intent_service:execute_confirmed_tools:331 - [Session: test-session-123] 开始执行确认的工具
+2025-07-22 20:46:39.872 | INFO     | app.services.unified_execution_service:update_session_status:96 - 更新会话状态: test-session-123 -> completed
+2025-07-22 20:46:39.883 | INFO     | app.services.unified_execution_service:confirm_and_execute_unified:302 - 确认执行成功: test-session-123
+2025-07-22 20:47:21.048 | INFO     | app.main:<module>:39 - 启动应用: AI Assistant API v0.1.0
+2025-07-22 20:47:21.048 | INFO     | app.main:<module>:40 - 数据库: ai_assistant
+2025-07-22 20:47:21.074 | INFO     | app.main:<module>:181 - ============================== Registered Routes ==============================
+2025-07-22 20:47:21.074 | INFO     | app.main:<module>:188 - Path: /openapi.json, Methods: {'GET', 'HEAD'}, Name: openapi
+2025-07-22 20:47:21.075 | INFO     | app.main:<module>:188 - Path: /redoc, Methods: {'GET', 'HEAD'}, Name: redoc_html
+2025-07-22 20:47:21.075 | INFO     | app.main:<module>:188 - Path: /docs, Methods: {'GET'}, Name: custom_swagger_ui_html
+2025-07-22 20:47:21.075 | INFO     | app.main:<module>:188 - Path: /, Methods: {'GET'}, Name: root
+2025-07-22 20:47:21.075 | INFO     | app.main:<module>:188 - Path: /health, Methods: {'GET'}, Name: health_check
+2025-07-22 20:47:21.075 | INFO     | app.main:<module>:188 - Path: /api/v1/interpret, Methods: {'POST'}, Name: process_intent
+2025-07-22 20:47:21.075 | INFO     | app.main:<module>:188 - Path: /api/v1/confirm, Methods: {'POST'}, Name: confirm_execution
+2025-07-22 20:47:21.075 | INFO     | app.main:<module>:188 - Path: /api/v1/execute, Methods: {'POST'}, Name: execute_tool
+2025-07-22 20:47:21.075 | INFO     | app.main:<module>:188 - Path: /api/v1/tools, Methods: {'GET'}, Name: get_tools
+2025-07-22 20:47:21.075 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/register, Methods: {'POST'}, Name: register
+2025-07-22 20:47:21.075 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/token, Methods: {'POST'}, Name: login_for_access_token
+2025-07-22 20:47:21.075 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/login, Methods: {'POST'}, Name: login
+2025-07-22 20:47:21.075 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/me, Methods: {'GET'}, Name: get_me
+2025-07-22 20:47:21.075 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'GET'}, Name: get_developer_tools
+2025-07-22 20:47:21.075 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'POST'}, Name: create_developer_tool
+2025-07-22 20:47:21.076 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'GET'}, Name: get_developer_tool
+2025-07-22 20:47:21.076 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'PUT'}, Name: update_developer_tool
+2025-07-22 20:47:21.076 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'DELETE'}, Name: delete_developer_tool
+2025-07-22 20:47:21.076 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload, Methods: {'POST'}, Name: upload_tool_package
+2025-07-22 20:47:21.076 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload/validate, Methods: {'POST'}, Name: validate_tool_package
+2025-07-22 20:47:21.076 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}/test, Methods: {'POST'}, Name: test_developer_tool
+2025-07-22 20:47:21.076 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/test/batch, Methods: {'POST'}, Name: batch_test_tools
+2025-07-22 20:47:21.076 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status, Methods: {'GET'}, Name: get_mcp_servers_status
+2025-07-22 20:47:21.076 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status/{server_name}, Methods: {'GET'}, Name: get_mcp_server_status
+2025-07-22 20:47:21.076 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/restart/{server_name}, Methods: {'POST'}, Name: restart_mcp_server
+2025-07-22 20:47:21.076 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/start/{server_name}, Methods: {'POST'}, Name: start_mcp_server
+2025-07-22 20:47:21.076 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/stop/{server_name}, Methods: {'POST'}, Name: stop_mcp_server
+2025-07-22 20:47:21.076 | INFO     | app.main:<module>:192 - ==============================================================================
+2025-07-22 20:47:21.077 | INFO     | app.services.unified_execution_service:get_or_create_session:48 - 创建新会话ID: 0cfab445-59ab-4821-bf97-8bc7177d9703 for user 5
+2025-07-22 20:47:21.126 | INFO     | app.services.unified_execution_service:get_or_create_session:67 - 创建新会话: 0cfab445-59ab-4821-bf97-8bc7177d9703
+2025-07-22 20:47:21.134 | INFO     | app.services.unified_execution_service:update_session_status:93 - 更新会话状态: 0cfab445-59ab-4821-bf97-8bc7177d9703 -> testing
+2025-07-22 20:47:21.144 | INFO     | app.services.unified_execution_service:get_or_create_session:48 - 创建新会话ID: 262a1c3a-3254-4711-be8a-2e2df476b2a9 for user 5
+2025-07-22 20:47:21.157 | INFO     | app.services.unified_execution_service:get_or_create_session:67 - 创建新会话: 262a1c3a-3254-4711-be8a-2e2df476b2a9
+2025-07-22 20:47:21.172 | INFO     | app.services.unified_execution_service:update_session_status:93 - 更新会话状态: 262a1c3a-3254-4711-be8a-2e2df476b2a9 -> executing
+2025-07-22 20:47:21.172 | INFO     | app.services.execute_service:execute_tool:49 - 服务层：开始执行工具: tool_id=test_tool, session_id=262a1c3a-3254-4711-be8a-2e2df476b2a9
+2025-07-22 20:47:21.185 | INFO     | app.services.execute_service:execute_tool:74 - Updated session 262a1c3a-3254-4711-be8a-2e2df476b2a9 status to executing and logged start.
+2025-07-22 20:47:21.189 | ERROR    | app.services.execute_service:execute_tool:87 - 服务层：未找到工具: tool_id=test_tool
+2025-07-22 20:47:21.197 | INFO     | app.services.unified_execution_service:update_session_status:93 - 更新会话状态: 262a1c3a-3254-4711-be8a-2e2df476b2a9 -> completed
+2025-07-22 20:47:21.213 | INFO     | app.services.unified_execution_service:update_session_status:93 - 更新会话状态: 262a1c3a-3254-4711-be8a-2e2df476b2a9 -> error
+2025-07-22 20:47:21.228 | ERROR    | app.services.unified_execution_service:execute_tool_unified:227 - 统一执行服务失败: 'ExecuteResponse' object has no attribute 'get'
+2025-07-22 20:47:21.228 | ERROR    | app.services.unified_execution_service:get_session_manager:147 - 会话管理器操作失败: 执行失败: 'ExecuteResponse' object has no attribute 'get' (sessionId: 262a1c3a-3254-4711-be8a-2e2df476b2a9)
+2025-07-22 20:47:21.244 | INFO     | app.services.unified_execution_service:update_session_status:93 - 更新会话状态: test-session-123 -> confirmed
+2025-07-22 20:47:21.244 | INFO     | app.services.intent_service:execute_confirmed_tools:331 - [Session: test-session-123] 开始执行确认的工具
+2025-07-22 20:47:21.258 | INFO     | app.services.unified_execution_service:update_session_status:93 - 更新会话状态: test-session-123 -> completed
+2025-07-22 20:47:21.265 | INFO     | app.services.unified_execution_service:confirm_and_execute_unified:303 - 确认执行成功: test-session-123
+2025-07-22 20:48:12.281 | INFO     | app.main:<module>:39 - 启动应用: AI Assistant API v0.1.0
+2025-07-22 20:48:12.281 | INFO     | app.main:<module>:40 - 数据库: ai_assistant
+2025-07-22 20:48:12.314 | INFO     | app.main:<module>:181 - ============================== Registered Routes ==============================
+2025-07-22 20:48:12.315 | INFO     | app.main:<module>:188 - Path: /openapi.json, Methods: {'GET', 'HEAD'}, Name: openapi
+2025-07-22 20:48:12.315 | INFO     | app.main:<module>:188 - Path: /redoc, Methods: {'GET', 'HEAD'}, Name: redoc_html
+2025-07-22 20:48:12.315 | INFO     | app.main:<module>:188 - Path: /docs, Methods: {'GET'}, Name: custom_swagger_ui_html
+2025-07-22 20:48:12.315 | INFO     | app.main:<module>:188 - Path: /, Methods: {'GET'}, Name: root
+2025-07-22 20:48:12.315 | INFO     | app.main:<module>:188 - Path: /health, Methods: {'GET'}, Name: health_check
+2025-07-22 20:48:12.315 | INFO     | app.main:<module>:188 - Path: /api/v1/interpret, Methods: {'POST'}, Name: process_intent
+2025-07-22 20:48:12.315 | INFO     | app.main:<module>:188 - Path: /api/v1/confirm, Methods: {'POST'}, Name: confirm_execution
+2025-07-22 20:48:12.315 | INFO     | app.main:<module>:188 - Path: /api/v1/execute, Methods: {'POST'}, Name: execute_tool
+2025-07-22 20:48:12.315 | INFO     | app.main:<module>:188 - Path: /api/v1/tools, Methods: {'GET'}, Name: get_tools
+2025-07-22 20:48:12.315 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/register, Methods: {'POST'}, Name: register
+2025-07-22 20:48:12.315 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/token, Methods: {'POST'}, Name: login_for_access_token
+2025-07-22 20:48:12.315 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/login, Methods: {'POST'}, Name: login
+2025-07-22 20:48:12.315 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/me, Methods: {'GET'}, Name: get_me
+2025-07-22 20:48:12.315 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'GET'}, Name: get_developer_tools
+2025-07-22 20:48:12.316 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'POST'}, Name: create_developer_tool
+2025-07-22 20:48:12.316 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'GET'}, Name: get_developer_tool
+2025-07-22 20:48:12.316 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'PUT'}, Name: update_developer_tool
+2025-07-22 20:48:12.316 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'DELETE'}, Name: delete_developer_tool
+2025-07-22 20:48:12.316 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload, Methods: {'POST'}, Name: upload_tool_package
+2025-07-22 20:48:12.316 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload/validate, Methods: {'POST'}, Name: validate_tool_package
+2025-07-22 20:48:12.316 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}/test, Methods: {'POST'}, Name: test_developer_tool
+2025-07-22 20:48:12.316 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/test/batch, Methods: {'POST'}, Name: batch_test_tools
+2025-07-22 20:48:12.316 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status, Methods: {'GET'}, Name: get_mcp_servers_status
+2025-07-22 20:48:12.316 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status/{server_name}, Methods: {'GET'}, Name: get_mcp_server_status
+2025-07-22 20:48:12.316 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/restart/{server_name}, Methods: {'POST'}, Name: restart_mcp_server
+2025-07-22 20:48:12.316 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/start/{server_name}, Methods: {'POST'}, Name: start_mcp_server
+2025-07-22 20:48:12.316 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/stop/{server_name}, Methods: {'POST'}, Name: stop_mcp_server
+2025-07-22 20:48:12.316 | INFO     | app.main:<module>:192 - ==============================================================================
+2025-07-22 20:48:12.317 | INFO     | app.services.unified_execution_service:get_or_create_session:48 - 创建新会话ID: 06e6cbd8-cdbf-45d5-98b8-e8aeb2dfcc0d for user 5
+2025-07-22 20:48:12.373 | INFO     | app.services.unified_execution_service:get_or_create_session:67 - 创建新会话: 06e6cbd8-cdbf-45d5-98b8-e8aeb2dfcc0d
+2025-07-22 20:48:12.382 | INFO     | app.services.unified_execution_service:update_session_status:93 - 更新会话状态: 06e6cbd8-cdbf-45d5-98b8-e8aeb2dfcc0d -> testing
+2025-07-22 20:48:12.392 | INFO     | app.services.unified_execution_service:get_or_create_session:48 - 创建新会话ID: 69eb77d2-92c3-4de6-b976-dca99793df95 for user 5
+2025-07-22 20:48:12.406 | INFO     | app.services.unified_execution_service:get_or_create_session:67 - 创建新会话: 69eb77d2-92c3-4de6-b976-dca99793df95
+2025-07-22 20:48:12.426 | INFO     | app.services.unified_execution_service:update_session_status:93 - 更新会话状态: 69eb77d2-92c3-4de6-b976-dca99793df95 -> executing
+2025-07-22 20:48:12.426 | INFO     | app.services.execute_service:execute_tool:49 - 服务层：开始执行工具: tool_id=test_tool, session_id=69eb77d2-92c3-4de6-b976-dca99793df95
+2025-07-22 20:48:12.441 | INFO     | app.services.execute_service:execute_tool:74 - Updated session 69eb77d2-92c3-4de6-b976-dca99793df95 status to executing and logged start.
+2025-07-22 20:48:12.445 | ERROR    | app.services.execute_service:execute_tool:87 - 服务层：未找到工具: tool_id=test_tool
+2025-07-22 20:48:12.453 | INFO     | app.services.unified_execution_service:update_session_status:93 - 更新会话状态: 69eb77d2-92c3-4de6-b976-dca99793df95 -> completed
+2025-07-22 20:48:12.462 | INFO     | app.services.unified_execution_service:execute_tool_unified:216 - 工具执行成功: 69eb77d2-92c3-4de6-b976-dca99793df95, 工具: test_tool
+2025-07-22 20:48:12.472 | INFO     | app.services.unified_execution_service:update_session_status:93 - 更新会话状态: 69eb77d2-92c3-4de6-b976-dca99793df95 -> error
+2025-07-22 20:48:12.490 | ERROR    | app.services.unified_execution_service:execute_tool_unified:236 - 统一执行服务失败: 2 validation errors for ExecuteResponse
+toolId
+  Field required [type=missing, input_value={'result': {}, 'tts': '',...4de6-b976-dca99793df95'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+success
+  Field required [type=missing, input_value={'result': {}, 'tts': '',...4de6-b976-dca99793df95'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+2025-07-22 20:48:12.490 | ERROR    | app.services.unified_execution_service:get_session_manager:147 - 会话管理器操作失败: 执行失败: 2 validation errors for ExecuteResponse
+toolId
+  Field required [type=missing, input_value={'result': {}, 'tts': '',...4de6-b976-dca99793df95'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+success
+  Field required [type=missing, input_value={'result': {}, 'tts': '',...4de6-b976-dca99793df95'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing (sessionId: 69eb77d2-92c3-4de6-b976-dca99793df95)
+2025-07-22 20:48:12.511 | INFO     | app.services.unified_execution_service:update_session_status:93 - 更新会话状态: test-session-123 -> confirmed
+2025-07-22 20:48:12.511 | INFO     | app.services.intent_service:execute_confirmed_tools:331 - [Session: test-session-123] 开始执行确认的工具
+2025-07-22 20:48:12.526 | INFO     | app.services.unified_execution_service:update_session_status:93 - 更新会话状态: test-session-123 -> completed
+2025-07-22 20:48:12.535 | INFO     | app.services.unified_execution_service:confirm_and_execute_unified:312 - 确认执行成功: test-session-123
+2025-07-22 21:01:44.573 | INFO     | app.main:<module>:39 - 启动应用: AI Assistant API v0.1.0
+2025-07-22 21:01:44.574 | INFO     | app.main:<module>:40 - 数据库: ai_assistant
+2025-07-22 21:01:44.600 | INFO     | app.main:<module>:181 - ============================== Registered Routes ==============================
+2025-07-22 21:01:44.600 | INFO     | app.main:<module>:188 - Path: /openapi.json, Methods: {'GET', 'HEAD'}, Name: openapi
+2025-07-22 21:01:44.600 | INFO     | app.main:<module>:188 - Path: /redoc, Methods: {'GET', 'HEAD'}, Name: redoc_html
+2025-07-22 21:01:44.601 | INFO     | app.main:<module>:188 - Path: /docs, Methods: {'GET'}, Name: custom_swagger_ui_html
+2025-07-22 21:01:44.601 | INFO     | app.main:<module>:188 - Path: /, Methods: {'GET'}, Name: root
+2025-07-22 21:01:44.601 | INFO     | app.main:<module>:188 - Path: /health, Methods: {'GET'}, Name: health_check
+2025-07-22 21:01:44.601 | INFO     | app.main:<module>:188 - Path: /api/v1/interpret, Methods: {'POST'}, Name: process_intent
+2025-07-22 21:01:44.601 | INFO     | app.main:<module>:188 - Path: /api/v1/confirm, Methods: {'POST'}, Name: confirm_execution
+2025-07-22 21:01:44.601 | INFO     | app.main:<module>:188 - Path: /api/v1/execute, Methods: {'POST'}, Name: execute_tool
+2025-07-22 21:01:44.601 | INFO     | app.main:<module>:188 - Path: /api/v1/tools, Methods: {'GET'}, Name: get_tools
+2025-07-22 21:01:44.601 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/register, Methods: {'POST'}, Name: register
+2025-07-22 21:01:44.601 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/token, Methods: {'POST'}, Name: login_for_access_token
+2025-07-22 21:01:44.601 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/login, Methods: {'POST'}, Name: login
+2025-07-22 21:01:44.601 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/me, Methods: {'GET'}, Name: get_me
+2025-07-22 21:01:44.601 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'GET'}, Name: get_developer_tools
+2025-07-22 21:01:44.601 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'POST'}, Name: create_developer_tool
+2025-07-22 21:01:44.602 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'GET'}, Name: get_developer_tool
+2025-07-22 21:01:44.602 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'PUT'}, Name: update_developer_tool
+2025-07-22 21:01:44.602 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'DELETE'}, Name: delete_developer_tool
+2025-07-22 21:01:44.602 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload, Methods: {'POST'}, Name: upload_tool_package
+2025-07-22 21:01:44.602 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload/validate, Methods: {'POST'}, Name: validate_tool_package
+2025-07-22 21:01:44.602 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}/test, Methods: {'POST'}, Name: test_developer_tool
+2025-07-22 21:01:44.602 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/test/batch, Methods: {'POST'}, Name: batch_test_tools
+2025-07-22 21:01:44.602 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status, Methods: {'GET'}, Name: get_mcp_servers_status
+2025-07-22 21:01:44.602 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status/{server_name}, Methods: {'GET'}, Name: get_mcp_server_status
+2025-07-22 21:01:44.602 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/restart/{server_name}, Methods: {'POST'}, Name: restart_mcp_server
+2025-07-22 21:01:44.602 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/start/{server_name}, Methods: {'POST'}, Name: start_mcp_server
+2025-07-22 21:01:44.602 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/stop/{server_name}, Methods: {'POST'}, Name: stop_mcp_server
+2025-07-22 21:01:44.602 | INFO     | app.main:<module>:192 - ==============================================================================
+2025-07-22 21:01:44.603 | INFO     | app.services.unified_execution_service:get_or_create_session:48 - 创建新会话ID: dbdfd0c9-3e63-4190-a32c-1647347c6928 for user 5
+2025-07-22 21:01:44.656 | INFO     | app.services.unified_execution_service:get_or_create_session:67 - 创建新会话: dbdfd0c9-3e63-4190-a32c-1647347c6928
+2025-07-22 21:01:44.670 | INFO     | app.services.unified_execution_service:update_session_status:93 - 更新会话状态: dbdfd0c9-3e63-4190-a32c-1647347c6928 -> testing
+2025-07-22 21:01:44.679 | INFO     | app.services.unified_execution_service:get_or_create_session:48 - 创建新会话ID: bc0c22a9-8d96-4f87-bae3-76d668bf53d0 for user 5
+2025-07-22 21:01:44.695 | INFO     | app.services.unified_execution_service:get_or_create_session:67 - 创建新会话: bc0c22a9-8d96-4f87-bae3-76d668bf53d0
+2025-07-22 21:01:44.713 | INFO     | app.services.unified_execution_service:update_session_status:93 - 更新会话状态: bc0c22a9-8d96-4f87-bae3-76d668bf53d0 -> executing
+2025-07-22 21:01:44.713 | INFO     | app.services.execute_service:execute_tool:49 - 服务层：开始执行工具: tool_id=test_tool, session_id=bc0c22a9-8d96-4f87-bae3-76d668bf53d0
+2025-07-22 21:01:44.727 | INFO     | app.services.execute_service:execute_tool:74 - Updated session bc0c22a9-8d96-4f87-bae3-76d668bf53d0 status to executing and logged start.
+2025-07-22 21:01:44.731 | ERROR    | app.services.execute_service:execute_tool:87 - 服务层：未找到工具: tool_id=test_tool
+2025-07-22 21:01:44.738 | INFO     | app.services.unified_execution_service:update_session_status:93 - 更新会话状态: bc0c22a9-8d96-4f87-bae3-76d668bf53d0 -> completed
+2025-07-22 21:01:44.746 | INFO     | app.services.unified_execution_service:execute_tool_unified:220 - 工具执行成功: bc0c22a9-8d96-4f87-bae3-76d668bf53d0, 工具: test_tool
+2025-07-22 21:01:44.763 | INFO     | app.services.unified_execution_service:update_session_status:93 - 更新会话状态: test-session-123 -> confirmed
+2025-07-22 21:01:44.763 | INFO     | app.services.intent_service:execute_confirmed_tools:331 - [Session: test-session-123] 开始执行确认的工具
+2025-07-22 21:01:44.778 | INFO     | app.services.unified_execution_service:update_session_status:93 - 更新会话状态: test-session-123 -> completed
+2025-07-22 21:01:44.788 | INFO     | app.services.unified_execution_service:confirm_and_execute_unified:316 - 确认执行成功: test-session-123
+2025-07-22 21:02:22.715 | INFO     | app.main:<module>:39 - 启动应用: AI Assistant API v0.1.0
+2025-07-22 21:02:22.716 | INFO     | app.main:<module>:40 - 数据库: ai_assistant
+2025-07-22 21:02:22.747 | INFO     | app.main:<module>:181 - ============================== Registered Routes ==============================
+2025-07-22 21:02:22.747 | INFO     | app.main:<module>:188 - Path: /openapi.json, Methods: {'HEAD', 'GET'}, Name: openapi
+2025-07-22 21:02:22.748 | INFO     | app.main:<module>:188 - Path: /redoc, Methods: {'HEAD', 'GET'}, Name: redoc_html
+2025-07-22 21:02:22.748 | INFO     | app.main:<module>:188 - Path: /docs, Methods: {'GET'}, Name: custom_swagger_ui_html
+2025-07-22 21:02:22.748 | INFO     | app.main:<module>:188 - Path: /, Methods: {'GET'}, Name: root
+2025-07-22 21:02:22.748 | INFO     | app.main:<module>:188 - Path: /health, Methods: {'GET'}, Name: health_check
+2025-07-22 21:02:22.748 | INFO     | app.main:<module>:188 - Path: /api/v1/interpret, Methods: {'POST'}, Name: process_intent
+2025-07-22 21:02:22.748 | INFO     | app.main:<module>:188 - Path: /api/v1/confirm, Methods: {'POST'}, Name: confirm_execution
+2025-07-22 21:02:22.748 | INFO     | app.main:<module>:188 - Path: /api/v1/execute, Methods: {'POST'}, Name: execute_tool
+2025-07-22 21:02:22.749 | INFO     | app.main:<module>:188 - Path: /api/v1/tools, Methods: {'GET'}, Name: get_tools
+2025-07-22 21:02:22.749 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/register, Methods: {'POST'}, Name: register
+2025-07-22 21:02:22.749 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/token, Methods: {'POST'}, Name: login_for_access_token
+2025-07-22 21:02:22.749 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/login, Methods: {'POST'}, Name: login
+2025-07-22 21:02:22.749 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/me, Methods: {'GET'}, Name: get_me
+2025-07-22 21:02:22.749 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'GET'}, Name: get_developer_tools
+2025-07-22 21:02:22.749 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'POST'}, Name: create_developer_tool
+2025-07-22 21:02:22.749 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'GET'}, Name: get_developer_tool
+2025-07-22 21:02:22.749 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'PUT'}, Name: update_developer_tool
+2025-07-22 21:02:22.750 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'DELETE'}, Name: delete_developer_tool
+2025-07-22 21:02:22.750 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload, Methods: {'POST'}, Name: upload_tool_package
+2025-07-22 21:02:22.750 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload/validate, Methods: {'POST'}, Name: validate_tool_package
+2025-07-22 21:02:22.750 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}/test, Methods: {'POST'}, Name: test_developer_tool
+2025-07-22 21:02:22.750 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/test/batch, Methods: {'POST'}, Name: batch_test_tools
+2025-07-22 21:02:22.750 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status, Methods: {'GET'}, Name: get_mcp_servers_status
+2025-07-22 21:02:22.750 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status/{server_name}, Methods: {'GET'}, Name: get_mcp_server_status
+2025-07-22 21:02:22.750 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/restart/{server_name}, Methods: {'POST'}, Name: restart_mcp_server
+2025-07-22 21:02:22.750 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/start/{server_name}, Methods: {'POST'}, Name: start_mcp_server
+2025-07-22 21:02:22.751 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/stop/{server_name}, Methods: {'POST'}, Name: stop_mcp_server
+2025-07-22 21:02:22.751 | INFO     | app.main:<module>:192 - ==============================================================================
+2025-07-22 21:02:22.751 | INFO     | app.services.unified_execution_service:get_or_create_session:48 - 创建新会话ID: 85895f85-225e-446d-9da6-7b9c5430184c for user 5
+2025-07-22 21:02:22.804 | INFO     | app.services.unified_execution_service:get_or_create_session:67 - 创建新会话: 85895f85-225e-446d-9da6-7b9c5430184c
+2025-07-22 21:02:22.818 | INFO     | app.services.unified_execution_service:update_session_status:93 - 更新会话状态: 85895f85-225e-446d-9da6-7b9c5430184c -> testing
+2025-07-22 21:02:22.831 | INFO     | app.services.unified_execution_service:get_or_create_session:48 - 创建新会话ID: e59b04f4-3a85-48d8-89f1-175b0a13d573 for user 5
+2025-07-22 21:02:22.844 | INFO     | app.services.unified_execution_service:get_or_create_session:67 - 创建新会话: e59b04f4-3a85-48d8-89f1-175b0a13d573
+2025-07-22 21:02:22.860 | INFO     | app.services.unified_execution_service:update_session_status:93 - 更新会话状态: e59b04f4-3a85-48d8-89f1-175b0a13d573 -> executing
+2025-07-22 21:02:22.860 | INFO     | app.services.execute_service:execute_tool:49 - 服务层：开始执行工具: tool_id=test_tool, session_id=e59b04f4-3a85-48d8-89f1-175b0a13d573
+2025-07-22 21:02:22.874 | INFO     | app.services.execute_service:execute_tool:74 - Updated session e59b04f4-3a85-48d8-89f1-175b0a13d573 status to executing and logged start.
+2025-07-22 21:02:22.879 | ERROR    | app.services.execute_service:execute_tool:87 - 服务层：未找到工具: tool_id=test_tool
+2025-07-22 21:02:22.887 | INFO     | app.services.unified_execution_service:update_session_status:93 - 更新会话状态: e59b04f4-3a85-48d8-89f1-175b0a13d573 -> completed
+2025-07-22 21:02:22.896 | INFO     | app.services.unified_execution_service:execute_tool_unified:220 - 工具执行成功: e59b04f4-3a85-48d8-89f1-175b0a13d573, 工具: test_tool
+2025-07-22 21:02:22.913 | INFO     | app.services.unified_execution_service:update_session_status:93 - 更新会话状态: test-session-123 -> confirmed
+2025-07-22 21:02:22.913 | INFO     | app.services.intent_service:execute_confirmed_tools:331 - [Session: test-session-123] 开始执行确认的工具
+2025-07-22 21:02:22.928 | INFO     | app.services.unified_execution_service:update_session_status:93 - 更新会话状态: test-session-123 -> completed
+2025-07-22 21:02:22.937 | INFO     | app.services.unified_execution_service:confirm_and_execute_unified:316 - 确认执行成功: test-session-123
+2025-07-22 21:02:50.439 | INFO     | app.main:<module>:39 - 启动应用: AI Assistant API v0.1.0
+2025-07-22 21:02:50.440 | INFO     | app.main:<module>:40 - 数据库: ai_assistant
+2025-07-22 21:02:50.465 | INFO     | app.main:<module>:181 - ============================== Registered Routes ==============================
+2025-07-22 21:02:50.466 | INFO     | app.main:<module>:188 - Path: /openapi.json, Methods: {'HEAD', 'GET'}, Name: openapi
+2025-07-22 21:02:50.466 | INFO     | app.main:<module>:188 - Path: /redoc, Methods: {'HEAD', 'GET'}, Name: redoc_html
+2025-07-22 21:02:50.466 | INFO     | app.main:<module>:188 - Path: /docs, Methods: {'GET'}, Name: custom_swagger_ui_html
+2025-07-22 21:02:50.466 | INFO     | app.main:<module>:188 - Path: /, Methods: {'GET'}, Name: root
+2025-07-22 21:02:50.466 | INFO     | app.main:<module>:188 - Path: /health, Methods: {'GET'}, Name: health_check
+2025-07-22 21:02:50.466 | INFO     | app.main:<module>:188 - Path: /api/v1/interpret, Methods: {'POST'}, Name: process_intent
+2025-07-22 21:02:50.466 | INFO     | app.main:<module>:188 - Path: /api/v1/confirm, Methods: {'POST'}, Name: confirm_execution
+2025-07-22 21:02:50.466 | INFO     | app.main:<module>:188 - Path: /api/v1/execute, Methods: {'POST'}, Name: execute_tool
+2025-07-22 21:02:50.466 | INFO     | app.main:<module>:188 - Path: /api/v1/tools, Methods: {'GET'}, Name: get_tools
+2025-07-22 21:02:50.466 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/register, Methods: {'POST'}, Name: register
+2025-07-22 21:02:50.466 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/token, Methods: {'POST'}, Name: login_for_access_token
+2025-07-22 21:02:50.466 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/login, Methods: {'POST'}, Name: login
+2025-07-22 21:02:50.466 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/me, Methods: {'GET'}, Name: get_me
+2025-07-22 21:02:50.466 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'GET'}, Name: get_developer_tools
+2025-07-22 21:02:50.466 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'POST'}, Name: create_developer_tool
+2025-07-22 21:02:50.467 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'GET'}, Name: get_developer_tool
+2025-07-22 21:02:50.467 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'PUT'}, Name: update_developer_tool
+2025-07-22 21:02:50.467 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'DELETE'}, Name: delete_developer_tool
+2025-07-22 21:02:50.467 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload, Methods: {'POST'}, Name: upload_tool_package
+2025-07-22 21:02:50.467 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload/validate, Methods: {'POST'}, Name: validate_tool_package
+2025-07-22 21:02:50.467 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}/test, Methods: {'POST'}, Name: test_developer_tool
+2025-07-22 21:02:50.467 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/test/batch, Methods: {'POST'}, Name: batch_test_tools
+2025-07-22 21:02:50.467 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status, Methods: {'GET'}, Name: get_mcp_servers_status
+2025-07-22 21:02:50.467 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status/{server_name}, Methods: {'GET'}, Name: get_mcp_server_status
+2025-07-22 21:02:50.467 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/restart/{server_name}, Methods: {'POST'}, Name: restart_mcp_server
+2025-07-22 21:02:50.467 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/start/{server_name}, Methods: {'POST'}, Name: start_mcp_server
+2025-07-22 21:02:50.467 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/stop/{server_name}, Methods: {'POST'}, Name: stop_mcp_server
+2025-07-22 21:02:50.467 | INFO     | app.main:<module>:192 - ==============================================================================
+2025-07-22 21:02:50.468 | INFO     | app.services.unified_execution_service:get_or_create_session:48 - 创建新会话ID: f53d93de-10a2-439b-8015-a1a7e5729e63 for user 5
+2025-07-22 21:02:50.529 | INFO     | app.services.unified_execution_service:get_or_create_session:67 - 创建新会话: f53d93de-10a2-439b-8015-a1a7e5729e63
+2025-07-22 21:02:50.538 | INFO     | app.services.unified_execution_service:update_session_status:93 - 更新会话状态: f53d93de-10a2-439b-8015-a1a7e5729e63 -> testing
+2025-07-22 21:02:50.549 | INFO     | app.services.unified_execution_service:get_or_create_session:48 - 创建新会话ID: f4943a49-bb23-4e0a-9d5b-9b7d5c7b6582 for user 5
+2025-07-22 21:02:50.563 | INFO     | app.services.unified_execution_service:get_or_create_session:67 - 创建新会话: f4943a49-bb23-4e0a-9d5b-9b7d5c7b6582
+2025-07-22 21:02:50.579 | INFO     | app.services.unified_execution_service:update_session_status:93 - 更新会话状态: f4943a49-bb23-4e0a-9d5b-9b7d5c7b6582 -> executing
+2025-07-22 21:02:50.580 | INFO     | app.services.execute_service:execute_tool:49 - 服务层：开始执行工具: tool_id=test_tool, session_id=f4943a49-bb23-4e0a-9d5b-9b7d5c7b6582
+2025-07-22 21:02:50.594 | INFO     | app.services.execute_service:execute_tool:74 - Updated session f4943a49-bb23-4e0a-9d5b-9b7d5c7b6582 status to executing and logged start.
+2025-07-22 21:02:50.598 | ERROR    | app.services.execute_service:execute_tool:87 - 服务层：未找到工具: tool_id=test_tool
+2025-07-22 21:02:50.606 | INFO     | app.services.unified_execution_service:update_session_status:93 - 更新会话状态: f4943a49-bb23-4e0a-9d5b-9b7d5c7b6582 -> completed
+2025-07-22 21:02:50.614 | INFO     | app.services.unified_execution_service:execute_tool_unified:220 - 工具执行成功: f4943a49-bb23-4e0a-9d5b-9b7d5c7b6582, 工具: test_tool
+2025-07-22 21:02:50.631 | INFO     | app.services.unified_execution_service:update_session_status:93 - 更新会话状态: test-session-123 -> confirmed
+2025-07-22 21:02:50.631 | INFO     | app.services.intent_service:execute_confirmed_tools:331 - [Session: test-session-123] 开始执行确认的工具
+2025-07-22 21:02:50.644 | INFO     | app.services.unified_execution_service:update_session_status:93 - 更新会话状态: test-session-123 -> completed
+2025-07-22 21:02:50.653 | INFO     | app.services.unified_execution_service:confirm_and_execute_unified:316 - 确认执行成功: test-session-123
+2025-07-23 14:52:02.706 | INFO     | app.main:<module>:39 - 启动应用: AI Assistant API v0.1.0
+2025-07-23 14:52:02.708 | INFO     | app.main:<module>:40 - 数据库: ai_assistant
+2025-07-23 14:52:02.739 | INFO     | app.main:<module>:181 - ============================== Registered Routes ==============================
+2025-07-23 14:52:02.739 | INFO     | app.main:<module>:188 - Path: /openapi.json, Methods: {'GET', 'HEAD'}, Name: openapi
+2025-07-23 14:52:02.739 | INFO     | app.main:<module>:188 - Path: /redoc, Methods: {'GET', 'HEAD'}, Name: redoc_html
+2025-07-23 14:52:02.740 | INFO     | app.main:<module>:188 - Path: /docs, Methods: {'GET'}, Name: custom_swagger_ui_html
+2025-07-23 14:52:02.740 | INFO     | app.main:<module>:188 - Path: /, Methods: {'GET'}, Name: root
+2025-07-23 14:52:02.740 | INFO     | app.main:<module>:188 - Path: /health, Methods: {'GET'}, Name: health_check
+2025-07-23 14:52:02.740 | INFO     | app.main:<module>:188 - Path: /api/v1/interpret, Methods: {'POST'}, Name: process_intent
+2025-07-23 14:52:02.740 | INFO     | app.main:<module>:188 - Path: /api/v1/confirm, Methods: {'POST'}, Name: confirm_execution
+2025-07-23 14:52:02.740 | INFO     | app.main:<module>:188 - Path: /api/v1/execute, Methods: {'POST'}, Name: execute_tool
+2025-07-23 14:52:02.740 | INFO     | app.main:<module>:188 - Path: /api/v1/tools, Methods: {'GET'}, Name: get_tools
+2025-07-23 14:52:02.740 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/register, Methods: {'POST'}, Name: register
+2025-07-23 14:52:02.740 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/token, Methods: {'POST'}, Name: login_for_access_token
+2025-07-23 14:52:02.741 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/login, Methods: {'POST'}, Name: login
+2025-07-23 14:52:02.741 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/me, Methods: {'GET'}, Name: get_me
+2025-07-23 14:52:02.741 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'GET'}, Name: get_developer_tools
+2025-07-23 14:52:02.741 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'POST'}, Name: create_developer_tool
+2025-07-23 14:52:02.741 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'GET'}, Name: get_developer_tool
+2025-07-23 14:52:02.741 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'PUT'}, Name: update_developer_tool
+2025-07-23 14:52:02.741 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'DELETE'}, Name: delete_developer_tool
+2025-07-23 14:52:02.741 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload, Methods: {'POST'}, Name: upload_tool_package
+2025-07-23 14:52:02.741 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload/validate, Methods: {'POST'}, Name: validate_tool_package
+2025-07-23 14:52:02.741 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}/test, Methods: {'POST'}, Name: test_developer_tool
+2025-07-23 14:52:02.742 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/test/batch, Methods: {'POST'}, Name: batch_test_tools
+2025-07-23 14:52:02.742 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status, Methods: {'GET'}, Name: get_mcp_servers_status
+2025-07-23 14:52:02.742 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status/{server_name}, Methods: {'GET'}, Name: get_mcp_server_status
+2025-07-23 14:52:02.742 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/restart/{server_name}, Methods: {'POST'}, Name: restart_mcp_server
+2025-07-23 14:52:02.742 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/start/{server_name}, Methods: {'POST'}, Name: start_mcp_server
+2025-07-23 14:52:02.742 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/stop/{server_name}, Methods: {'POST'}, Name: stop_mcp_server
+2025-07-23 14:52:02.742 | INFO     | app.main:<module>:192 - ==============================================================================

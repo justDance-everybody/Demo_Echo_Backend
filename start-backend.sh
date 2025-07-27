@@ -132,6 +132,76 @@ show_banner() {
     echo -e "${NC}"
 }
 
+# 检查数据库连接
+check_database_connection() {
+    log_message "INFO" "检查数据库连接..."
+    
+    # 进入后端目录并激活虚拟环境
+    cd "$BACKEND_DIR" || {
+        log_message "ERROR" "无法进入后端目录: $BACKEND_DIR"
+        return 1
+    }
+    
+    # 检查虚拟环境
+    if [ ! -f "../.venv/bin/activate" ]; then
+        log_message "ERROR" "虚拟环境不存在: $(pwd)/../.venv"
+        return 1
+    fi
+    
+    # 激活虚拟环境并测试数据库连接
+    local db_check_result
+    db_check_result=$(source ../.venv/bin/activate && python3 -c "
+import sys
+sys.path.insert(0, '.')
+try:
+    from app.config import settings
+    from sqlalchemy import create_engine, text
+    from sqlalchemy.exc import OperationalError
+    
+    # 强制要求MySQL连接
+    if not settings.DATABASE_URL.startswith('mysql'):
+        print('ERROR: 数据库配置错误 - 必须使用MySQL数据库')
+        sys.exit(1)
+    
+    # 测试数据库连接
+    engine = create_engine(settings.DATABASE_URL, pool_pre_ping=True)
+    with engine.connect() as conn:
+        result = conn.execute(text('SELECT 1'))
+        print('SUCCESS: 数据库连接正常')
+except ImportError as e:
+    print(f'ERROR: 缺少必要的Python包: {e}')
+    sys.exit(1)
+except OperationalError as e:
+    print(f'ERROR: 数据库连接失败: {e}')
+    sys.exit(1)
+except Exception as e:
+    print(f'ERROR: 数据库检查失败: {e}')
+    sys.exit(1)
+" 2>&1)
+    
+    local exit_code=$?
+    
+    if [ $exit_code -eq 0 ] && echo "$db_check_result" | grep -q "SUCCESS"; then
+        log_message "SUCCESS" "数据库连接检查通过"
+        return 0
+    else
+        log_message "ERROR" "数据库连接检查失败:"
+        echo "$db_check_result" | while IFS= read -r line; do
+            if [[ $line == ERROR:* ]]; then
+                log_message "ERROR" "${line#ERROR: }"
+            else
+                echo "  $line"
+            fi
+        done
+        log_message "INFO" "请检查以下配置:"
+        log_message "INFO" "  1. 数据库服务是否正常运行"
+        log_message "INFO" "  2. 数据库连接参数是否正确 (.env文件)"
+        log_message "INFO" "  3. 网络连接是否正常"
+        log_message "INFO" "  4. 数据库用户权限是否足够"
+        return 1
+    fi
+}
+
 # 并行检查依赖
 check_dependencies() {
     log_message "INFO" "检查系统依赖..."
@@ -564,7 +634,13 @@ safe_start_backend() {
         return 1
     fi
     
-    # 3. 启动服务（内部会自动清理进程）
+    # 3. 检查数据库连接
+    if ! check_database_connection; then
+        log_message "ERROR" "数据库连接检查失败"
+        return 1
+    fi
+    
+    # 4. 启动服务（内部会自动清理进程）
     if start_backend_service; then
         echo ""
         log_message "SUCCESS" "✅ 后端服务启动成功！"
@@ -971,10 +1047,10 @@ show_help() {
     echo "用法: $0 {start|stop|restart|monitor|status|cleanup|install-service|uninstall-service|help}"
     echo ""
     echo "基础命令:"
-    echo -e "  ${GREEN}start${NC}      - 启动后端服务"
+    echo -e "  ${GREEN}start${NC}      - 启动后端服务（包含数据库连接检查）"
     echo -e "  ${GREEN}safe-start${NC} - 安全启动（自动清理重复进程）"
     echo -e "  ${RED}stop${NC}       - 停止后端服务"
-    echo -e "  ${YELLOW}restart${NC}    - 重启后端服务"
+    echo -e "  ${YELLOW}restart${NC}    - 重启后端服务（包含数据库连接检查）"
     echo -e "  ${BLUE}monitor${NC}    - 启动服务监控（自动重启）"
     echo -e "  ${CYAN}status${NC}     - 显示服务状态和日志"
     echo -e "  ${PURPLE}cleanup${NC}    - 强制清理所有相关进程和文件"
@@ -995,6 +1071,18 @@ show_help() {
     echo -e "  ${CYAN}服务端口:${NC} $SERVICE_PORT"
     echo -e "  ${CYAN}后端目录:${NC} $BACKEND_DIR"
     echo -e "  ${CYAN}日志目录:${NC} $LOG_DIR"
+    echo -e "  ${CYAN}数据库:${NC} MySQL（强制要求）"
+    echo ""
+    echo "启动前检查项:"
+    echo -e "  ${YELLOW}1. Python环境和依赖包${NC}"
+    echo -e "  ${YELLOW}2. 必要的系统命令${NC}"
+    echo -e "  ${YELLOW}3. 数据库连接可用性${NC}"
+    echo -e "  ${YELLOW}4. 端口冲突检测${NC}"
+    echo ""
+    echo "数据库配置:"
+    echo -e "  ${YELLOW}• 配置文件: $BACKEND_DIR/.env${NC}"
+    echo -e "  ${YELLOW}• 必须使用MySQL数据库${NC}"
+    echo -e "  ${YELLOW}• 启动前会自动检查连接${NC}"
     echo ""
     echo "系统重启自动恢复:"
     echo -e "  ${YELLOW}1. 运行 '$0 install-service' 安装系统服务${NC}"
@@ -1136,6 +1224,7 @@ main() {
             CURRENT_MODE="start"
             validate_environment || exit 1
             check_dependencies || exit 1
+            check_database_connection || exit 1
             
             # 检查端口冲突
             check_port_conflict "$SERVICE_PORT"
@@ -1177,12 +1266,14 @@ main() {
             CURRENT_MODE="restart"
             validate_environment || exit 1
             check_dependencies || exit 1
+            check_database_connection || exit 1
             restart_backend_service
             ;;
         monitor)
             CURRENT_MODE="monitor"
             validate_environment || exit 1
             check_dependencies || exit 1
+            check_database_connection || exit 1
             monitor_service
             ;;
         status)

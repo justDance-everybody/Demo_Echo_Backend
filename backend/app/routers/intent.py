@@ -14,6 +14,7 @@ from typing import Optional
 
 # 创建路由器
 router = APIRouter(
+    prefix="/intent",
     tags=["intent"],
     responses={404: {"description": "Not found"}},
 )

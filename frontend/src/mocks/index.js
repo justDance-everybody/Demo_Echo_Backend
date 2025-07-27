@@ -56,11 +56,11 @@ const setupMocks = (api) => {
     // 模拟延迟
     await delay(1500);
     
-    const { text, sessionId } = data;
+    const { text, session_id } = data;
     
     // 初始化会话状态
-    if (!sessions[sessionId]) {
-      sessions[sessionId] = {
+    if (!sessions[session_id]) {
+      sessions[session_id] = {
         stage: 'interpreting',
         data: {},
       };
@@ -115,7 +115,7 @@ const setupMocks = (api) => {
     }
     
     // 更新会话状态
-    sessions[sessionId] = {
+    sessions[session_id] = {
       stage: 'confirming',
       data: { action, params }
     };
@@ -133,10 +133,10 @@ const setupMocks = (api) => {
     // 模拟延迟
     await delay(2000);
     
-    const { action, params, sessionId } = data;
+    const { action, params, session_id } = data;
     
     // 检查会话是否存在
-    if (!sessions[sessionId]) {
+    if (!sessions[session_id]) {
       return {
         success: false,
         error: {
@@ -227,7 +227,7 @@ const setupMocks = (api) => {
     }
     
     // 更新会话状态
-    sessions[sessionId] = {
+    sessions[session_id] = {
       stage: 'done',
       data: result
     };
@@ -244,16 +244,16 @@ const setupMocks = (api) => {
   // 创建会话 Mock
   api.mockResolvedValue('createSession', async (data) => {
     await delay(300);
-    const sessionId = uuidv4();
-    sessions[sessionId] = {
+    const session_id = uuidv4();
+    sessions[session_id] = {
       stage: 'idle',
       data: {},
-      userId: data.userId || null,
+      user_id: data.user_id || null,
       createdAt: new Date().toISOString()
     };
     
     return {
-      sessionId,
+      session_id,
       status: 'created'
     };
   });
@@ -308,4 +308,4 @@ const mockAPI = new MockAPI();
 // 初始化Mock
 setupMocks(mockAPI);
 
-export default mockAPI; 
+export default mockAPI;
