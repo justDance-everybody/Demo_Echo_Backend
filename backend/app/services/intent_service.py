@@ -151,15 +151,31 @@ class IntentService:
                         parsed_tool_calls.append(
                             {"tool_id": call.function.name, "parameters": params}
                         )
-                    except json.JSONDecodeError:
-                        logger.error(
-                            f"{log_prefix}无法解析工具 {call.function.name} 的参数: {call.function.arguments}"
+                    except json.JSONDecodeError as e:
+                        logger.warning(
+                            f"{log_prefix}JSON解析失败，尝试修复: {call.function.arguments}"
                         )
-                        return {
-                            "type": "error",
-                            "message": f"无法解析工具 {call.function.name} 的参数",
-                            "session_id": session_id,
-                        }
+                        # 尝试修复常见的JSON格式错误
+                        fixed_args = self._fix_json_format(call.function.arguments)
+                        try:
+                            params = json.loads(fixed_args)
+                            all_params.append(params)
+                            parsed_tool_calls.append(
+                                {"tool_id": call.function.name, "parameters": params}
+                            )
+                            tool_names.append(call.function.name)
+                            logger.info(
+                                f"{log_prefix}JSON修复成功: {fixed_args}"
+                            )
+                        except json.JSONDecodeError:
+                            logger.error(
+                                f"{log_prefix}无法解析工具 {call.function.name} 的参数: {call.function.arguments}"
+                            )
+                            return {
+                                "type": "error",
+                                "message": f"无法解析工具 {call.function.name} 的参数",
+                                "session_id": session_id,
+                            }
                 
                 # 如果LLM没有提供确认文本或文本为空，则生成确认文本
                 if not confirm_text_candidate or confirm_text_candidate.strip() == "":
@@ -180,7 +196,7 @@ class IntentService:
                 return {
                     "type": "tool_call",
                     "tool_calls": parsed_tool_calls,
-                    "confirmText": confirm_text_candidate,
+                    "confirm_text": confirm_text_candidate,
                     "session_id": session_id,
                 }
             else:
@@ -199,6 +215,49 @@ class IntentService:
                 "message": f"处理意图时发生意外错误: {str(e)}",
                 "session_id": session_id,
             }
+
+    def _fix_json_format(self, json_str: str) -> str:
+        """
+        尝试修复常见的JSON格式错误
+        
+        Args:
+            json_str: 可能有格式错误的JSON字符串
+            
+        Returns:
+            修复后的JSON字符串
+        """
+        try:
+            # 移除首尾空白字符
+            json_str = json_str.strip()
+            
+            # 如果字符串以 { 开头但没有以 } 结尾，尝试添加结束括号
+            if json_str.startswith('{') and not json_str.endswith('}'):
+                # 检查是否缺少结束的双引号
+                if json_str.count('"') % 2 == 1:
+                    json_str += '"'
+                # 添加结束括号
+                json_str += '}'
+            
+            # 如果字符串以 [ 开头但没有以 ] 结尾，尝试添加结束括号
+            elif json_str.startswith('[') and not json_str.endswith(']'):
+                # 检查是否缺少结束的双引号
+                if json_str.count('"') % 2 == 1:
+                    json_str += '"'
+                # 添加结束括号
+                json_str += ']'
+            
+            # 修复常见的引号问题
+            # 如果有未闭合的引号，尝试修复
+            if json_str.count('"') % 2 == 1:
+                # 简单情况：在末尾添加引号
+                if not json_str.endswith('"') and not json_str.endswith('}') and not json_str.endswith(']'):
+                    json_str += '"'
+            
+            return json_str
+            
+        except Exception as e:
+            logger.warning(f"JSON修复过程中出现异常: {e}")
+            return json_str
 
     async def generate_confirmation_text(
         self, query: str, tool_names: List[str], parameters: List[Dict[str, Any]]

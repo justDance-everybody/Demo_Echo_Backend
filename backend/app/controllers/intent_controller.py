@@ -4,6 +4,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import uuid
 
 from app.services.intent_service import intent_service
+from app.services.unified_execution_service import UnifiedExecutionService
+
+# 创建统一执行服务实例
+unified_execution_service = UnifiedExecutionService()
 
 # 导入新的请求和响应模型
 from app.schemas.intent import (
@@ -64,7 +68,7 @@ class IntentController:
                 logger.info(f"[Session: {session_id}] 意图处理结果: 需要调用工具")
                 # 确保 tool_calls 存在且是列表
                 tool_calls_data = service_result.get("tool_calls", [])
-                confirm_text = service_result.get("confirmText")
+                confirm_text = service_result.get("confirm_text")
                 # 始终优先使用我们生成或从请求获取的session_id
                 returned_session_id = session_id
                 if not isinstance(tool_calls_data, list):
@@ -76,8 +80,8 @@ class IntentController:
                 # 创建响应对象
                 response = InterpretToolCallResponse(
                     tool_calls=validated_tool_calls,
-                    confirmText=confirm_text,
-                    sessionId=returned_session_id,  # 使用sessionId作为字段名
+                    confirm_text=confirm_text,
+                    session_id=returned_session_id,
                 )
                 return response
 
@@ -90,10 +94,10 @@ class IntentController:
                 # 增加调试日志，确认session_id值
                 logger.debug(f"[Session: {session_id}] 准备返回的session_id: {returned_session_id}")
                 
-                # 创建响应对象，使用sessionId作为字段名
+                # 创建响应对象
                 response = InterpretDirectResponse(
                     content=content, 
-                    sessionId=returned_session_id  # 使用sessionId作为字段名
+                    session_id=returned_session_id
                 )
                 return response
 
@@ -145,47 +149,19 @@ class IntentController:
             确认执行响应
         """
         try:
-            session_id = request.sessionId
-            logger.info(f"🔍 [CONFIRM_DEBUG] 收到确认请求，session_id: {session_id}, user_id: {user_id}, confirmed: {request.confirmed}")
+            session_id = request.session_id
+            logger.info(f"🔍 [CONFIRM_DEBUG] 收到确认请求，session_id: {session_id}, user_id: {user_id}, user_input: {request.user_input}")
             
-            # 如果用户取消执行
-            if not request.confirmed:
-                logger.info(f"🔍 [CONFIRM_DEBUG] 用户取消了操作")
-                return ConfirmResponse(
-                    sessionId=session_id,
-                    success=True,
-                    content="操作已取消",
-                    error=None
-                )
-            
-            logger.info(f"🔍 [CONFIRM_DEBUG] 开始执行确认的工具调用，session_id: {session_id}")
-            
-            # 用户确认执行，调用服务层处理
-            logger.info(f"🔍 [CONFIRM_DEBUG] 调用 intent_service.execute_confirmed_tools，参数: session_id={session_id}, user_id={user_id}")
-            result = await intent_service.execute_confirmed_tools(
-                session_id=session_id,
-                user_id=user_id,
-                db=db
+            # 使用统一执行服务处理确认请求
+            logger.info(f"🔍 [CONFIRM_DEBUG] 调用统一执行服务处理确认请求")
+            response = await unified_execution_service.confirm_and_execute_unified(
+                request=request,
+                db=db,
+                user_id=user_id
             )
             
-            logger.info(f"🔍 [CONFIRM_DEBUG] intent_service.execute_confirmed_tools 返回结果: {result}")
-            
-            if result.get("success"):
-                logger.info(f"🔍 [CONFIRM_DEBUG] 工具执行成功，构造成功响应")
-                return ConfirmResponse(
-                    sessionId=session_id,
-                    success=True,
-                    content=result.get("content", "操作执行成功"),
-                    error=None
-                )
-            else:
-                logger.error(f"🔍 [CONFIRM_DEBUG] 工具执行失败: {result.get('error')}")
-                return ConfirmResponse(
-                    sessionId=session_id,
-                    success=False,
-                    content=None,
-                    error=result.get("error", "执行失败")
-                )
+            logger.info(f"🔍 [CONFIRM_DEBUG] 统一执行服务返回结果: success={response.success}")
+            return response
                 
         except Exception as e:
             logger.error(f"🔍 [CONFIRM_DEBUG] 确认处理异常: {e}")

@@ -159,21 +159,21 @@ const refreshToken = async () => {
 
 // 原有的API方法
 
-const interpret = async (transcript, sessionId, userId) => {
+const interpret = async (transcript, session_id, user_id) => {
     try {
-        console.log(`发送interpret请求，携带sessionId: ${sessionId}`);
-        const response = await api.post(`${API_PREFIX}/interpret`, {
+        console.log(`发送interpret请求，携带session_id: ${session_id}`);
+        const response = await api.post(`${API_PREFIX}/intent/interpret`, {
             query: transcript, 
-            sessionId: sessionId,
-            userId: userId,
+            session_id: session_id,
+            user_id: user_id,
         });
         console.log(`收到interpret响应:`, response.data);
         
-        // 检查响应中是否返回了sessionId，并记录
-        if (response.data && response.data.sessionId) {
-            console.log(`响应中包含sessionId: ${response.data.sessionId}`);
+        // 检查响应中是否返回了session_id，并记录
+        if (response.data && response.data.session_id) {
+            console.log(`响应中包含session_id: ${response.data.session_id}`);
         } else {
-            console.warn(`⚠️ 警告: 响应中未找到sessionId! 响应数据:`, response.data);
+            console.warn(`⚠️ 警告: 响应中未找到session_id! 响应数据:`, response.data);
         }
         
         return response.data; // Extract data from successful response
@@ -184,29 +184,29 @@ const interpret = async (transcript, sessionId, userId) => {
     }
 };
 
-const execute = async (toolId, params, sessionId, userId) => {
+const execute = async (tool_id, params, session_id, user_id) => {
     try {
         // 参数验证
-        if (!toolId) {
+        if (!tool_id) {
             throw new Error('工具ID不能为空');
         }
         if (!params || typeof params !== 'object') {
             throw new Error('参数必须是一个对象');
         }
         
-        // 确保userId是字符串类型
-        const userIdStr = userId ? String(userId) : null;
+        // 确保user_id是字符串类型
+        const userIdStr = user_id ? String(user_id) : null;
         
-        console.log(`发送execute请求，携带sessionId: ${sessionId}`);
+        console.log(`发送execute请求，携带session_id: ${session_id}`);
         
         // 确保后端请求参数严格符合后端ExecuteRequest模型
         const requestData = {
-            tool_id: toolId,
+            tool_id: tool_id,
             params: params,
-            sessionId: sessionId, // 使用sessionId作为会话ID字段
+            session_id: session_id, // 使用session_id作为会话ID字段
         };
         
-        // 只有在有userId值的情况下才添加此字段，并使用user_id字段名
+        // 只有在有user_id值的情况下才添加此字段，并使用user_id字段名
         if (userIdStr) {
             requestData.user_id = userIdStr;
         }
@@ -217,11 +217,11 @@ const execute = async (toolId, params, sessionId, userId) => {
         
         console.log("Execute API Response:", response);
         
-        // 检查响应中是否返回了sessionId，并记录
-        if (response.data && response.data.sessionId) {
-            console.log(`Execute响应中包含sessionId: ${response.data.sessionId}`);
+        // 检查响应中是否返回了session_id，并记录
+        if (response.data && response.data.session_id) {
+            console.log(`Execute响应中包含session_id: ${response.data.session_id}`);
         } else {
-            console.warn(`⚠️ 警告: Execute响应中未找到sessionId! 响应数据:`, response.data);
+            console.warn(`⚠️ 警告: Execute响应中未找到session_id! 响应数据:`, response.data);
         }
         
         return response.data; 
@@ -245,14 +245,14 @@ const getTools = async () => {
 };
 
 // 获取单个工具（服务）详情
-const getToolById = async (toolId) => {
+const getToolById = async (tool_id) => {
   try {
-    console.log(`获取工具ID: ${toolId} 的详情`);
-    const response = await api.get(`${API_PREFIX}/tools/${toolId}`);
+    console.log(`获取工具ID: ${tool_id} 的详情`);
+    const response = await api.get(`${API_PREFIX}/tools/${tool_id}`);
     console.log("工具详情响应:", response.data);
     return response.data;
   } catch (error) {
-    console.error(`获取工具ID: ${toolId} 的详情失败:`, error);
+    console.error(`获取工具ID: ${tool_id} 的详情失败:`, error);
     throw error;
   }
 };
@@ -367,6 +367,36 @@ const createDeveloperApplication = async (applicationData) => {
   }
 };
 
+// 确认执行
+const confirm = async (session_id, confirmed = true, user_id = null) => {
+  try {
+    console.log('确认执行请求:', { session_id, confirmed, user_id });
+    
+    // 参数验证
+    if (!session_id) {
+      throw new Error('session_id 是必需的');
+    }
+    
+    if (typeof confirmed !== 'boolean') {
+      throw new Error('confirmed 必须是布尔值');
+    }
+    
+    const requestData = {
+      session_id: session_id,
+      confirmed: confirmed
+    };
+    
+    // 注意：user_id由后端从JWT token中获取，前端不需要传递
+    
+    const response = await api.post(`${API_PREFIX}/intent/confirm`, requestData);
+    console.log('确认执行响应:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('确认执行失败:', error);
+    throw error;
+  }
+};
+
 // 测试已保存的API服务 (原 testApiService)
 const testSavedApiService = async (serviceId, testData) => {
   try {
@@ -398,10 +428,10 @@ const testUnsavedDeveloperTool = async (toolConfiguration) => {
 };
 
 // 兼容性方法：将chat和voice请求映射到interpret接口
-const sendChatMessage = async (query, userId, sessionId, context) => {
+const sendChatMessage = async (query, user_id, session_id, context) => {
   try {
-    console.log('Chat请求转换为interpret请求:', { query, userId, sessionId });
-    const response = await interpret(query, sessionId, userId);
+    console.log('Chat请求转换为interpret请求:', { query, user_id, session_id });
+    const response = await interpret(query, session_id, user_id);
     return response;
   } catch (error) {
     console.error('Chat请求失败:', error);
@@ -409,10 +439,10 @@ const sendChatMessage = async (query, userId, sessionId, context) => {
   }
 };
 
-const sendVoiceRequest = async (voiceText, userId, sessionId, context) => {
+const sendVoiceRequest = async (voiceText, user_id, session_id, context) => {
   try {
-    console.log('Voice请求转换为interpret请求:', { voiceText, userId, sessionId });
-    const response = await interpret(voiceText, sessionId, userId);
+    console.log('Voice请求转换为interpret请求:', { voiceText, user_id, session_id });
+    const response = await interpret(voiceText, session_id, user_id);
     return response;
   } catch (error) {
     console.error('Voice请求失败:', error);
@@ -451,15 +481,15 @@ const executeMcpService = async (serverId, query, options = {}) => {
     console.log('MCP服务执行转换为标准执行流程:', { serverId, query, options });
     
     // 首先解析意图
-    const interpretation = await interpret(query, options.sessionId, options.userId);
+    const interpretation = await interpret(query, options.session_id, options.user_id);
     
     // 然后执行工具
     if (interpretation.intent) {
       const result = await execute(
         interpretation.intent,
         interpretation.params || {},
-        interpretation.sessionId,
-        options.userId
+        interpretation.session_id,
+        options.user_id
       );
       return result;
     } else {
@@ -489,6 +519,7 @@ const apiClientInstance = {
   // 核心AI功能（后端标准接口）
   interpret,
   execute,
+  confirm,
   getTools,
   getToolById,
   

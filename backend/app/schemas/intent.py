@@ -26,9 +26,14 @@ class IntentRequest(BaseModel):
     """意图请求模型"""
 
     query: str = Field(..., description="用户查询")
-    session_id: Optional[str] = Field(None, alias="sessionId", description="会话ID")
-    user_id: int = Field(..., alias="userId", description="用户ID")
+    session_id: Optional[str] = Field(None, description="会话ID")
+    user_id: int = Field(..., description="用户ID")
     context: Optional[Dict[str, Any]] = Field(None, description="上下文信息")
+    
+    class Config:
+        populate_by_name = True
+        allow_population_by_field_name = True
+        extra = "ignore"
 
 
 class IntentResponse(BaseModel):
@@ -76,8 +81,8 @@ class InterpretToolCallResponse(BaseModel):
 
     type: Literal["tool_call"] = "tool_call"
     tool_calls: List[ToolCall] = Field(..., description="需要执行的工具调用列表")
-    confirmText: Optional[str] = Field(None, description="需要向用户复述确认的文本")
-    sessionId: Optional[str] = Field(None, description="会话ID")
+    confirm_text: Optional[str] = Field(None, description="需要向用户复述确认的文本")
+    session_id: Optional[str] = Field(None, description="会话ID")
 
 
 class InterpretDirectResponse(BaseModel):
@@ -85,41 +90,29 @@ class InterpretDirectResponse(BaseModel):
 
     type: Literal["direct_response"] = "direct_response"
     content: str = Field(..., description="LLM直接生成的回复内容")
-    sessionId: Optional[str] = Field(None, description="会话ID")
+    session_id: Optional[str] = Field(None, description="会话ID")
 
 
 # 创建一个具体的响应类，包含Union类型的字段，而不是直接使用Union
 class InterpretSuccessResponse(BaseModel):
     """统一响应模型，包含所有可能的响应类型"""
     
-    # 使用别名确保JSON输出中的字段名为sessionId 
-    session_id: Optional[str] = Field(None, alias="sessionId", description="会话ID")
+    session_id: Optional[str] = Field(None, description="会话ID")
     
     # 使用Literal字段定义响应类型
     type: Literal["tool_call", "direct_response"]
 
     # 可选字段，当type=tool_call时存在
     tool_calls: Optional[List[ToolCall]] = None
-    confirmText: Optional[str] = None
+    confirm_text: Optional[str] = None
     
     # 可选字段，当type=direct_response时存在
     content: Optional[str] = None
     
-    # 添加模型配置，确保始终使用别名
+    # 添加模型配置
     class Config:
-        populate_by_name = True  # 允许使用字段名填充值
-        json_encoders = {}
-        alias_generator = None
-        use_enum_values = True
-        validate_assignment = True
-        arbitrary_types_allowed = False
-        validate_all = False
-        allow_population_by_field_name = True
-        extra = "ignore"  # 忽略额外字段
-        json_schema_extra = None  
-        
-        # 重要配置: 确保JSON输出使用字段的别名
-        alias_priority = 2  # 给别名高优先级
+        populate_by_name = True
+        extra = "ignore"
 
 # --- 新的响应 Schema --- END
 
@@ -129,14 +122,19 @@ class InterpretSuccessResponse(BaseModel):
 class ConfirmRequest(BaseModel):
     """用户确认请求模型"""
     
-    sessionId: str = Field(..., description="会话ID")
-    confirmed: bool = Field(..., description="用户是否确认执行")
+    session_id: str = Field(..., description="会话ID")
+    user_input: str = Field(..., description="用户的自然语言输入")
+    
+    class Config:
+        populate_by_name = True
+        allow_population_by_field_name = True
+        extra = "ignore"
 
 
 class ConfirmResponse(BaseModel):
     """确认执行响应模型"""
     
-    sessionId: str = Field(..., description="会话ID")
+    session_id: str = Field(..., description="会话ID")
     success: bool = Field(..., description="是否执行成功")
     content: Optional[str] = Field(None, description="执行结果内容")
     error: Optional[str] = Field(None, description="错误信息")

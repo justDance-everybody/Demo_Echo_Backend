@@ -198,10 +198,24 @@ class MCPClientWrapper:
         try:
             # 直接调用 MCPClient 的 session 的 call_tool 方法
             tool_result = await self.client.session.call_tool(tool_id, params)
+            
             # 提取结果内容
-            response_content = getattr(tool_result.content, 'text', tool_result.content)
-            if isinstance(response_content, (list, dict)):
-                 response_content = str(response_content)
+            if hasattr(tool_result, 'content'):
+                if hasattr(tool_result.content, 'text'):
+                    response_content = tool_result.content.text
+                elif isinstance(tool_result.content, list) and len(tool_result.content) > 0:
+                    # 处理内容列表
+                    content_parts = []
+                    for item in tool_result.content:
+                        if hasattr(item, 'text'):
+                            content_parts.append(item.text)
+                        else:
+                            content_parts.append(str(item))
+                    response_content = '\n'.join(content_parts)
+                else:
+                    response_content = str(tool_result.content)
+            else:
+                response_content = str(tool_result)
                  
             result = {
                 "tool_id": tool_id,
@@ -244,4 +258,4 @@ class MCPClientWrapper:
         return exists
 
 # 创建全局MCP客户端实例
-mcp_client = MCPClientWrapper() 
+mcp_client = MCPClientWrapper()

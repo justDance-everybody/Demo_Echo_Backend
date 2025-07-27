@@ -37,7 +37,7 @@ class Settings(BaseSettings):
 
     # 服务器配置
     HOST: str = Field(default="0.0.0.0", env="HOST")
-    PORT: int = Field(default=8000, env="PORT")
+    PORT: int = Field(default=3000, env="PORT")
     
     # 数据库配置
     # 让 pydantic-settings 处理 env var 和 default
@@ -62,7 +62,7 @@ class Settings(BaseSettings):
     LOG_FILE: str = Field(default="logs/api.log", env="LOG_FILE")
     
     # CORS配置
-    CORS_ORIGINS: List[str] = Field(default=["http://localhost:3000","http://localhost:3001","http://localhost:8000","*"], env="CORS_ORIGINS")
+    CORS_ORIGINS: List[str] = Field(default=["http://localhost:3000","http://localhost:3001","*"], env="CORS_ORIGINS")
     
     # JWT配置
     JWT_SECRET: str = Field(default="your-secret-key", env="JWT_SECRET")

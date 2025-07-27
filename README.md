@@ -94,37 +94,13 @@ cp .env.example .env
 # 编辑.env文件，设置数据库连接、API密钥等
 ```
 
-5. 必需的环境变量
+5. 配置环境变量
+```bash
+# 编辑.env文件，设置必要的配置项
+vim .env
 ```
-# 应用基础配置
-APP_NAME=Echo
-ENV=development
-DEBUG=true
-PORT=3000
 
-# 数据库配置
-DB_USER=myuser
-DB_PASSWORD=mypassword
-DB_HOST=localhost
-DB_PORT=3306
-DB_NAME=echo
-
-# 认证配置
-JWT_SECRET=your-super-secret-key-here
-JWT_ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=10080  # 7天
-
-# LLM配置
-LLM_PROVIDER=openai
-LLM_API_KEY=your-openai-api-key
-LLM_MODEL=gpt-4o
-# LLM_API_BASE=https://api.openai.com/v1  # 可选，自定义API基础URL
-
-# MCP配置
-MCP_SCRIPT_PATH=/path/to/mcp/script.py
-MCP_MAX_RETRY=3
-MCP_TIMEOUT_MS=30000
-```
+主要配置项包括：数据库连接、LLM API密钥、JWT密钥等。详细配置说明请参考：[后端开发文档](docs/后端开发文档.md)
 
 6. 数据库迁移
 ```bash
@@ -175,10 +151,10 @@ pip install git+https://github.com/modelcontextprotocol/python-sdk.git
 ```bash
 cd backend
 # 开发模式（自动重载）
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn app.main:app --reload --host 0.0.0.0 --port 3000
 
 # 生产模式
-uvicorn app.main:app --host 0.0.0.0 --port 8000
+uvicorn app.main:app --host 0.0.0.0 --port 3000
 ```
 
 ### 使用PM2启动（生产环境推荐）
@@ -224,65 +200,13 @@ python src/mcp/client/main.py <path_to_server_script>
 
 ## 核心API接口
 
-### 1. 意图解析 `/api/v1/interpret`
-- **方法**: POST
-- **描述**: 解析用户输入文本，识别意图和参数，生成确认问题
-- **请求体**:
-  ```json
-  {
-    "sessionId": "string|null",
-    "userId": "string",
-    "text": "string"
-  }
-  ```
-- **响应**:
-  ```json
-  {
-    "intent": "string",
-    "params": { /* 参数 */ },
-    "confirmText": "string",
-    "sessionId": "string"
-  }
-  ```
+系统提供完整的RESTful API接口，支持意图解析、工具执行、用户认证等功能。
 
-### 2. 工具执行 `/api/v1/execute`
-- **方法**: POST
-- **描述**: 执行特定工具，处理用户请求
-- **请求体**:
-  ```json
-  {
-    "sessionId": "string",
-    "userId": "string",
-    "toolId": "string",
-    "params": { /* 工具参数 */ }
-  }
-  ```
-- **响应**:
-  ```json
-  {
-    "result": { /* 工具返回结果 */ },
-    "tts": "string", // 适合语音播报的文本
-    "sessionId": "string"
-  }
-  ```
+- **API基础路径**: `http://localhost:3000/api/v1`
+- **API文档**: `http://localhost:3000/docs` (Swagger UI)
+- **认证方式**: JWT Bearer Token
 
-### 3. 工具列表 `/api/v1/tools`
-- **方法**: GET
-- **描述**: 获取可用工具列表
-- **响应**:
-  ```json
-  {
-    "tools": [
-      {
-        "tool_id": "string",
-        "name": "string",
-        "description": "string",
-        "type": "mcp|http",
-        "endpoint": { /* 配置 */ }
-      }
-    ]
-  }
-  ```
+详细的API接口说明请参考：[前后端对接与API规范](docs/前后端对接与API规范.md)
 
 ## 支持的工具类型
 
@@ -338,9 +262,9 @@ HTTP工具允许系统调用外部HTTP API来执行操作。目前支持以下�
 ## 开发指南
 
 详细的开发指南请参考：
-- [后端开发文档](docs/后端开发文档.md)
-- [前端开发文档](docs/前端开发文档.md)（如有）
-- [API接口文档](docs/API接口文档.md)（如有）
+- [后端开发文档](docs/后端开发文档.md) - 后端开发者专用
+- [前后端对接与API规范](docs/前后端对接与API规范.md) - 前端开发者必读
+- [前端开发文档](docs/前端开发文档.md) - 前端开发指南
 
 ## 测试与调试
 
@@ -351,8 +275,8 @@ pytest
 ```
 
 ### API调试
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
+- Swagger UI: http://localhost:3000/docs
+- ReDoc: http://localhost:3000/redoc
 
 ## 贡献指南
 - Fork本仓库

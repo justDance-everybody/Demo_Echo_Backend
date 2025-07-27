@@ -105,18 +105,83 @@ class MCPServerManager:
             await asyncio.sleep(2)
             
             if process.returncode is None:  # 进程仍在运行
-                server_status.running = True
-                server_status.consecutive_failures = 0
-                server_status.last_restart_time = datetime.now()
-                server_status.restart_count += 1
-                server_status.error_message = None
-                server_status.process_info = {
-                    "pid": process.pid,
-                    "cmd": f"{cmd} {' '.join(args)}"
-                }
-                
-                logger.info(f"MCP服务器 {server_name} 启动成功 (PID: {process.pid})")
-                return True
+                # 读取初始输出以确认启动状态
+                try:
+                    # 非阻塞读取stdout
+                    stdout_data = b''
+                    stderr_data = b''
+                    
+                    # 尝试读取一些输出，增加超时时间以确保能读取到amap-maps的启动信息
+                    try:
+                        stdout_chunk = await asyncio.wait_for(process.stdout.read(1024), timeout=5.0)
+                        if stdout_chunk:
+                            stdout_data += stdout_chunk
+                    except asyncio.TimeoutError:
+                        pass
+                    
+                    try:
+                        stderr_chunk = await asyncio.wait_for(process.stderr.read(1024), timeout=5.0)
+                        if stderr_chunk:
+                            stderr_data += stderr_chunk
+                    except asyncio.TimeoutError:
+                        pass
+                    
+                    # 检查输出内容，判断是否成功启动
+                    stdout_text = stdout_data.decode('utf-8', errors='ignore')
+                    stderr_text = stderr_data.decode('utf-8', errors='ignore')
+                    
+                    # 对于不同MCP服务器的成功启动指示符
+                    success_indicators = [
+                        "running on stdio",
+                        "MCP Server running",
+                        "Server started",
+                        "listening",
+                        "Registering general tools",  # web3-rpc的成功指示符
+                        "Registering Solana tools"    # web3-rpc的成功指示符
+                    ]
+                    
+                    output_text = stdout_text + stderr_text
+                    is_success = any(indicator.lower() in output_text.lower() for indicator in success_indicators)
+                    
+                    if is_success or (not output_text.strip()):  # 成功启动或无输出（静默启动）
+                        server_status.running = True
+                        server_status.consecutive_failures = 0
+                        server_status.last_restart_time = datetime.now()
+                        server_status.restart_count += 1
+                        server_status.error_message = None
+                        server_status.process_info = {
+                            "pid": process.pid,
+                            "cmd": f"{cmd} {' '.join(args)}",
+                            "startup_output": output_text[:500]  # 保存前500字符的启动输出
+                        }
+                        
+                        logger.info(f"MCP服务器 {server_name} 启动成功 (PID: {process.pid})")
+                        if output_text.strip():
+                            logger.debug(f"启动输出: {output_text.strip()}")
+                        return True
+                    else:
+                        # 输出中包含错误信息
+                        server_status.error_message = output_text or "启动后无输出"
+                        logger.error(f"MCP服务器 {server_name} 启动失败: {server_status.error_message}")
+                        # 终止进程
+                        process.terminate()
+                        return False
+                        
+                except Exception as e:
+                    logger.warning(f"读取MCP服务器 {server_name} 启动输出时出错: {e}，假设启动成功")
+                    # 如果读取输出出错，但进程仍在运行，假设启动成功
+                    server_status.running = True
+                    server_status.consecutive_failures = 0
+                    server_status.last_restart_time = datetime.now()
+                    server_status.restart_count += 1
+                    server_status.error_message = None
+                    server_status.process_info = {
+                        "pid": process.pid,
+                        "cmd": f"{cmd} {' '.join(args)}"
+                    }
+                    
+                    logger.info(f"MCP服务器 {server_name} 启动成功 (PID: {process.pid})")
+                    return True
             else:
                 # 进程启动失败
                 stdout, stderr = await process.communicate()

@@ -16,10 +16,10 @@ describe('Mock服务测试', () => {
   });
 
   test('应该能解析天气意图', async () => {
-    const sessionId = 'test-session-1';
+    const session_id = 'test-session-1';
     const response = await mockAPI.call('interpret', {
       text: '北京今天天气怎么样',
-      sessionId
+      session_id
     });
     
     expect(response).toHaveProperty('type', 'confirm');
@@ -29,10 +29,10 @@ describe('Mock服务测试', () => {
   });
 
   test('应该能解析导航意图', async () => {
-    const sessionId = 'test-session-2';
+    const session_id = 'test-session-2';
     const response = await mockAPI.call('interpret', {
       text: '导航到上海东方明珠',
-      sessionId
+      session_id
     });
     
     expect(response).toHaveProperty('action', 'maps');
@@ -41,18 +41,18 @@ describe('Mock服务测试', () => {
   });
 
   test('应该能执行天气工具', async () => {
-    const sessionId = 'test-session-3';
+    const session_id = 'test-session-3';
     // 先执行interpret建立会话状态
     await mockAPI.call('interpret', {
       text: '北京天气',
-      sessionId
+      session_id
     });
     
     // 然后执行天气工具
     const result = await mockAPI.call('execute', {
       action: 'weather',
       params: { city: '北京' },
-      sessionId
+      session_id
     });
     
     expect(result).toHaveProperty('success', true);
@@ -65,21 +65,21 @@ describe('Mock服务测试', () => {
 
   test('应该能创建新会话', async () => {
     const response = await mockAPI.call('createSession', {
-      userId: 'test-user-1'
+      user_id: 'test-user-1'
     });
     
-    expect(response).toHaveProperty('sessionId');
+    expect(response).toHaveProperty('session_id');
     expect(response).toHaveProperty('status', 'created');
     
     // 会话ID应该是有效的UUID
-    expect(response.sessionId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+    expect(response.session_id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
   });
 
   test('应该处理未知意图', async () => {
-    const sessionId = 'test-session-4';
+    const session_id = 'test-session-4';
     const response = await mockAPI.call('interpret', {
       text: '这是一个完全无法理解的句子xyz123',
-      sessionId
+      session_id
     });
     
     expect(response).toHaveProperty('action', 'unknown');
@@ -90,7 +90,7 @@ describe('Mock服务测试', () => {
     const result = await mockAPI.call('execute', {
       action: 'weather',
       params: { city: '北京' },
-      sessionId: 'non-existent-session'
+      session_id: 'non-existent-session'
     });
     
     expect(result).toHaveProperty('success', false);
@@ -101,4 +101,4 @@ describe('Mock服务测试', () => {
   test('应该抛出未知方法的错误', async () => {
     await expect(mockAPI.call('nonExistentMethod')).rejects.toThrow('未找到模拟方法');
   });
-}); 
+});

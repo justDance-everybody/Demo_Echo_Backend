@@ -179,8 +179,8 @@ export const handlers = [
 
   // Core API
   rest.post('/v1/api/interpret', async (req, res, ctx) => {
-    const { sessionId, userId, query } = await req.json(); // Changed text to query
-    if (!sessionId || userId === undefined || !query) {
+    const { session_id, user_id, query } = await req.json(); // Changed text to query
+    if (!session_id || user_id === undefined || !query) {
       return res(ctx.status(400), ctx.json({ error: { code: 'INVALID_PARAM', msg: 'Missing fields for interpret' } }));
     }
 
@@ -219,7 +219,7 @@ export const handlers = [
     return res(
       ctx.status(200),
       ctx.json({
-        sessionId,
+        session_id,
         type: 'confirm',
         action,
         params,
@@ -229,8 +229,8 @@ export const handlers = [
   }),
 
   rest.post('/v1/api/execute', async (req, res, ctx) => {
-    const { sessionId, userId, tool_id, params } = await req.json();
-    if (!sessionId || !tool_id || !params) {
+    const { session_id, user_id, tool_id, params } = await req.json();
+    if (!session_id || !tool_id || !params) {
       return res(ctx.status(400), ctx.json({ error: { code: 'INVALID_PARAM', msg: 'Missing fields for execute' } }));
     }
 
@@ -259,7 +259,7 @@ export const handlers = [
       responseData = { success: false, error: { code: 'UNKNOWN_TOOL_TYPE', msg: `Tool type ${tool.type} not supported for execution.` } };
     }
 
-    return res(ctx.status(200), ctx.json({ sessionId, ...responseData }));
+    return res(ctx.status(200), ctx.json({ session_id, ...responseData }));
   }),
 
   rest.get('/v1/api/tools', (req, res, ctx) => {
@@ -402,4 +402,4 @@ export const handlers = [
 //       return 2; // Matches devuser in login mock
 //   }
 //   return null; 
-// } 
+// }
