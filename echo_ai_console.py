@@ -25,6 +25,10 @@ import os
 from typing import Dict, Any, Optional
 from urllib.parse import urlencode
 import readline  # 启用命令行历史记录
+from dotenv import load_dotenv
+
+# 加载环境变量
+load_dotenv(os.path.join(os.path.dirname(__file__), 'backend', '.env'))
 
 
 class EchoAIConsole:
@@ -38,6 +42,14 @@ class EchoAIConsole:
         self.user_info = None
         self.running = True
         self.debug_mode = True  # 默认开启调试模式以显示详细日志
+        
+        # 从环境变量加载开发者账号信息
+        self.dev_username = os.getenv('TEST_DEVELOPER_USERNAME', 'devuser_5090')
+        self.dev_password = os.getenv('TEST_DEVELOPER_PASSWORD', 'mryuWTGdMk')
+        self.user_username = os.getenv('TEST_USER_USERNAME', 'testuser_5090')
+        self.user_password = os.getenv('TEST_USER_PASSWORD', '8lpcUY2BOt')
+        self.admin_username = os.getenv('TEST_ADMIN_USERNAME', 'adminuser_5090')
+        self.admin_password = os.getenv('TEST_ADMIN_PASSWORD', 'SAKMRtxCjT')
         
         # 语言选择
         self.language = self._select_language()
@@ -123,9 +135,9 @@ class EchoAIConsole:
   - "转账0.01个SOL到指定地址"
 
 🔐 测试账号:
-  普通用户: testuser_5090 / 8lpcUY2BOt
-  开发者:   devuser_5090 / mryuWTGdMk
-  管理员:   adminuser_5090 / SAKMRtxCjT
+  普通用户: {user_username} / {user_password}
+  开发者:   {dev_username} / {dev_password}
+  管理员:   {admin_username} / {admin_password}
 
 🔧 调试模式:
   - 默认开启，显示详细的HTTP请求/响应日志
@@ -136,7 +148,39 @@ class EchoAIConsole:
   - 使用上下箭头键可以查看命令历史
   - 按 Ctrl+C 可以中断当前操作
   - 按 Ctrl+D 或输入 /quit 退出程序
-'''
+''',
+                # 调试模式相关文本
+                'debug_http_request': 'HTTP请求详情',
+                'debug_method': '方法',
+                'debug_url': 'URL',
+                'debug_request_headers': '请求头',
+                'debug_request_body': '请求体',
+                'debug_response_status': '响应状态',
+                'debug_response_headers': '响应头',
+                'debug_response_body': '响应体',
+                'debug_response_parse_error': '无法解析',
+                'debug_http_request_end': 'HTTP请求结束',
+                'debug_intent_request': '意图解析请求详情',
+                'debug_request_url': '请求URL',
+                'debug_request_data': '请求数据',
+                'debug_response_code': '响应状态码',
+                'debug_response_headers_short': '响应头',
+                'debug_response_content': '响应内容',
+                'debug_intent_response_end': '意图解析响应结束',
+                'debug_confirm_request': '执行确认请求详情',
+                'debug_execution_analysis': '执行结果分析 (新API格式)',
+                'debug_session_id': '会话ID',
+                'debug_execution_success': '执行成功',
+                'debug_execution_content': '执行内容',
+                'debug_error_info': '错误信息',
+                'debug_execution_analysis_end': '执行结果分析结束',
+                'debug_confirm_response_end': '执行确认响应结束',
+                'debug_error_response_content': '错误响应内容',
+                'debug_cannot_read_error': '无法读取错误响应内容',
+                'debug_mode_enabled': '调试模式已开启',
+                'debug_mode_disabled': '调试模式已关闭',
+                'debug_mode_info_enabled': '现在将显示详细的HTTP请求/响应日志和MCP工具执行过程',
+                'debug_mode_info_disabled': '不再显示详细日志'
             },
             'en': {
                 'welcome': '🚀 Welcome to Echo AI Interactive Console!',
@@ -184,29 +228,29 @@ class EchoAIConsole:
                 'tip_help_quit': '💡 Type /help for more commands, /quit to exit',
                 'help_info': '📋 Type /help for help information',
                 'help_text': '''
-🤖 Echo AI Interactive Console - Help
+🤖 Echo AI Interactive Console - Help Information
 
 📋 Available Commands:
-  /login <username> <password>  - Login to system
+  /login <username> <password>  - Login to the system
   /logout                       - Logout current user
-  /whoami                       - View current user info
-  /tools                        - View available tools
+  /whoami                       - View current user information
+  /tools                        - View available tools list
   /debug                        - Toggle debug mode (show detailed logs)
-  /help                         - Show this help
-  /quit or /exit               - Exit program
+  /help                         - Show this help information
+  /quit or /exit               - Exit the program
 
 💬 AI Interaction:
   Enter any other text to send to AI for processing, for example:
-  - "hello"
-  - "translate Hello World to Chinese"
-  - "what\'s the weather in Shenzhen today"
-  - "help me search Python tutorials"
-  - "transfer 0.01 SOL to specified address"
+  - "Hello"
+  - "Help me translate Hello World to Chinese"
+  - "How's the weather in Shenzhen today"
+  - "Help me search for Python tutorials"
+  - "Transfer 0.01 SOL to specified address"
 
 🔐 Test Accounts:
-  Regular user: testuser_5090 / 8lpcUY2BOt
-  Developer:    devuser_5090 / mryuWTGdMk
-  Admin:        adminuser_5090 / SAKMRtxCjT
+  Regular User: {user_username} / {user_password}
+  Developer:    {dev_username} / {dev_password}
+  Admin:        {admin_username} / {admin_password}
 
 🔧 Debug Mode:
   - Enabled by default, shows detailed HTTP request/response logs
@@ -216,8 +260,40 @@ class EchoAIConsole:
 💡 Tips:
   - Use up/down arrow keys to view command history
   - Press Ctrl+C to interrupt current operation
-  - Press Ctrl+D or type /quit to exit
-'''
+  - Press Ctrl+D or enter /quit to exit the program
+''',
+                # Debug mode related text
+                'debug_http_request': 'HTTP Request Details',
+                'debug_method': 'Method',
+                'debug_url': 'URL',
+                'debug_request_headers': 'Request Headers',
+                'debug_request_body': 'Request Body',
+                'debug_response_status': 'Response Status',
+                'debug_response_headers': 'Response Headers',
+                'debug_response_body': 'Response Body',
+                'debug_response_parse_error': 'Cannot parse',
+                'debug_http_request_end': 'HTTP Request End',
+                'debug_intent_request': 'Intent Parsing Request Details',
+                'debug_request_url': 'Request URL',
+                'debug_request_data': 'Request Data',
+                'debug_response_code': 'Response Status Code',
+                'debug_response_headers_short': 'Response Headers',
+                'debug_response_content': 'Response Content',
+                'debug_intent_response_end': 'Intent Parsing Response End',
+                'debug_confirm_request': 'Execution Confirmation Request Details',
+                'debug_execution_analysis': 'Execution Result Analysis (New API Format)',
+                'debug_session_id': 'Session ID',
+                'debug_execution_success': 'Execution Success',
+                'debug_execution_content': 'Execution Content',
+                'debug_error_info': 'Error Information',
+                'debug_execution_analysis_end': 'Execution Result Analysis End',
+                'debug_confirm_response_end': 'Execution Confirmation Response End',
+                'debug_error_response_content': 'Error Response Content',
+                'debug_cannot_read_error': 'Cannot read error response content',
+                'debug_mode_enabled': 'Debug mode enabled',
+                'debug_mode_disabled': 'Debug mode disabled',
+                'debug_mode_info_enabled': 'Will now show detailed HTTP request/response logs and MCP tool execution process',
+                'debug_mode_info_disabled': 'Will no longer show detailed logs'
             }
         }
     
@@ -242,7 +318,18 @@ class EchoAIConsole:
     
     def get_text(self, key: str) -> str:
         """获取当前语言的文本"""
-        return self.texts[self.language].get(key, key)
+        text = self.texts[self.language].get(key, key)
+        # 格式化包含账号密码的文本
+        if '{' in text and '}' in text:
+            text = text.format(
+                user_username=self.user_username,
+                user_password=self.user_password,
+                dev_username=self.dev_username,
+                dev_password=self.dev_password,
+                admin_username=self.admin_username,
+                admin_password=self.admin_password
+            )
+        return text
     
     def colored(self, text: str, color: str) -> str:
         """给文本添加颜色"""
@@ -287,7 +374,7 @@ class EchoAIConsole:
             timeout = 120  # 120秒，给后端足够的执行时间
         else:
             # 其他接口使用默认超时时间
-            timeout = 30
+            timeout = 120
         
         try:
             if content_type == "application/x-www-form-urlencoded":
@@ -310,26 +397,26 @@ class EchoAIConsole:
         if not self.debug_mode:
             return
             
-        print(self.colored("\n=== HTTP请求详情 ===", 'cyan'))
-        print(self.colored(f"方法: {method}", 'blue'))
-        print(self.colored(f"URL: {url}", 'blue'))
-        print(self.colored(f"请求头: {json.dumps(headers, ensure_ascii=False, indent=2)}", 'blue'))
+        print(self.colored(f"\n=== {self.get_text('debug_http_request')} ===", 'cyan'))
+        print(self.colored(f"{self.get_text('debug_method')}: {method}", 'blue'))
+        print(self.colored(f"{self.get_text('debug_url')}: {url}", 'blue'))
+        print(self.colored(f"{self.get_text('debug_request_headers')}: {json.dumps(headers, ensure_ascii=False, indent=2)}", 'blue'))
         if data:
-            print(self.colored(f"请求体: {json.dumps(data, ensure_ascii=False, indent=2)}", 'blue'))
+            print(self.colored(f"{self.get_text('debug_request_body')}: {json.dumps(data, ensure_ascii=False, indent=2)}", 'blue'))
         
-        print(self.colored(f"\n响应状态: {response.status_code} {response.reason}", 'blue'))
-        print(self.colored(f"响应头: {json.dumps(dict(response.headers), ensure_ascii=False, indent=2)}", 'blue'))
+        print(self.colored(f"\n{self.get_text('debug_response_status')}: {response.status_code} {response.reason}", 'blue'))
+        print(self.colored(f"{self.get_text('debug_response_headers')}: {json.dumps(dict(response.headers), ensure_ascii=False, indent=2)}", 'blue'))
         
         try:
             if response.headers.get('content-type', '').startswith('application/json'):
                 response_data = response.json()
-                print(self.colored(f"响应体: {json.dumps(response_data, ensure_ascii=False, indent=2)}", 'blue'))
+                print(self.colored(f"{self.get_text('debug_response_body')}: {json.dumps(response_data, ensure_ascii=False, indent=2)}", 'blue'))
             else:
-                print(self.colored(f"响应体: {response.text[:1000]}{'...' if len(response.text) > 1000 else ''}", 'blue'))
+                print(self.colored(f"{self.get_text('debug_response_body')}: {response.text[:1000]}{'...' if len(response.text) > 1000 else ''}", 'blue'))
         except:
-            print(self.colored("响应体: [无法解析]", 'blue'))
+            print(self.colored(f"{self.get_text('debug_response_body')}: [{self.get_text('debug_response_parse_error')}]", 'blue'))
         
-        print(self.colored("=== HTTP请求结束 ===\n", 'cyan'))
+        print(self.colored(f"=== {self.get_text('debug_http_request_end')} ===\n", 'cyan'))
     
     def health_check(self) -> bool:
         """健康检查"""
@@ -452,26 +539,26 @@ class EchoAIConsole:
             
             # 详细日志：显示请求信息
             if self.debug_mode:
-                print(self.colored("\n=== 意图解析请求详情 ===", 'cyan'))
-                print(self.colored(f"请求URL: {self.base_url}{self.api_prefix}/intent/interpret", 'blue'))
-                print(self.colored(f"请求数据: {json.dumps(data, ensure_ascii=False, indent=2)}", 'blue'))
+                print(self.colored(f"\n=== {self.get_text('debug_intent_request')} ===", 'cyan'))
+                print(self.colored(f"{self.get_text('debug_request_url')}: {self.base_url}{self.api_prefix}/intent/interpret", 'blue'))
+                print(self.colored(f"{self.get_text('debug_request_data')}: {json.dumps(data, ensure_ascii=False, indent=2)}", 'blue'))
             
             self.print_info(self.get_text('processing_request'))
             response = self._make_request("POST", "/intent/interpret", data)
             
             # 详细日志：显示响应信息
             if self.debug_mode:
-                print(self.colored(f"\n响应状态码: {response.status_code}", 'blue'))
-                print(self.colored(f"响应头: {dict(response.headers)}", 'blue'))
+                print(self.colored(f"\n{self.get_text('debug_response_code')}: {response.status_code}", 'blue'))
+                print(self.colored(f"{self.get_text('debug_response_headers_short')}: {dict(response.headers)}", 'blue'))
             
             if response.status_code == 200:
                 result = response.json()
                 
                 # 详细日志：显示完整响应内容
                 if self.debug_mode:
-                    print(self.colored("响应内容:", 'blue'))
+                    print(self.colored(f"{self.get_text('debug_response_content')}:", 'blue'))
                     print(self.colored(json.dumps(result, ensure_ascii=False, indent=2), 'blue'))
-                    print(self.colored("=== 意图解析响应结束 ===\n", 'cyan'))
+                    print(self.colored(f"=== {self.get_text('debug_intent_response_end')} ===\n", 'cyan'))
                 
                 if result.get('type') == 'direct_response':
                     # 直接响应
@@ -504,10 +591,10 @@ class EchoAIConsole:
                 if self.debug_mode:
                     try:
                         error_response = response.text
-                        print(self.colored(f"错误响应内容: {error_response}", 'red'))
+                        print(self.colored(f"{self.get_text('debug_error_response_content')}: {error_response}", 'red'))
                     except:
-                        print(self.colored("无法读取错误响应内容", 'red'))
-                    print(self.colored("=== 意图解析响应结束 ===\n", 'cyan'))
+                        print(self.colored(self.get_text('debug_cannot_read_error'), 'red'))
+                    print(self.colored(f"=== {self.get_text('debug_intent_response_end')} ===\n", 'cyan'))
                 
                 error_data = response.json() if response.headers.get('content-type', '').startswith('application/json') else {}
                 error_msg = error_data.get('detail', f'HTTP {response.status_code}')
@@ -516,12 +603,22 @@ class EchoAIConsole:
                 
         except Exception as e:
             if self.debug_mode:
-                print(self.colored("=== 意图解析响应结束 ===\n", 'cyan'))
+                print(self.colored(f"=== {self.get_text('debug_intent_response_end')} ===\n", 'cyan'))
             self.print_error(f"{self.get_text('request_error')}: {e}")
             return None
     
     def confirm_execution(self, user_input: str = "是") -> Optional[Dict]:
-        """确认执行"""
+        """确认执行
+        
+        使用新的API格式 (ConfirmResponse):
+        - success: bool - 执行是否成功
+        - content: str - 执行结果内容
+        - error: str - 错误信息（如果有）
+        - session_id: str - 会话ID
+        
+        注意：此方法已适配新的API响应格式，不再使用旧的
+        execution_results 和 response_type 字段
+        """
         if not self.session_id:
             self.print_error(self.get_text('no_active_session'))
             return None
@@ -534,50 +631,43 @@ class EchoAIConsole:
             
             # 详细日志：显示执行确认请求信息
             if self.debug_mode:
-                print(self.colored("\n=== 执行确认请求详情 ===", 'cyan'))
-                print(self.colored(f"请求URL: {self.base_url}{self.api_prefix}/intent/confirm", 'blue'))
-                print(self.colored(f"请求数据: {json.dumps(data, ensure_ascii=False, indent=2)}", 'blue'))
+                print(self.colored(f"\n=== {self.get_text('debug_confirm_request')} ===", 'cyan'))
+                print(self.colored(f"{self.get_text('debug_request_url')}: {self.base_url}{self.api_prefix}/intent/confirm", 'blue'))
+                print(self.colored(f"{self.get_text('debug_request_data')}: {json.dumps(data, ensure_ascii=False, indent=2)}", 'blue'))
             
             self.print_info(self.get_text('executing'))
             response = self._make_request("POST", "/intent/confirm", data)
             
             # 详细日志：显示响应信息
             if self.debug_mode:
-                print(self.colored(f"\n响应状态码: {response.status_code}", 'blue'))
-                print(self.colored(f"响应头: {dict(response.headers)}", 'blue'))
+                print(self.colored(f"\n{self.get_text('debug_response_code')}: {response.status_code}", 'blue'))
+                print(self.colored(f"{self.get_text('debug_response_headers_short')}: {dict(response.headers)}", 'blue'))
             
             if response.status_code == 200:
                 result = response.json()
                 
                 # 详细日志：显示完整响应内容
                 if self.debug_mode:
-                    print(self.colored("响应内容:", 'blue'))
+                    print(self.colored(f"{self.get_text('debug_response_content')}:", 'blue'))
                     print(self.colored(json.dumps(result, ensure_ascii=False, indent=2), 'blue'))
                     
-                    # 如果有工具执行结果，显示详细信息
-                    if 'tool_results' in result:
-                        print(self.colored("\n=== MCP工具执行详情 ===", 'magenta'))
-                        tool_results = result['tool_results']
-                        if isinstance(tool_results, list):
-                            for i, tool_result in enumerate(tool_results):
-                                print(self.colored(f"\n工具 #{i+1}:", 'magenta'))
-                                print(self.colored(json.dumps(tool_result, ensure_ascii=False, indent=2), 'magenta'))
-                        else:
-                            print(self.colored(json.dumps(tool_results, ensure_ascii=False, indent=2), 'magenta'))
-                        print(self.colored("=== MCP工具执行结束 ===\n", 'magenta'))
+                    # 显示新API格式的执行结果详情
+                    print(self.colored(f"\n=== {self.get_text('debug_execution_analysis')} ===", 'magenta'))
+                    success = result.get('success')
+                    content = result.get('content')
+                    error = result.get('error')
+                    session_id = result.get('session_id')
                     
-                    # 如果有执行日志，显示详细信息
-                    if 'execution_logs' in result:
-                        print(self.colored("\n=== 执行日志详情 ===", 'yellow'))
-                        logs = result['execution_logs']
-                        if isinstance(logs, list):
-                            for log in logs:
-                                print(self.colored(f"[{log.get('timestamp', 'N/A')}] {log.get('level', 'INFO')}: {log.get('message', '')}", 'yellow'))
-                        else:
-                            print(self.colored(str(logs), 'yellow'))
-                        print(self.colored("=== 执行日志结束 ===\n", 'yellow'))
+                    print(self.colored(f"{self.get_text('debug_session_id')}: {session_id}", 'magenta'))
+                    print(self.colored(f"{self.get_text('debug_execution_success')}: {success}", 'magenta'))
+                    if content:
+                        content_preview = str(content)[:200] + "..." if len(str(content)) > 200 else str(content)
+                        print(self.colored(f"{self.get_text('debug_execution_content')}: {content_preview}", 'magenta'))
+                    if error:
+                        print(self.colored(f"{self.get_text('debug_error_info')}: {error}", 'magenta'))
+                    print(self.colored(f"=== {self.get_text('debug_execution_analysis_end')} ===\n", 'magenta'))
                     
-                    print(self.colored("=== 执行确认响应结束 ===\n", 'cyan'))
+                    print(self.colored(f"=== {self.get_text('debug_confirm_response_end')} ===\n", 'cyan'))
                 
                 if result.get('success'):
                     content = result.get('content', '').strip()
@@ -593,17 +683,17 @@ class EchoAIConsole:
                 if self.debug_mode:
                     try:
                         error_response = response.text
-                        print(self.colored(f"错误响应内容: {error_response}", 'red'))
+                        print(self.colored(f"{self.get_text('debug_error_response_content')}: {error_response}", 'red'))
                     except:
-                        print(self.colored("无法读取错误响应内容", 'red'))
-                    print(self.colored("=== 执行确认响应结束 ===\n", 'cyan'))
+                        print(self.colored(self.get_text('debug_cannot_read_error'), 'red'))
+                    print(self.colored(f"=== {self.get_text('debug_confirm_response_end')} ===\n", 'cyan'))
                 
                 self.print_error(f"{self.get_text('confirm_execution_failed')}: HTTP {response.status_code}")
                 return None
                 
         except Exception as e:
             if self.debug_mode:
-                print(self.colored("=== 执行确认响应结束 ===\n", 'cyan'))
+                print(self.colored(f"=== {self.get_text('debug_confirm_response_end')} ===\n", 'cyan'))
             self.print_error(f"{self.get_text('confirm_execution_error')}: {e}")
             return None
     
@@ -649,20 +739,12 @@ class EchoAIConsole:
                 
             elif command == '/debug':
                 self.debug_mode = not self.debug_mode
-                status = "开启" if self.debug_mode else "关闭"
-                status_en = "enabled" if self.debug_mode else "disabled"
-                if self.language == 'zh':
-                    self.print_success(f"调试模式已{status}")
-                    if self.debug_mode:
-                        self.print_info("现在将显示详细的HTTP请求/响应日志和MCP工具执行过程")
-                    else:
-                        self.print_info("不再显示详细日志")
+                if self.debug_mode:
+                    self.print_success(self.get_text('debug_mode_enabled'))
+                    self.print_info(self.get_text('debug_mode_info_enabled'))
                 else:
-                    self.print_success(f"Debug mode {status_en}")
-                    if self.debug_mode:
-                        self.print_info("Will now show detailed HTTP request/response logs and MCP tool execution process")
-                    else:
-                        self.print_info("Will no longer show detailed logs")
+                     self.print_success(self.get_text('debug_mode_disabled'))
+                     self.print_info(self.get_text('debug_mode_info_disabled'))
                 
             else:
                 self.print_error(f"{self.get_text('unknown_command')}: {command}. {self.get_text('help_hint')}")
@@ -682,7 +764,7 @@ class EchoAIConsole:
         
         # 自动登录开发者账号
         self.print_info(self.get_text('auto_login'))
-        if self.login("devuser_5090", "mryuWTGdMk"):
+        if self.login(self.dev_username, self.dev_password):
             self.print_success(self.get_text('auto_login_success'))
             print(self.colored(self.get_text('tip_natural_language'), 'cyan'))
             print(self.colored(self.get_text('tip_help_quit'), 'cyan'))

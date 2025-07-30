@@ -321,7 +321,7 @@ class ExecuteService:
                     )
 
                 # 获取全局超时配置，优先使用app_config中的timeout，否则使用默认值
-                global_timeout = float(app_config.get("timeout", 30)) if app_config else 30.0
+                global_timeout = float(app_config.get("timeout", 120)) if app_config else 120.0
                 
                 # 准备调用外部 HTTP API
                 async with httpx.AsyncClient(timeout=global_timeout) as client:  # 使用动态超时
@@ -557,8 +557,8 @@ class ExecuteService:
                             http_method = app_config.get("method", "POST").upper()
                             # 获取配置的内容类型，默认为application/json
                             content_type = app_config.get("content_type", "application/json")
-                            # 获取配置的超时设置，默认为30秒
-                            timeout = float(app_config.get("timeout", 30))
+                            # 获取配置的超时设置，默认为120秒
+                            timeout = float(app_config.get("timeout", 120))
                             # 获取配置的请求头
                             headers = app_config.get("headers", {})
                             

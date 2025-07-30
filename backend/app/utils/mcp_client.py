@@ -59,67 +59,74 @@ class MCPClientWrapper:
     """MCP客户端包装器，管理与真实MCP客户端的交互"""
     
     def __init__(self):
-        """初始化真实MCP客户端"""
-        self.client = None
+        """初始化MCP客户端配置"""
+        self.server_configs = {}
+        # 连接池：缓存已连接的客户端实例
+        self._connection_pool = {}
+        self._connection_lock = {}
+        
         try:
-            # 初始化MCP客户端
-            # MCPClient 来自 MCP_Client/mcp_client.py
-            self.client = MCPClient()
-            logger.info("MCP客户端包装器：内部MCPClient实例初始化成功")
-            if self.client.server_configs:
-                logger.info(f"已加载 {len(self.client.server_configs)} 个MCP服务器配置")
+            # 加载MCP服务器配置
+            import json
+            mcp_config_path = os.environ.get("MCP_SERVERS_PATH", "config/mcp_servers.json")
+            if not os.path.isabs(mcp_config_path):
+                mcp_client_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), "MCP_Client")
+                mcp_config_path = os.path.join(mcp_client_dir, mcp_config_path)
+            
+            if not os.path.exists(mcp_config_path):
+                logger.warning(f"MCP服务器配置文件不存在: {mcp_config_path}")
+                self.server_configs = {}
             else:
-                 logger.warning("未加载任何MCP服务器配置，请检查MCP_SERVERS_PATH环境变量和配置文件")
-            self._connected_server = None
+                with open(mcp_config_path, encoding='utf-8') as f:
+                    config_data = json.load(f)
+                    self.server_configs = config_data.get("mcpServers", {})
+            
+            logger.info("MCP客户端包装器：配置加载成功")
+            if self.server_configs:
+                logger.info(f"已加载 {len(self.server_configs)} 个MCP服务器配置")
+            else:
+                logger.warning("未加载任何MCP服务器配置，请检查MCP_SERVERS_PATH环境变量和配置文件")
         except Exception as e:
-            logger.error(f"MCP客户端初始化失败: {e}")
-            raise RuntimeError(f"MCP客户端初始化失败: {e}")
+            logger.error(f"MCP客户端配置加载失败: {e}")
+            self.server_configs = {}
+            self._connection_pool = {}
+            self._connection_lock = {}
     
-    async def _ensure_connected(self, target_server: Optional[str] = None):
-        """确保已连接到指定的MCP服务器，如果未指定则连接到默认服务器"""
-        server_to_connect = target_server
-
-        # 如果没有指定目标服务器，并且已经连接了，则无需操作
-        if not server_to_connect and self.client and self.client.session:
-            return
-
-        # 如果没有指定目标服务器，使用默认（第一个）
-        if not server_to_connect:
-            if not self.client.server_configs:
-                raise RuntimeError("MCP客户端没有可用的服务器配置")
-            server_to_connect = next(iter(self.client.server_configs))
-            logger.debug(f"未指定目标服务器，将使用默认服务器: {server_to_connect}")
-
+    async def _get_or_create_client(self, target_server: str) -> 'MCPClient':
+        """获取或创建MCP客户端实例（使用连接池）"""
         # 检查目标服务器是否存在于配置中
-        if server_to_connect not in self.client.server_configs:
-             raise ValueError(f"目标MCP服务器 '{server_to_connect}' 未在配置中找到")
+        if target_server not in self.server_configs:
+            raise ValueError(f"目标MCP服务器 '{target_server}' 未在配置中找到")
 
-        # 检查是否需要切换或建立连接
-        # 需要连接的情况：1. 从未连接过 2. 需要连接的目标与当前连接的不同
-        should_connect = not self.client.session or self._connected_server != server_to_connect
-
-        if should_connect:
-            # 注意：这里的实现假设调用 self.client.connect() 会正确处理
-            # 底层 AsyncExitStack 的重入或替换。如果 MCPClient.connect
-            # 不能安全地被调用多次，这里可能需要更复杂的连接管理逻辑（例如先关闭再连接）。
-            if self.client.session:
-                 logger.warning(f"检测到需要切换MCP服务器，从 '{self._connected_server}' 切换到 '{server_to_connect}'. 正在尝试重新连接...")
-                 # 理想情况下，这里应该先显式断开旧连接，但 MCPClient 可能没有提供接口
-                 # await self.client.disconnect() # 假设有此方法
-
-            logger.info(f"准备连接到MCP服务器: {server_to_connect}")
+        # 检查连接池中是否已有可用连接
+        if target_server in self._connection_pool:
+            client = self._connection_pool[target_server]
+            # 检查连接是否仍然有效
             try:
-                await self.client.connect(server_to_connect)
-                self._connected_server = server_to_connect
-                logger.info(f"成功连接到MCP服务器: {self._connected_server}")
+                if client and client.session:
+                    logger.debug(f"复用现有MCP客户端连接: {target_server}")
+                    return client
             except Exception as e:
-                 logger.error(f"连接到MCP服务器 '{server_to_connect}' 失败: {e}")
-                 # 连接失败后，重置连接状态
-                 self._connected_server = None
-                 self.client.session = None # 假设可以直接访问或有方法重置
-                 raise RuntimeError(f"连接到MCP服务器 '{server_to_connect}' 失败: {e}")
-        else:
-            logger.debug(f"已连接到目标MCP服务器: {self._connected_server}")
+                logger.warning(f"现有连接无效，将重新创建: {e}")
+                # 清理无效连接
+                try:
+                    await client.close()
+                except:
+                    pass
+                del self._connection_pool[target_server]
+
+        logger.info(f"创建新的MCP客户端实例并连接到服务器: {target_server}")
+        try:
+            # 创建新的客户端实例
+            client = MCPClient()
+            await client.connect(target_server)
+            # 将连接加入连接池
+            self._connection_pool[target_server] = client
+            logger.info(f"成功连接到MCP服务器并加入连接池: {target_server}")
+            return client
+        except Exception as e:
+            logger.error(f"连接到MCP服务器 '{target_server}' 失败: {e}")
+            raise RuntimeError(f"连接到MCP服务器 '{target_server}' 失败: {e}")
 
     async def get_tool_info(self, intent_type: str, query: str) -> Dict[str, Any]:
         """
@@ -130,28 +137,98 @@ class MCPClientWrapper:
             query: 用户查询
             
         Returns:
-            工具信息
+            Dict[str, Any]: 工具信息
         """
-        # 确保已连接 (到默认服务器)
-        await self._ensure_connected()
+        # 获取所有可用的工具信息
+        all_tools = []
         
-        # 构建查询
-        enriched_query = f"[{intent_type}] {query}"
+        for server_name in self.server_configs.keys():
+            try:
+                client = await self._get_or_create_client(server_name)
+                if client and client.tools:
+                    for tool in client.tools:
+                        tool_info = {
+                            "server_name": server_name,
+                            "tool_id": tool.name,
+                            "name": tool.name,
+                            "description": tool.description,
+                            "input_schema": tool.inputSchema if hasattr(tool, 'inputSchema') else {}
+                        }
+                        all_tools.append(tool_info)
+            except Exception as e:
+                logger.warning(f"获取服务器 {server_name} 的工具信息失败: {e}")
         
-        # 调用MCP客户端处理查询
-        logger.info(f"通过MCP客户端处理查询: {enriched_query}")
-        response = await self.client.process_query(enriched_query)
-        
-        # 构建返回结果
-        result = {
-            "intent": intent_type,
+        return {
+            "intent_type": intent_type,
             "query": query,
-            "tools": [tool.name for tool in self.client.tools] if self.client.tools else [],
-            "response": response
+            "available_tools": all_tools,
+            "message": f"找到 {len(all_tools)} 个可用工具"
         }
+    
+    async def get_server_tools(self, server_name: str) -> Dict[str, Any]:
+        """
+        获取指定 MCP 服务器的所有工具信息
         
-        logger.info(f"MCP客户端返回处理结果，可用工具: {result['tools']}")
-        return result
+        Args:
+            server_name: MCP 服务器名称
+            
+        Returns:
+            包含工具信息的字典，格式为:
+            {
+                "success": bool,
+                "tools": [{
+                    "name": str,
+                    "description": str,
+                    "inputSchema": dict
+                }],
+                "error": str (如果失败)
+            }
+        """
+        try:
+            # 检查服务器是否存在
+            if server_name not in self.server_configs:
+                return {
+                    "success": False,
+                    "error": f"服务器 {server_name} 不存在于配置中"
+                }
+            
+            # 获取或创建客户端连接
+            client = await self._get_or_create_client(server_name)
+            if not client:
+                return {
+                    "success": False,
+                    "error": f"无法连接到服务器 {server_name}"
+                }
+            
+            # 获取工具列表
+            if not hasattr(client, 'tools') or not client.tools:
+                return {
+                    "success": True,
+                    "tools": [],
+                    "message": f"服务器 {server_name} 没有可用工具"
+                }
+            
+            # 格式化工具信息
+            tools_list = []
+            for tool in client.tools:
+                tools_list.append({
+                    "name": tool.name,
+                    "description": tool.description or "",
+                    "inputSchema": tool.inputSchema or {}
+                })
+            
+            return {
+                "success": True,
+                "tools": tools_list,
+                "message": f"成功获取服务器 {server_name} 的 {len(tools_list)} 个工具"
+            }
+            
+        except Exception as e:
+            logger.error(f"获取服务器 {server_name} 工具信息时发生错误: {e}")
+            return {
+                "success": False,
+                "error": f"获取工具信息失败: {str(e)}"
+            }
     
     # @stable(tested=2025-04-30, test_script=backend/test_api.py)
     async def execute_tool(self, tool_id: str, params: Dict[str, Any], target_server: Optional[str] = None) -> Dict[str, Any]:
@@ -166,41 +243,44 @@ class MCPClientWrapper:
         Returns:
             执行结果
         """
-        # 检查服务器是否存在
-        if target_server and not self.check_server_exists(target_server):
-            logger.error(f"目标MCP服务器 '{target_server}' 未在配置中找到")
-            return {
-                "tool_id": tool_id,
-                "success": False,
-                "error": {
-                    "code": "MCP_SERVER_NOT_FOUND",
-                    "message": f"目标MCP服务器 '{target_server}' 未在配置中找到"
+        # 确定目标服务器
+        if not target_server:
+            if not self.server_configs:
+                return {
+                    "tool_id": tool_id,
+                    "success": False,
+                    "error": {
+                        "code": "MCP_NO_SERVERS_CONFIGURED",
+                        "message": "没有可用的MCP服务器配置"
+                    }
                 }
-            }
-            
-        # 确保已连接到目标或默认服务器
-        await self._ensure_connected(target_server=target_server)
+            target_server = next(iter(self.server_configs))
+            logger.debug(f"未指定目标服务器，将使用默认服务器: {target_server}")
 
-        # 检查连接后，session 是否真的存在
-        if not self.client or not self.client.session:
-             logger.error(f"无法执行工具 {tool_id}：未能建立到MCP服务器 '{self._connected_server or '默认'}' 的连接。")
-             return {
-                 "tool_id": tool_id,
-                 "success": False,
-                 "error": {
-                     "code": "MCP_CONNECTION_FAILED",
-                     "message": f"未能连接到MCP服务器 '{self._connected_server or '默认'}'"
-                 }
-             }
-
-        # 直接调用 call_tool
-        logger.info(f"准备通过MCP客户端 ('{self._connected_server}') 执行工具: tool={tool_id}, params={params}")
+        # 使用连接池获取或创建客户端实例
         try:
-            # 直接调用 MCPClient 的 session 的 call_tool 方法，添加30秒超时
+            client = await self._get_or_create_client(target_server)
+            
+            # 检查连接后，session 是否真的存在
+            if not client or not client.session:
+                logger.error(f"无法执行工具 {tool_id}：未能建立到MCP服务器 '{target_server}' 的连接。")
+                return {
+                    "tool_id": tool_id,
+                    "success": False,
+                    "error": {
+                        "code": "MCP_CONNECTION_FAILED",
+                        "message": f"未能连接到MCP服务器 '{target_server}'"
+                    }
+                }
+
+            # 直接调用 call_tool
+            logger.info(f"准备通过MCP客户端 ('{target_server}') 执行工具: tool={tool_id}, params={params}")
+            
+            # 直接调用 MCPClient 的 session 的 call_tool 方法，添加120秒超时
             import asyncio
             tool_result = await asyncio.wait_for(
-                self.client.session.call_tool(tool_id, params), 
-                timeout=30.0
+                client.session.call_tool(tool_id, params), 
+                timeout=120.0
             )
             
             # 提取结果内容
@@ -229,18 +309,28 @@ class MCPClientWrapper:
                 }
             }
             logger.info(f"MCP客户端执行工具成功: tool={tool_id}")
+            
         except asyncio.TimeoutError:
-            logger.error(f"MCP客户端执行工具超时: tool={tool_id} (30秒)")
+            logger.error(f"MCP客户端执行工具超时: tool={tool_id} (120秒)")
             result = {
                 "tool_id": tool_id,
                 "success": False,
                 "error": {
                     "code": "MCP_EXECUTION_TIMEOUT",
-                    "message": f"工具 {tool_id} 执行超时 (30秒)，请稍后重试"
+                    "message": f"工具 {tool_id} 执行超时 (120秒)，请稍后重试"
                 }
             }
         except Exception as e:
             logger.error(f"MCP客户端执行工具失败: tool={tool_id}, error={e}")
+            # 如果执行失败，可能是连接问题，清理连接池中的该连接
+            if target_server in self._connection_pool:
+                try:
+                    await self._connection_pool[target_server].close()
+                except:
+                    pass
+                del self._connection_pool[target_server]
+                logger.info(f"已从连接池中移除失效连接: {target_server}")
+            
             result = {
                 "tool_id": tool_id,
                 "success": False,
@@ -260,16 +350,19 @@ class MCPClientWrapper:
             server_name: 服务器名称
             
         Returns:
-            如果服务器存在，返回True；否则返回False
+            bool: 服务器是否存在
         """
-        if not self.client or not self.client.server_configs:
-            logger.warning("无法检查服务器，未加载MCP服务器配置")
-            return False
-            
-        exists = server_name in self.client.server_configs
-        if not exists:
-            logger.warning(f"MCP服务器 '{server_name}' 未在配置中找到")
-        return exists
+        return server_name in self.server_configs
+    
+    async def close_all_connections(self):
+        """关闭所有连接池中的连接"""
+        for server_name, client in self._connection_pool.items():
+            try:
+                await client.close()
+                logger.info(f"已关闭MCP服务器连接: {server_name}")
+            except Exception as e:
+                logger.warning(f"关闭MCP服务器连接时出错 {server_name}: {e}")
+        self._connection_pool.clear()
 
 # 创建全局MCP客户端实例
 mcp_client = MCPClientWrapper()

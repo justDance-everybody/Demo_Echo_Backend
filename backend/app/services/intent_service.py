@@ -471,31 +471,67 @@ class IntentService:
             if all_success:
                 # 提取所有成功结果的内容
                 content_parts = []
-                for result in results:
-                    if result.data and result.data.get("tts_message"):
-                        content_parts.append(result.data["tts_message"])
+                detailed_results = []
                 
-                final_content = "\n".join(content_parts) if content_parts else "操作执行成功"
+                for result in results:
+                    # 添加调试日志
+                    logger.debug(f"[Session: {session_id}] 处理工具结果: tool_id={result.tool_id}, success={result.success}, data={result.data}")
+                    
+                    if result.data:
+                        # 优先使用tts_message，如果没有则尝试其他字段
+                        if result.data.get("tts_message"):
+                            content_parts.append(result.data["tts_message"])
+                            logger.debug(f"[Session: {session_id}] 使用 tts_message: {result.data['tts_message']}")
+                        elif result.data.get("original_dify_response"):
+                            # 对于Dify工具，提取answer字段
+                            dify_answer = result.data["original_dify_response"].get("answer", "")
+                            if dify_answer:
+                                content_parts.append(dify_answer)
+                                logger.debug(f"[Session: {session_id}] 使用 dify_answer: {dify_answer}")
+                        elif result.data.get("message"):
+                            content_parts.append(str(result.data["message"]))
+                            logger.debug(f"[Session: {session_id}] 使用 message: {result.data['message']}")
+                        else:
+                            # 如果都没有，尝试将整个data转换为字符串
+                            data_str = str(result.data)
+                            content_parts.append(data_str)
+                            logger.warning(f"[Session: {session_id}] 使用整个data作为内容: {data_str}")
+                        
+                        # 保存详细结果用于调试
+                        detailed_results.append({
+                            "tool_id": result.tool_id,
+                            "success": result.success,
+                            "data": result.data
+                        })
+                    else:
+                        logger.warning(f"[Session: {session_id}] 工具 {result.tool_id} 返回的 data 为空")
+                
+                final_content = "\n\n".join(content_parts) if content_parts else "操作执行成功"
+                logger.info(f"[Session: {session_id}] 汇总结果: content_parts={content_parts}, final_content={final_content}")
                 
                 # 更新会话状态为完成
                 session.status = 'done'
                 db.add(session)
                 
-                # 记录成功日志
+                # 记录成功日志，包含详细结果
                 success_log = Log(
                     session_id=session_id,
                     step='execute_confirmed',
                     status='success',
-                    message=final_content
+                    message=json.dumps({
+                        "summary": final_content,
+                        "detailed_results": detailed_results
+                    }, ensure_ascii=False)
                 )
                 db.add(success_log)
                 
                 await db.commit()
                 
-                logger.info(f"[Session: {session_id}] 所有工具执行成功")
+                logger.info(f"[Session: {session_id}] 所有工具执行成功，返回详细结果")
                 return {
                     "success": True,
-                    "content": final_content
+                    "content": final_content,
+                    "detailed_results": detailed_results
                 }
             else:
                 # 部分或全部失败

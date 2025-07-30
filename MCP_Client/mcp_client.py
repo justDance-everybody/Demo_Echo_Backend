@@ -112,9 +112,9 @@ class MCPClient:
             print(f"调用工具 {name} 参数 {args}")
             # 添加超时处理，避免工具执行时间过长
             try:
-                result = await asyncio.wait_for(self.session.call_tool(name, args), timeout=6.0)
+                result = await asyncio.wait_for(self.session.call_tool(name, args), timeout=120.0)
             except asyncio.TimeoutError:
-                print(f"工具 {name} 执行超时 (6秒)")
+                print(f"工具 {name} 执行超时 (120秒)")
                 result = type('MockResult', (), {'content': f'工具 {name} 执行超时，请稍后重试'})()
             content = getattr(result.content, 'text', result.content)
             if isinstance(content, (list, dict)): content=str(content)

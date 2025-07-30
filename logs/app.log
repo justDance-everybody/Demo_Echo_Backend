@@ -2730,3 +2730,891 @@ success
 2025-07-23 14:52:02.742 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/start/{server_name}, Methods: {'POST'}, Name: start_mcp_server
 2025-07-23 14:52:02.742 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/stop/{server_name}, Methods: {'POST'}, Name: stop_mcp_server
 2025-07-23 14:52:02.742 | INFO     | app.main:<module>:192 - ==============================================================================
+2025-07-30 07:58:30.305 | INFO     | app.main:<module>:39 - 启动应用: AI Assistant API v0.1.0
+2025-07-30 07:58:30.305 | INFO     | app.main:<module>:40 - 数据库: ai_assistant
+2025-07-30 07:58:30.332 | INFO     | app.main:<module>:181 - ============================== Registered Routes ==============================
+2025-07-30 07:58:30.332 | INFO     | app.main:<module>:188 - Path: /openapi.json, Methods: {'HEAD', 'GET'}, Name: openapi
+2025-07-30 07:58:30.332 | INFO     | app.main:<module>:188 - Path: /redoc, Methods: {'HEAD', 'GET'}, Name: redoc_html
+2025-07-30 07:58:30.332 | INFO     | app.main:<module>:188 - Path: /docs, Methods: {'GET'}, Name: custom_swagger_ui_html
+2025-07-30 07:58:30.332 | INFO     | app.main:<module>:188 - Path: /, Methods: {'GET'}, Name: root
+2025-07-30 07:58:30.332 | INFO     | app.main:<module>:188 - Path: /health, Methods: {'GET'}, Name: health_check
+2025-07-30 07:58:30.333 | INFO     | app.main:<module>:188 - Path: /api/v1/intent/interpret, Methods: {'POST'}, Name: process_intent
+2025-07-30 07:58:30.333 | INFO     | app.main:<module>:188 - Path: /api/v1/intent/confirm, Methods: {'POST'}, Name: confirm_execution
+2025-07-30 07:58:30.333 | INFO     | app.main:<module>:188 - Path: /api/v1/execute, Methods: {'POST'}, Name: execute_tool
+2025-07-30 07:58:30.333 | INFO     | app.main:<module>:188 - Path: /api/v1/tools, Methods: {'GET'}, Name: get_tools
+2025-07-30 07:58:30.333 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/register, Methods: {'POST'}, Name: register
+2025-07-30 07:58:30.333 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/token, Methods: {'POST'}, Name: login_for_access_token
+2025-07-30 07:58:30.333 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/login, Methods: {'POST'}, Name: login
+2025-07-30 07:58:30.333 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/me, Methods: {'GET'}, Name: get_me
+2025-07-30 07:58:30.333 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'GET'}, Name: get_developer_tools
+2025-07-30 07:58:30.333 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'POST'}, Name: create_developer_tool
+2025-07-30 07:58:30.333 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'GET'}, Name: get_developer_tool
+2025-07-30 07:58:30.334 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'PUT'}, Name: update_developer_tool
+2025-07-30 07:58:30.334 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'DELETE'}, Name: delete_developer_tool
+2025-07-30 07:58:30.334 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload, Methods: {'POST'}, Name: upload_tool_package
+2025-07-30 07:58:30.334 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload/validate, Methods: {'POST'}, Name: validate_tool_package
+2025-07-30 07:58:30.334 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}/test, Methods: {'POST'}, Name: test_developer_tool
+2025-07-30 07:58:30.334 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/test/batch, Methods: {'POST'}, Name: batch_test_tools
+2025-07-30 07:58:30.334 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/health, Methods: {'GET'}, Name: get_mcp_servers_health
+2025-07-30 07:58:30.334 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status, Methods: {'GET'}, Name: get_mcp_servers_status
+2025-07-30 07:58:30.334 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status/{server_name}, Methods: {'GET'}, Name: get_mcp_server_status
+2025-07-30 07:58:30.334 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/restart/{server_name}, Methods: {'POST'}, Name: restart_mcp_server
+2025-07-30 07:58:30.334 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/start/{server_name}, Methods: {'POST'}, Name: start_mcp_server
+2025-07-30 07:58:30.334 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/stop/{server_name}, Methods: {'POST'}, Name: stop_mcp_server
+2025-07-30 07:58:30.334 | INFO     | app.main:<module>:192 - ==============================================================================
+2025-07-30 07:58:48.146 | INFO     | app.main:<module>:39 - 启动应用: AI Assistant API v0.1.0
+2025-07-30 07:58:48.146 | INFO     | app.main:<module>:40 - 数据库: ai_assistant
+2025-07-30 07:58:48.176 | INFO     | app.main:<module>:181 - ============================== Registered Routes ==============================
+2025-07-30 07:58:48.176 | INFO     | app.main:<module>:188 - Path: /openapi.json, Methods: {'GET', 'HEAD'}, Name: openapi
+2025-07-30 07:58:48.176 | INFO     | app.main:<module>:188 - Path: /redoc, Methods: {'GET', 'HEAD'}, Name: redoc_html
+2025-07-30 07:58:48.176 | INFO     | app.main:<module>:188 - Path: /docs, Methods: {'GET'}, Name: custom_swagger_ui_html
+2025-07-30 07:58:48.176 | INFO     | app.main:<module>:188 - Path: /, Methods: {'GET'}, Name: root
+2025-07-30 07:58:48.176 | INFO     | app.main:<module>:188 - Path: /health, Methods: {'GET'}, Name: health_check
+2025-07-30 07:58:48.176 | INFO     | app.main:<module>:188 - Path: /api/v1/intent/interpret, Methods: {'POST'}, Name: process_intent
+2025-07-30 07:58:48.176 | INFO     | app.main:<module>:188 - Path: /api/v1/intent/confirm, Methods: {'POST'}, Name: confirm_execution
+2025-07-30 07:58:48.176 | INFO     | app.main:<module>:188 - Path: /api/v1/execute, Methods: {'POST'}, Name: execute_tool
+2025-07-30 07:58:48.176 | INFO     | app.main:<module>:188 - Path: /api/v1/tools, Methods: {'GET'}, Name: get_tools
+2025-07-30 07:58:48.176 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/register, Methods: {'POST'}, Name: register
+2025-07-30 07:58:48.177 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/token, Methods: {'POST'}, Name: login_for_access_token
+2025-07-30 07:58:48.177 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/login, Methods: {'POST'}, Name: login
+2025-07-30 07:58:48.177 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/me, Methods: {'GET'}, Name: get_me
+2025-07-30 07:58:48.177 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'GET'}, Name: get_developer_tools
+2025-07-30 07:58:48.177 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'POST'}, Name: create_developer_tool
+2025-07-30 07:58:48.177 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'GET'}, Name: get_developer_tool
+2025-07-30 07:58:48.177 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'PUT'}, Name: update_developer_tool
+2025-07-30 07:58:48.177 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'DELETE'}, Name: delete_developer_tool
+2025-07-30 07:58:48.177 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload, Methods: {'POST'}, Name: upload_tool_package
+2025-07-30 07:58:48.177 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload/validate, Methods: {'POST'}, Name: validate_tool_package
+2025-07-30 07:58:48.177 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}/test, Methods: {'POST'}, Name: test_developer_tool
+2025-07-30 07:58:48.177 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/test/batch, Methods: {'POST'}, Name: batch_test_tools
+2025-07-30 07:58:48.177 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/health, Methods: {'GET'}, Name: get_mcp_servers_health
+2025-07-30 07:58:48.177 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status, Methods: {'GET'}, Name: get_mcp_servers_status
+2025-07-30 07:58:48.177 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status/{server_name}, Methods: {'GET'}, Name: get_mcp_server_status
+2025-07-30 07:58:48.177 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/restart/{server_name}, Methods: {'POST'}, Name: restart_mcp_server
+2025-07-30 07:58:48.177 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/start/{server_name}, Methods: {'POST'}, Name: start_mcp_server
+2025-07-30 07:58:48.177 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/stop/{server_name}, Methods: {'POST'}, Name: stop_mcp_server
+2025-07-30 07:58:48.178 | INFO     | app.main:<module>:192 - ==============================================================================
+2025-07-30 08:11:00.170 | INFO     | app.main:<module>:39 - 启动应用: AI Assistant API v0.1.0
+2025-07-30 08:11:00.170 | INFO     | app.main:<module>:40 - 数据库: ai_assistant
+2025-07-30 08:11:00.197 | INFO     | app.main:<module>:181 - ============================== Registered Routes ==============================
+2025-07-30 08:11:00.197 | INFO     | app.main:<module>:188 - Path: /openapi.json, Methods: {'GET', 'HEAD'}, Name: openapi
+2025-07-30 08:11:00.197 | INFO     | app.main:<module>:188 - Path: /redoc, Methods: {'GET', 'HEAD'}, Name: redoc_html
+2025-07-30 08:11:00.197 | INFO     | app.main:<module>:188 - Path: /docs, Methods: {'GET'}, Name: custom_swagger_ui_html
+2025-07-30 08:11:00.197 | INFO     | app.main:<module>:188 - Path: /, Methods: {'GET'}, Name: root
+2025-07-30 08:11:00.197 | INFO     | app.main:<module>:188 - Path: /health, Methods: {'GET'}, Name: health_check
+2025-07-30 08:11:00.197 | INFO     | app.main:<module>:188 - Path: /api/v1/intent/interpret, Methods: {'POST'}, Name: process_intent
+2025-07-30 08:11:00.197 | INFO     | app.main:<module>:188 - Path: /api/v1/intent/confirm, Methods: {'POST'}, Name: confirm_execution
+2025-07-30 08:11:00.197 | INFO     | app.main:<module>:188 - Path: /api/v1/execute, Methods: {'POST'}, Name: execute_tool
+2025-07-30 08:11:00.197 | INFO     | app.main:<module>:188 - Path: /api/v1/tools, Methods: {'GET'}, Name: get_tools
+2025-07-30 08:11:00.197 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/register, Methods: {'POST'}, Name: register
+2025-07-30 08:11:00.198 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/token, Methods: {'POST'}, Name: login_for_access_token
+2025-07-30 08:11:00.198 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/login, Methods: {'POST'}, Name: login
+2025-07-30 08:11:00.198 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/me, Methods: {'GET'}, Name: get_me
+2025-07-30 08:11:00.198 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'GET'}, Name: get_developer_tools
+2025-07-30 08:11:00.198 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'POST'}, Name: create_developer_tool
+2025-07-30 08:11:00.198 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'GET'}, Name: get_developer_tool
+2025-07-30 08:11:00.198 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'PUT'}, Name: update_developer_tool
+2025-07-30 08:11:00.198 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'DELETE'}, Name: delete_developer_tool
+2025-07-30 08:11:00.198 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload, Methods: {'POST'}, Name: upload_tool_package
+2025-07-30 08:11:00.198 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload/validate, Methods: {'POST'}, Name: validate_tool_package
+2025-07-30 08:11:00.198 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}/test, Methods: {'POST'}, Name: test_developer_tool
+2025-07-30 08:11:00.198 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/test/batch, Methods: {'POST'}, Name: batch_test_tools
+2025-07-30 08:11:00.198 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/health, Methods: {'GET'}, Name: get_mcp_servers_health
+2025-07-30 08:11:00.198 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status, Methods: {'GET'}, Name: get_mcp_servers_status
+2025-07-30 08:11:00.198 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status/{server_name}, Methods: {'GET'}, Name: get_mcp_server_status
+2025-07-30 08:11:00.198 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/restart/{server_name}, Methods: {'POST'}, Name: restart_mcp_server
+2025-07-30 08:11:00.198 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/start/{server_name}, Methods: {'POST'}, Name: start_mcp_server
+2025-07-30 08:11:00.198 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/stop/{server_name}, Methods: {'POST'}, Name: stop_mcp_server
+2025-07-30 08:11:00.199 | INFO     | app.main:<module>:192 - ==============================================================================
+2025-07-30 08:11:00.199 | INFO     | __main__:test_mcp_client:20 - 开始测试修复后的MCP客户端...
+2025-07-30 08:11:00.199 | INFO     | app.utils.mcp_client:__init__:77 - MCP客户端包装器：配置加载成功
+2025-07-30 08:11:00.199 | INFO     | app.utils.mcp_client:__init__:79 - 已加载 4 个MCP服务器配置
+2025-07-30 08:11:00.199 | INFO     | __main__:test_mcp_client:25 - MCP客户端初始化成功，加载了 4 个服务器配置
+2025-07-30 08:11:00.199 | INFO     | __main__:test_mcp_client:28 - 测试执行 maps_weather 工具...
+2025-07-30 08:11:00.199 | INFO     | app.utils.mcp_client:_create_client_and_connect:92 - 创建新的MCP客户端实例并连接到服务器: amap-maps
+2025-07-30 08:11:00.674 | INFO     | app.utils.mcp_client:_create_client_and_connect:97 - 成功连接到MCP服务器: amap-maps
+2025-07-30 08:11:00.674 | INFO     | app.utils.mcp_client:execute_tool:192 - 准备通过MCP客户端 ('amap-maps') 执行工具: tool=maps_weather, params={'city': '上海'}
+2025-07-30 08:11:00.870 | INFO     | app.utils.mcp_client:execute_tool:226 - MCP客户端执行工具成功: tool=maps_weather
+2025-07-30 08:11:00.879 | WARNING  | app.utils.mcp_client:execute_tool:255 - 清理MCP客户端资源时出错: Attempted to exit cancel scope in a different task than it was entered in
+2025-07-30 08:11:00.879 | INFO     | __main__:test_mcp_client:35 - 工具执行结果: {'tool_id': 'maps_weather', 'success': True, 'result': {'message': '{\n  "city": "上海市",\n  "forecasts": [\n    {\n      "date": "2025-07-30",\n      "week": "3",\n      "dayweather": "暴雨",\n      "nightweather": "小雨",\n      "daytemp": "28",\n      "nighttemp": "26",\n      "daywind": "东南",\n      "nightwind": "东南",\n      "daypower": "1-3",\n      "nightpower": "1-3",\n      "daytemp_float": "28.0",\n      "nighttemp_float": "26.0"\n    },\n    {\n      "date": "2025-07-31",\n      "week": "4",\n      "dayweather": "小雨",\n      "nightweather": "阴",\n      "daytemp": "30",\n      "nighttemp": "27",\n      "daywind": "东南",\n      "nightwind": "东南",\n      "daypower": "1-3",\n      "nightpower": "1-3",\n      "daytemp_float": "30.0",\n      "nighttemp_float": "27.0"\n    },\n    {\n      "date": "2025-08-01",\n      "week": "5",\n      "dayweather": "阴",\n      "nightweather": "阴",\n      "daytemp": "31",\n      "nighttemp": "27",\n      "daywind": "东南",\n      "nightwind": "东南",\n      "daypower": "1-3",\n      "nightpower": "1-3",\n      "daytemp_float": "31.0",\n      "nighttemp_float": "27.0"\n    },\n    {\n      "date": "2025-08-02",\n      "week": "6",\n      "dayweather": "阴",\n      "nightweather": "阴",\n      "daytemp": "32",\n      "nighttemp": "27",\n      "daywind": "东南",\n      "nightwind": "东南",\n      "daypower": "1-3",\n      "nightpower": "1-3",\n      "daytemp_float": "32.0",\n      "nighttemp_float": "27.0"\n    }\n  ]\n}'}}
+2025-07-30 08:11:00.880 | INFO     | __main__:test_mcp_client:38 - ✅ MCP客户端修复成功！工具执行正常
+2025-07-30 15:59:15.101 | INFO     | app.main:<module>:39 - 启动应用: AI Assistant API v0.1.0
+2025-07-30 15:59:15.101 | INFO     | app.main:<module>:40 - 数据库: ai_assistant
+2025-07-30 15:59:15.127 | INFO     | app.main:<module>:181 - ============================== Registered Routes ==============================
+2025-07-30 15:59:15.127 | INFO     | app.main:<module>:188 - Path: /openapi.json, Methods: {'HEAD', 'GET'}, Name: openapi
+2025-07-30 15:59:15.127 | INFO     | app.main:<module>:188 - Path: /redoc, Methods: {'HEAD', 'GET'}, Name: redoc_html
+2025-07-30 15:59:15.127 | INFO     | app.main:<module>:188 - Path: /docs, Methods: {'GET'}, Name: custom_swagger_ui_html
+2025-07-30 15:59:15.127 | INFO     | app.main:<module>:188 - Path: /, Methods: {'GET'}, Name: root
+2025-07-30 15:59:15.127 | INFO     | app.main:<module>:188 - Path: /health, Methods: {'GET'}, Name: health_check
+2025-07-30 15:59:15.127 | INFO     | app.main:<module>:188 - Path: /api/v1/intent/interpret, Methods: {'POST'}, Name: process_intent
+2025-07-30 15:59:15.127 | INFO     | app.main:<module>:188 - Path: /api/v1/intent/confirm, Methods: {'POST'}, Name: confirm_execution
+2025-07-30 15:59:15.127 | INFO     | app.main:<module>:188 - Path: /api/v1/execute, Methods: {'POST'}, Name: execute_tool
+2025-07-30 15:59:15.128 | INFO     | app.main:<module>:188 - Path: /api/v1/tools, Methods: {'GET'}, Name: get_tools
+2025-07-30 15:59:15.128 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/register, Methods: {'POST'}, Name: register
+2025-07-30 15:59:15.128 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/token, Methods: {'POST'}, Name: login_for_access_token
+2025-07-30 15:59:15.128 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/login, Methods: {'POST'}, Name: login
+2025-07-30 15:59:15.128 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/me, Methods: {'GET'}, Name: get_me
+2025-07-30 15:59:15.128 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'GET'}, Name: get_developer_tools
+2025-07-30 15:59:15.128 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'POST'}, Name: create_developer_tool
+2025-07-30 15:59:15.128 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'GET'}, Name: get_developer_tool
+2025-07-30 15:59:15.128 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'PUT'}, Name: update_developer_tool
+2025-07-30 15:59:15.128 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'DELETE'}, Name: delete_developer_tool
+2025-07-30 15:59:15.128 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload, Methods: {'POST'}, Name: upload_tool_package
+2025-07-30 15:59:15.128 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload/validate, Methods: {'POST'}, Name: validate_tool_package
+2025-07-30 15:59:15.128 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}/test, Methods: {'POST'}, Name: test_developer_tool
+2025-07-30 15:59:15.128 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/test/batch, Methods: {'POST'}, Name: batch_test_tools
+2025-07-30 15:59:15.128 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/health, Methods: {'GET'}, Name: get_mcp_servers_health
+2025-07-30 15:59:15.128 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status, Methods: {'GET'}, Name: get_mcp_servers_status
+2025-07-30 15:59:15.129 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status/{server_name}, Methods: {'GET'}, Name: get_mcp_server_status
+2025-07-30 15:59:15.129 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/restart/{server_name}, Methods: {'POST'}, Name: restart_mcp_server
+2025-07-30 15:59:15.129 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/start/{server_name}, Methods: {'POST'}, Name: start_mcp_server
+2025-07-30 15:59:15.129 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/stop/{server_name}, Methods: {'POST'}, Name: stop_mcp_server
+2025-07-30 15:59:15.129 | INFO     | app.main:<module>:192 - ==============================================================================
+2025-07-30 15:59:15.129 | INFO     | __main__:main:257 - 检查MCP服务器状态...
+2025-07-30 15:59:15.129 | ERROR    | __main__:main:311 - 同步脚本执行失败: 'MCPServerManager' object has no attribute 'load_config'
+2025-07-30 15:59:52.116 | INFO     | app.main:<module>:39 - 启动应用: AI Assistant API v0.1.0
+2025-07-30 15:59:52.116 | INFO     | app.main:<module>:40 - 数据库: ai_assistant
+2025-07-30 15:59:52.142 | INFO     | app.main:<module>:181 - ============================== Registered Routes ==============================
+2025-07-30 15:59:52.142 | INFO     | app.main:<module>:188 - Path: /openapi.json, Methods: {'GET', 'HEAD'}, Name: openapi
+2025-07-30 15:59:52.142 | INFO     | app.main:<module>:188 - Path: /redoc, Methods: {'GET', 'HEAD'}, Name: redoc_html
+2025-07-30 15:59:52.142 | INFO     | app.main:<module>:188 - Path: /docs, Methods: {'GET'}, Name: custom_swagger_ui_html
+2025-07-30 15:59:52.142 | INFO     | app.main:<module>:188 - Path: /, Methods: {'GET'}, Name: root
+2025-07-30 15:59:52.143 | INFO     | app.main:<module>:188 - Path: /health, Methods: {'GET'}, Name: health_check
+2025-07-30 15:59:52.143 | INFO     | app.main:<module>:188 - Path: /api/v1/intent/interpret, Methods: {'POST'}, Name: process_intent
+2025-07-30 15:59:52.143 | INFO     | app.main:<module>:188 - Path: /api/v1/intent/confirm, Methods: {'POST'}, Name: confirm_execution
+2025-07-30 15:59:52.143 | INFO     | app.main:<module>:188 - Path: /api/v1/execute, Methods: {'POST'}, Name: execute_tool
+2025-07-30 15:59:52.143 | INFO     | app.main:<module>:188 - Path: /api/v1/tools, Methods: {'GET'}, Name: get_tools
+2025-07-30 15:59:52.143 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/register, Methods: {'POST'}, Name: register
+2025-07-30 15:59:52.143 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/token, Methods: {'POST'}, Name: login_for_access_token
+2025-07-30 15:59:52.143 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/login, Methods: {'POST'}, Name: login
+2025-07-30 15:59:52.143 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/me, Methods: {'GET'}, Name: get_me
+2025-07-30 15:59:52.143 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'GET'}, Name: get_developer_tools
+2025-07-30 15:59:52.143 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'POST'}, Name: create_developer_tool
+2025-07-30 15:59:52.143 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'GET'}, Name: get_developer_tool
+2025-07-30 15:59:52.143 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'PUT'}, Name: update_developer_tool
+2025-07-30 15:59:52.143 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'DELETE'}, Name: delete_developer_tool
+2025-07-30 15:59:52.143 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload, Methods: {'POST'}, Name: upload_tool_package
+2025-07-30 15:59:52.143 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload/validate, Methods: {'POST'}, Name: validate_tool_package
+2025-07-30 15:59:52.144 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}/test, Methods: {'POST'}, Name: test_developer_tool
+2025-07-30 15:59:52.144 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/test/batch, Methods: {'POST'}, Name: batch_test_tools
+2025-07-30 15:59:52.144 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/health, Methods: {'GET'}, Name: get_mcp_servers_health
+2025-07-30 15:59:52.144 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status, Methods: {'GET'}, Name: get_mcp_servers_status
+2025-07-30 15:59:52.144 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status/{server_name}, Methods: {'GET'}, Name: get_mcp_server_status
+2025-07-30 15:59:52.144 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/restart/{server_name}, Methods: {'POST'}, Name: restart_mcp_server
+2025-07-30 15:59:52.144 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/start/{server_name}, Methods: {'POST'}, Name: start_mcp_server
+2025-07-30 15:59:52.144 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/stop/{server_name}, Methods: {'POST'}, Name: stop_mcp_server
+2025-07-30 15:59:52.144 | INFO     | app.main:<module>:192 - ==============================================================================
+2025-07-30 15:59:52.144 | INFO     | __main__:main:257 - 检查MCP服务器状态...
+2025-07-30 15:59:52.145 | WARNING  | __main__:main:268 - 没有运行中的MCP服务器，尝试启动...
+2025-07-30 15:59:52.145 | INFO     | app.services.mcp_manager:start_all_servers:368 - 开始启动所有MCP服务器...
+2025-07-30 15:59:52.145 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: playwright
+2025-07-30 15:59:52.146 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: minimax-mcp-js
+2025-07-30 15:59:52.148 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: amap-maps
+2025-07-30 15:59:52.149 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: web3-rpc
+2025-07-30 15:59:57.174 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 amap-maps 启动成功 (PID: 23877)
+2025-07-30 15:59:57.184 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 web3-rpc 启动成功 (PID: 23879)
+2025-07-30 16:00:09.096 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 playwright 启动成功 (PID: 23873)
+2025-07-30 16:00:09.315 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 minimax-mcp-js 启动成功 (PID: 23875)
+2025-07-30 16:00:09.377 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 playwright 启动成功
+2025-07-30 16:00:09.466 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 minimax-mcp-js 启动成功
+2025-07-30 16:00:09.544 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 amap-maps 启动成功
+2025-07-30 16:00:09.683 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 web3-rpc 启动成功
+2025-07-30 16:00:09.806 | INFO     | __main__:main:281 - 发现 4 个运行中的MCP服务器: playwright, minimax-mcp-js, amap-maps, web3-rpc
+2025-07-30 16:00:09.849 | INFO     | app.utils.mcp_client:__init__:84 - MCP客户端包装器：配置加载成功
+2025-07-30 16:00:09.849 | INFO     | app.utils.mcp_client:__init__:86 - 已加载 4 个MCP服务器配置
+2025-07-30 16:00:09.849 | INFO     | __main__:sync_all_tools:37 - 开始同步MCP工具到数据库...
+2025-07-30 16:00:09.849 | INFO     | __main__:sync_server_tools:92 - 开始同步服务器 playwright 的工具...
+2025-07-30 16:00:09.851 | ERROR    | __main__:sync_server_tools:144 - 同步服务器 playwright 工具时发生异常: MCPClientWrapper.get_tool_info() missing 1 required positional argument: 'query'
+2025-07-30 16:00:09.852 | INFO     | __main__:sync_server_tools:92 - 开始同步服务器 minimax-mcp-js 的工具...
+2025-07-30 16:00:09.852 | ERROR    | __main__:sync_server_tools:144 - 同步服务器 minimax-mcp-js 工具时发生异常: MCPClientWrapper.get_tool_info() missing 1 required positional argument: 'query'
+2025-07-30 16:00:09.852 | INFO     | __main__:sync_server_tools:92 - 开始同步服务器 amap-maps 的工具...
+2025-07-30 16:00:09.852 | ERROR    | __main__:sync_server_tools:144 - 同步服务器 amap-maps 工具时发生异常: MCPClientWrapper.get_tool_info() missing 1 required positional argument: 'query'
+2025-07-30 16:00:09.852 | INFO     | __main__:sync_server_tools:92 - 开始同步服务器 web3-rpc 的工具...
+2025-07-30 16:00:09.852 | ERROR    | __main__:sync_server_tools:144 - 同步服务器 web3-rpc 工具时发生异常: MCPClientWrapper.get_tool_info() missing 1 required positional argument: 'query'
+2025-07-30 16:00:09.852 | INFO     | __main__:sync_all_tools:85 - MCP工具同步完成: 处理了 4 个服务器
+2025-07-30 16:00:09.852 | INFO     | __main__:sync_all_tools:86 - 同步统计: 新增 0 个，更新 0 个，失败 4 个
+2025-07-30 16:00:09.852 | INFO     | __main__:remove_orphaned_tools:194 - 开始清理孤立的MCP工具...
+2025-07-30 16:00:09.964 | INFO     | __main__:remove_orphaned_tools:235 - 未发现孤立的MCP工具
+2025-07-30 16:05:14.751 | INFO     | app.main:<module>:39 - 启动应用: AI Assistant API v0.1.0
+2025-07-30 16:05:14.751 | INFO     | app.main:<module>:40 - 数据库: ai_assistant
+2025-07-30 16:05:14.779 | INFO     | app.main:<module>:181 - ============================== Registered Routes ==============================
+2025-07-30 16:05:14.779 | INFO     | app.main:<module>:188 - Path: /openapi.json, Methods: {'GET', 'HEAD'}, Name: openapi
+2025-07-30 16:05:14.779 | INFO     | app.main:<module>:188 - Path: /redoc, Methods: {'GET', 'HEAD'}, Name: redoc_html
+2025-07-30 16:05:14.779 | INFO     | app.main:<module>:188 - Path: /docs, Methods: {'GET'}, Name: custom_swagger_ui_html
+2025-07-30 16:05:14.779 | INFO     | app.main:<module>:188 - Path: /, Methods: {'GET'}, Name: root
+2025-07-30 16:05:14.779 | INFO     | app.main:<module>:188 - Path: /health, Methods: {'GET'}, Name: health_check
+2025-07-30 16:05:14.779 | INFO     | app.main:<module>:188 - Path: /api/v1/intent/interpret, Methods: {'POST'}, Name: process_intent
+2025-07-30 16:05:14.779 | INFO     | app.main:<module>:188 - Path: /api/v1/intent/confirm, Methods: {'POST'}, Name: confirm_execution
+2025-07-30 16:05:14.779 | INFO     | app.main:<module>:188 - Path: /api/v1/execute, Methods: {'POST'}, Name: execute_tool
+2025-07-30 16:05:14.779 | INFO     | app.main:<module>:188 - Path: /api/v1/tools, Methods: {'GET'}, Name: get_tools
+2025-07-30 16:05:14.779 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/register, Methods: {'POST'}, Name: register
+2025-07-30 16:05:14.779 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/token, Methods: {'POST'}, Name: login_for_access_token
+2025-07-30 16:05:14.779 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/login, Methods: {'POST'}, Name: login
+2025-07-30 16:05:14.780 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/me, Methods: {'GET'}, Name: get_me
+2025-07-30 16:05:14.780 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'GET'}, Name: get_developer_tools
+2025-07-30 16:05:14.780 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'POST'}, Name: create_developer_tool
+2025-07-30 16:05:14.780 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'GET'}, Name: get_developer_tool
+2025-07-30 16:05:14.780 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'PUT'}, Name: update_developer_tool
+2025-07-30 16:05:14.780 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'DELETE'}, Name: delete_developer_tool
+2025-07-30 16:05:14.780 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload, Methods: {'POST'}, Name: upload_tool_package
+2025-07-30 16:05:14.780 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload/validate, Methods: {'POST'}, Name: validate_tool_package
+2025-07-30 16:05:14.780 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}/test, Methods: {'POST'}, Name: test_developer_tool
+2025-07-30 16:05:14.780 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/test/batch, Methods: {'POST'}, Name: batch_test_tools
+2025-07-30 16:05:14.780 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/health, Methods: {'GET'}, Name: get_mcp_servers_health
+2025-07-30 16:05:14.780 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status, Methods: {'GET'}, Name: get_mcp_servers_status
+2025-07-30 16:05:14.780 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status/{server_name}, Methods: {'GET'}, Name: get_mcp_server_status
+2025-07-30 16:05:14.780 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/restart/{server_name}, Methods: {'POST'}, Name: restart_mcp_server
+2025-07-30 16:05:14.780 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/start/{server_name}, Methods: {'POST'}, Name: start_mcp_server
+2025-07-30 16:05:14.780 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/stop/{server_name}, Methods: {'POST'}, Name: stop_mcp_server
+2025-07-30 16:05:14.780 | INFO     | app.main:<module>:192 - ==============================================================================
+2025-07-30 16:05:14.781 | INFO     | __main__:main:257 - 检查MCP服务器状态...
+2025-07-30 16:05:14.781 | WARNING  | __main__:main:268 - 没有运行中的MCP服务器，尝试启动...
+2025-07-30 16:05:14.781 | INFO     | app.services.mcp_manager:start_all_servers:368 - 开始启动所有MCP服务器...
+2025-07-30 16:05:14.781 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: playwright
+2025-07-30 16:05:14.782 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: minimax-mcp-js
+2025-07-30 16:05:14.784 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: amap-maps
+2025-07-30 16:05:14.785 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: web3-rpc
+2025-07-30 16:05:19.790 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 amap-maps 启动成功 (PID: 5287)
+2025-07-30 16:05:19.791 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 web3-rpc 启动成功 (PID: 5289)
+2025-07-30 16:05:31.303 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 playwright 启动成功 (PID: 5283)
+2025-07-30 16:05:31.304 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 minimax-mcp-js 启动成功 (PID: 5285)
+2025-07-30 16:05:31.304 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 playwright 启动成功
+2025-07-30 16:05:31.304 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 minimax-mcp-js 启动成功
+2025-07-30 16:05:31.304 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 amap-maps 启动成功
+2025-07-30 16:05:31.304 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 web3-rpc 启动成功
+2025-07-30 16:05:31.304 | INFO     | __main__:main:281 - 发现 4 个运行中的MCP服务器: playwright, minimax-mcp-js, amap-maps, web3-rpc
+2025-07-30 16:05:31.304 | INFO     | app.utils.mcp_client:__init__:84 - MCP客户端包装器：配置加载成功
+2025-07-30 16:05:31.304 | INFO     | app.utils.mcp_client:__init__:86 - 已加载 4 个MCP服务器配置
+2025-07-30 16:05:31.304 | INFO     | __main__:sync_all_tools:37 - 开始同步MCP工具到数据库...
+2025-07-30 16:05:31.304 | INFO     | __main__:sync_server_tools:92 - 开始同步服务器 playwright 的工具...
+2025-07-30 16:05:31.305 | ERROR    | __main__:sync_server_tools:144 - 同步服务器 playwright 工具时发生异常: MCPClientWrapper.get_tool_info() missing 1 required positional argument: 'query'
+2025-07-30 16:05:31.305 | INFO     | __main__:sync_server_tools:92 - 开始同步服务器 minimax-mcp-js 的工具...
+2025-07-30 16:05:31.305 | ERROR    | __main__:sync_server_tools:144 - 同步服务器 minimax-mcp-js 工具时发生异常: MCPClientWrapper.get_tool_info() missing 1 required positional argument: 'query'
+2025-07-30 16:05:31.305 | INFO     | __main__:sync_server_tools:92 - 开始同步服务器 amap-maps 的工具...
+2025-07-30 16:05:31.305 | ERROR    | __main__:sync_server_tools:144 - 同步服务器 amap-maps 工具时发生异常: MCPClientWrapper.get_tool_info() missing 1 required positional argument: 'query'
+2025-07-30 16:05:31.305 | INFO     | __main__:sync_server_tools:92 - 开始同步服务器 web3-rpc 的工具...
+2025-07-30 16:05:31.305 | ERROR    | __main__:sync_server_tools:144 - 同步服务器 web3-rpc 工具时发生异常: MCPClientWrapper.get_tool_info() missing 1 required positional argument: 'query'
+2025-07-30 16:05:31.305 | INFO     | __main__:sync_all_tools:85 - MCP工具同步完成: 处理了 4 个服务器
+2025-07-30 16:05:31.305 | INFO     | __main__:sync_all_tools:86 - 同步统计: 新增 0 个，更新 0 个，失败 4 个
+2025-07-30 16:05:31.305 | INFO     | __main__:remove_orphaned_tools:194 - 开始清理孤立的MCP工具...
+2025-07-30 16:05:31.344 | INFO     | __main__:remove_orphaned_tools:235 - 未发现孤立的MCP工具
+2025-07-30 16:05:59.925 | INFO     | app.main:<module>:39 - 启动应用: AI Assistant API v0.1.0
+2025-07-30 16:05:59.925 | INFO     | app.main:<module>:40 - 数据库: ai_assistant
+2025-07-30 16:05:59.952 | INFO     | app.main:<module>:181 - ============================== Registered Routes ==============================
+2025-07-30 16:05:59.952 | INFO     | app.main:<module>:188 - Path: /openapi.json, Methods: {'HEAD', 'GET'}, Name: openapi
+2025-07-30 16:05:59.952 | INFO     | app.main:<module>:188 - Path: /redoc, Methods: {'HEAD', 'GET'}, Name: redoc_html
+2025-07-30 16:05:59.952 | INFO     | app.main:<module>:188 - Path: /docs, Methods: {'GET'}, Name: custom_swagger_ui_html
+2025-07-30 16:05:59.953 | INFO     | app.main:<module>:188 - Path: /, Methods: {'GET'}, Name: root
+2025-07-30 16:05:59.953 | INFO     | app.main:<module>:188 - Path: /health, Methods: {'GET'}, Name: health_check
+2025-07-30 16:05:59.953 | INFO     | app.main:<module>:188 - Path: /api/v1/intent/interpret, Methods: {'POST'}, Name: process_intent
+2025-07-30 16:05:59.953 | INFO     | app.main:<module>:188 - Path: /api/v1/intent/confirm, Methods: {'POST'}, Name: confirm_execution
+2025-07-30 16:05:59.953 | INFO     | app.main:<module>:188 - Path: /api/v1/execute, Methods: {'POST'}, Name: execute_tool
+2025-07-30 16:05:59.953 | INFO     | app.main:<module>:188 - Path: /api/v1/tools, Methods: {'GET'}, Name: get_tools
+2025-07-30 16:05:59.954 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/register, Methods: {'POST'}, Name: register
+2025-07-30 16:05:59.954 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/token, Methods: {'POST'}, Name: login_for_access_token
+2025-07-30 16:05:59.954 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/login, Methods: {'POST'}, Name: login
+2025-07-30 16:05:59.954 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/me, Methods: {'GET'}, Name: get_me
+2025-07-30 16:05:59.954 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'GET'}, Name: get_developer_tools
+2025-07-30 16:05:59.954 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'POST'}, Name: create_developer_tool
+2025-07-30 16:05:59.955 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'GET'}, Name: get_developer_tool
+2025-07-30 16:05:59.955 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'PUT'}, Name: update_developer_tool
+2025-07-30 16:05:59.955 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'DELETE'}, Name: delete_developer_tool
+2025-07-30 16:05:59.955 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload, Methods: {'POST'}, Name: upload_tool_package
+2025-07-30 16:05:59.955 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload/validate, Methods: {'POST'}, Name: validate_tool_package
+2025-07-30 16:05:59.955 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}/test, Methods: {'POST'}, Name: test_developer_tool
+2025-07-30 16:05:59.956 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/test/batch, Methods: {'POST'}, Name: batch_test_tools
+2025-07-30 16:05:59.956 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/health, Methods: {'GET'}, Name: get_mcp_servers_health
+2025-07-30 16:05:59.956 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status, Methods: {'GET'}, Name: get_mcp_servers_status
+2025-07-30 16:05:59.956 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status/{server_name}, Methods: {'GET'}, Name: get_mcp_server_status
+2025-07-30 16:05:59.956 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/restart/{server_name}, Methods: {'POST'}, Name: restart_mcp_server
+2025-07-30 16:05:59.956 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/start/{server_name}, Methods: {'POST'}, Name: start_mcp_server
+2025-07-30 16:05:59.956 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/stop/{server_name}, Methods: {'POST'}, Name: stop_mcp_server
+2025-07-30 16:05:59.956 | INFO     | app.main:<module>:192 - ==============================================================================
+2025-07-30 16:05:59.957 | INFO     | __main__:main:257 - 检查MCP服务器状态...
+2025-07-30 16:05:59.957 | WARNING  | __main__:main:268 - 没有运行中的MCP服务器，尝试启动...
+2025-07-30 16:05:59.957 | INFO     | app.services.mcp_manager:start_all_servers:368 - 开始启动所有MCP服务器...
+2025-07-30 16:05:59.957 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: playwright
+2025-07-30 16:05:59.958 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: minimax-mcp-js
+2025-07-30 16:05:59.961 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: amap-maps
+2025-07-30 16:05:59.962 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: web3-rpc
+2025-07-30 16:06:04.969 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 amap-maps 启动成功 (PID: 7150)
+2025-07-30 16:06:04.969 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 web3-rpc 启动成功 (PID: 7152)
+2025-07-30 16:06:16.479 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 playwright 启动成功 (PID: 7146)
+2025-07-30 16:06:16.480 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 minimax-mcp-js 启动成功 (PID: 7148)
+2025-07-30 16:06:16.480 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 playwright 启动成功
+2025-07-30 16:06:16.480 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 minimax-mcp-js 启动成功
+2025-07-30 16:06:16.480 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 amap-maps 启动成功
+2025-07-30 16:06:16.480 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 web3-rpc 启动成功
+2025-07-30 16:06:16.480 | INFO     | __main__:main:281 - 发现 4 个运行中的MCP服务器: playwright, minimax-mcp-js, amap-maps, web3-rpc
+2025-07-30 16:06:16.480 | INFO     | app.utils.mcp_client:__init__:84 - MCP客户端包装器：配置加载成功
+2025-07-30 16:06:16.480 | INFO     | app.utils.mcp_client:__init__:86 - 已加载 4 个MCP服务器配置
+2025-07-30 16:06:16.480 | INFO     | __main__:sync_all_tools:37 - 开始同步MCP工具到数据库...
+2025-07-30 16:06:16.481 | INFO     | __main__:sync_server_tools:92 - 开始同步服务器 playwright 的工具...
+2025-07-30 16:06:16.481 | ERROR    | __main__:sync_server_tools:144 - 同步服务器 playwright 工具时发生异常: 'MCPClientWrapper' object has no attribute 'get_server_tools'
+2025-07-30 16:06:16.481 | INFO     | __main__:sync_server_tools:92 - 开始同步服务器 minimax-mcp-js 的工具...
+2025-07-30 16:06:16.481 | ERROR    | __main__:sync_server_tools:144 - 同步服务器 minimax-mcp-js 工具时发生异常: 'MCPClientWrapper' object has no attribute 'get_server_tools'
+2025-07-30 16:06:16.481 | INFO     | __main__:sync_server_tools:92 - 开始同步服务器 amap-maps 的工具...
+2025-07-30 16:06:16.481 | ERROR    | __main__:sync_server_tools:144 - 同步服务器 amap-maps 工具时发生异常: 'MCPClientWrapper' object has no attribute 'get_server_tools'
+2025-07-30 16:06:16.481 | INFO     | __main__:sync_server_tools:92 - 开始同步服务器 web3-rpc 的工具...
+2025-07-30 16:06:16.481 | ERROR    | __main__:sync_server_tools:144 - 同步服务器 web3-rpc 工具时发生异常: 'MCPClientWrapper' object has no attribute 'get_server_tools'
+2025-07-30 16:06:16.481 | INFO     | __main__:sync_all_tools:85 - MCP工具同步完成: 处理了 4 个服务器
+2025-07-30 16:06:16.481 | INFO     | __main__:sync_all_tools:86 - 同步统计: 新增 0 个，更新 0 个，失败 4 个
+2025-07-30 16:06:16.481 | INFO     | __main__:remove_orphaned_tools:194 - 开始清理孤立的MCP工具...
+2025-07-30 16:06:16.520 | INFO     | __main__:remove_orphaned_tools:235 - 未发现孤立的MCP工具
+2025-07-30 16:06:53.142 | INFO     | app.main:<module>:39 - 启动应用: AI Assistant API v0.1.0
+2025-07-30 16:06:53.143 | INFO     | app.main:<module>:40 - 数据库: ai_assistant
+2025-07-30 16:06:53.168 | INFO     | app.main:<module>:181 - ============================== Registered Routes ==============================
+2025-07-30 16:06:53.168 | INFO     | app.main:<module>:188 - Path: /openapi.json, Methods: {'GET', 'HEAD'}, Name: openapi
+2025-07-30 16:06:53.168 | INFO     | app.main:<module>:188 - Path: /redoc, Methods: {'GET', 'HEAD'}, Name: redoc_html
+2025-07-30 16:06:53.169 | INFO     | app.main:<module>:188 - Path: /docs, Methods: {'GET'}, Name: custom_swagger_ui_html
+2025-07-30 16:06:53.169 | INFO     | app.main:<module>:188 - Path: /, Methods: {'GET'}, Name: root
+2025-07-30 16:06:53.169 | INFO     | app.main:<module>:188 - Path: /health, Methods: {'GET'}, Name: health_check
+2025-07-30 16:06:53.169 | INFO     | app.main:<module>:188 - Path: /api/v1/intent/interpret, Methods: {'POST'}, Name: process_intent
+2025-07-30 16:06:53.169 | INFO     | app.main:<module>:188 - Path: /api/v1/intent/confirm, Methods: {'POST'}, Name: confirm_execution
+2025-07-30 16:06:53.169 | INFO     | app.main:<module>:188 - Path: /api/v1/execute, Methods: {'POST'}, Name: execute_tool
+2025-07-30 16:06:53.169 | INFO     | app.main:<module>:188 - Path: /api/v1/tools, Methods: {'GET'}, Name: get_tools
+2025-07-30 16:06:53.169 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/register, Methods: {'POST'}, Name: register
+2025-07-30 16:06:53.169 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/token, Methods: {'POST'}, Name: login_for_access_token
+2025-07-30 16:06:53.169 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/login, Methods: {'POST'}, Name: login
+2025-07-30 16:06:53.169 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/me, Methods: {'GET'}, Name: get_me
+2025-07-30 16:06:53.169 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'GET'}, Name: get_developer_tools
+2025-07-30 16:06:53.169 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'POST'}, Name: create_developer_tool
+2025-07-30 16:06:53.169 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'GET'}, Name: get_developer_tool
+2025-07-30 16:06:53.169 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'PUT'}, Name: update_developer_tool
+2025-07-30 16:06:53.169 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'DELETE'}, Name: delete_developer_tool
+2025-07-30 16:06:53.169 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload, Methods: {'POST'}, Name: upload_tool_package
+2025-07-30 16:06:53.170 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload/validate, Methods: {'POST'}, Name: validate_tool_package
+2025-07-30 16:06:53.170 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}/test, Methods: {'POST'}, Name: test_developer_tool
+2025-07-30 16:06:53.170 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/test/batch, Methods: {'POST'}, Name: batch_test_tools
+2025-07-30 16:06:53.170 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/health, Methods: {'GET'}, Name: get_mcp_servers_health
+2025-07-30 16:06:53.170 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status, Methods: {'GET'}, Name: get_mcp_servers_status
+2025-07-30 16:06:53.170 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status/{server_name}, Methods: {'GET'}, Name: get_mcp_server_status
+2025-07-30 16:06:53.170 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/restart/{server_name}, Methods: {'POST'}, Name: restart_mcp_server
+2025-07-30 16:06:53.170 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/start/{server_name}, Methods: {'POST'}, Name: start_mcp_server
+2025-07-30 16:06:53.170 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/stop/{server_name}, Methods: {'POST'}, Name: stop_mcp_server
+2025-07-30 16:06:53.170 | INFO     | app.main:<module>:192 - ==============================================================================
+2025-07-30 16:06:53.170 | INFO     | __main__:main:257 - 检查MCP服务器状态...
+2025-07-30 16:06:53.171 | WARNING  | __main__:main:268 - 没有运行中的MCP服务器，尝试启动...
+2025-07-30 16:06:53.171 | INFO     | app.services.mcp_manager:start_all_servers:368 - 开始启动所有MCP服务器...
+2025-07-30 16:06:53.171 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: playwright
+2025-07-30 16:06:53.172 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: minimax-mcp-js
+2025-07-30 16:06:53.174 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: amap-maps
+2025-07-30 16:06:53.175 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: web3-rpc
+2025-07-30 16:06:58.181 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 amap-maps 启动成功 (PID: 9291)
+2025-07-30 16:06:58.181 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 web3-rpc 启动成功 (PID: 9293)
+2025-07-30 16:07:09.691 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 playwright 启动成功 (PID: 9287)
+2025-07-30 16:07:09.691 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 minimax-mcp-js 启动成功 (PID: 9289)
+2025-07-30 16:07:09.691 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 playwright 启动成功
+2025-07-30 16:07:09.691 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 minimax-mcp-js 启动成功
+2025-07-30 16:07:09.691 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 amap-maps 启动成功
+2025-07-30 16:07:09.692 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 web3-rpc 启动成功
+2025-07-30 16:07:09.692 | INFO     | __main__:main:281 - 发现 4 个运行中的MCP服务器: playwright, minimax-mcp-js, amap-maps, web3-rpc
+2025-07-30 16:07:09.692 | INFO     | app.utils.mcp_client:__init__:84 - MCP客户端包装器：配置加载成功
+2025-07-30 16:07:09.692 | INFO     | app.utils.mcp_client:__init__:86 - 已加载 4 个MCP服务器配置
+2025-07-30 16:07:09.692 | INFO     | __main__:sync_all_tools:37 - 开始同步MCP工具到数据库...
+2025-07-30 16:07:09.692 | INFO     | __main__:sync_server_tools:92 - 开始同步服务器 playwright 的工具...
+2025-07-30 16:07:09.692 | INFO     | app.utils.mcp_client:_get_or_create_client:118 - 创建新的MCP客户端实例并连接到服务器: playwright
+2025-07-30 16:07:10.808 | INFO     | app.utils.mcp_client:_get_or_create_client:125 - 成功连接到MCP服务器并加入连接池: playwright
+2025-07-30 16:07:10.808 | ERROR    | app.utils.mcp_client:get_server_tools:227 - 获取服务器 playwright 工具信息时发生错误: 'list' object has no attribute 'items'
+2025-07-30 16:07:10.808 | ERROR    | __main__:sync_server_tools:108 - 获取服务器 playwright 工具信息失败: 获取工具信息失败: 'list' object has no attribute 'items'
+2025-07-30 16:07:10.808 | INFO     | __main__:sync_server_tools:92 - 开始同步服务器 minimax-mcp-js 的工具...
+2025-07-30 16:07:10.808 | INFO     | app.utils.mcp_client:_get_or_create_client:118 - 创建新的MCP客户端实例并连接到服务器: minimax-mcp-js
+2025-07-30 16:07:11.503 | INFO     | app.utils.mcp_client:_get_or_create_client:125 - 成功连接到MCP服务器并加入连接池: minimax-mcp-js
+2025-07-30 16:07:11.504 | ERROR    | app.utils.mcp_client:get_server_tools:227 - 获取服务器 minimax-mcp-js 工具信息时发生错误: 'list' object has no attribute 'items'
+2025-07-30 16:07:11.504 | ERROR    | __main__:sync_server_tools:108 - 获取服务器 minimax-mcp-js 工具信息失败: 获取工具信息失败: 'list' object has no attribute 'items'
+2025-07-30 16:07:11.504 | INFO     | __main__:sync_server_tools:92 - 开始同步服务器 amap-maps 的工具...
+2025-07-30 16:07:11.504 | INFO     | app.utils.mcp_client:_get_or_create_client:118 - 创建新的MCP客户端实例并连接到服务器: amap-maps
+2025-07-30 16:07:11.955 | INFO     | app.utils.mcp_client:_get_or_create_client:125 - 成功连接到MCP服务器并加入连接池: amap-maps
+2025-07-30 16:07:11.955 | ERROR    | app.utils.mcp_client:get_server_tools:227 - 获取服务器 amap-maps 工具信息时发生错误: 'list' object has no attribute 'items'
+2025-07-30 16:07:11.955 | ERROR    | __main__:sync_server_tools:108 - 获取服务器 amap-maps 工具信息失败: 获取工具信息失败: 'list' object has no attribute 'items'
+2025-07-30 16:07:11.955 | INFO     | __main__:sync_server_tools:92 - 开始同步服务器 web3-rpc 的工具...
+2025-07-30 16:07:11.956 | INFO     | app.utils.mcp_client:_get_or_create_client:118 - 创建新的MCP客户端实例并连接到服务器: web3-rpc
+2025-07-30 16:07:15.477 | INFO     | app.utils.mcp_client:_get_or_create_client:125 - 成功连接到MCP服务器并加入连接池: web3-rpc
+2025-07-30 16:07:15.477 | ERROR    | app.utils.mcp_client:get_server_tools:227 - 获取服务器 web3-rpc 工具信息时发生错误: 'list' object has no attribute 'items'
+2025-07-30 16:07:15.477 | ERROR    | __main__:sync_server_tools:108 - 获取服务器 web3-rpc 工具信息失败: 获取工具信息失败: 'list' object has no attribute 'items'
+2025-07-30 16:07:15.477 | INFO     | __main__:sync_all_tools:85 - MCP工具同步完成: 处理了 4 个服务器
+2025-07-30 16:07:15.477 | INFO     | __main__:sync_all_tools:86 - 同步统计: 新增 0 个，更新 0 个，失败 4 个
+2025-07-30 16:07:15.477 | INFO     | __main__:remove_orphaned_tools:194 - 开始清理孤立的MCP工具...
+2025-07-30 16:07:15.519 | INFO     | __main__:remove_orphaned_tools:235 - 未发现孤立的MCP工具
+2025-07-30 16:07:54.738 | INFO     | app.main:<module>:39 - 启动应用: AI Assistant API v0.1.0
+2025-07-30 16:07:54.738 | INFO     | app.main:<module>:40 - 数据库: ai_assistant
+2025-07-30 16:07:54.763 | INFO     | app.main:<module>:181 - ============================== Registered Routes ==============================
+2025-07-30 16:07:54.763 | INFO     | app.main:<module>:188 - Path: /openapi.json, Methods: {'HEAD', 'GET'}, Name: openapi
+2025-07-30 16:07:54.763 | INFO     | app.main:<module>:188 - Path: /redoc, Methods: {'HEAD', 'GET'}, Name: redoc_html
+2025-07-30 16:07:54.763 | INFO     | app.main:<module>:188 - Path: /docs, Methods: {'GET'}, Name: custom_swagger_ui_html
+2025-07-30 16:07:54.763 | INFO     | app.main:<module>:188 - Path: /, Methods: {'GET'}, Name: root
+2025-07-30 16:07:54.763 | INFO     | app.main:<module>:188 - Path: /health, Methods: {'GET'}, Name: health_check
+2025-07-30 16:07:54.764 | INFO     | app.main:<module>:188 - Path: /api/v1/intent/interpret, Methods: {'POST'}, Name: process_intent
+2025-07-30 16:07:54.764 | INFO     | app.main:<module>:188 - Path: /api/v1/intent/confirm, Methods: {'POST'}, Name: confirm_execution
+2025-07-30 16:07:54.764 | INFO     | app.main:<module>:188 - Path: /api/v1/execute, Methods: {'POST'}, Name: execute_tool
+2025-07-30 16:07:54.764 | INFO     | app.main:<module>:188 - Path: /api/v1/tools, Methods: {'GET'}, Name: get_tools
+2025-07-30 16:07:54.764 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/register, Methods: {'POST'}, Name: register
+2025-07-30 16:07:54.764 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/token, Methods: {'POST'}, Name: login_for_access_token
+2025-07-30 16:07:54.764 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/login, Methods: {'POST'}, Name: login
+2025-07-30 16:07:54.764 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/me, Methods: {'GET'}, Name: get_me
+2025-07-30 16:07:54.764 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'GET'}, Name: get_developer_tools
+2025-07-30 16:07:54.764 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'POST'}, Name: create_developer_tool
+2025-07-30 16:07:54.764 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'GET'}, Name: get_developer_tool
+2025-07-30 16:07:54.764 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'PUT'}, Name: update_developer_tool
+2025-07-30 16:07:54.764 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'DELETE'}, Name: delete_developer_tool
+2025-07-30 16:07:54.764 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload, Methods: {'POST'}, Name: upload_tool_package
+2025-07-30 16:07:54.764 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload/validate, Methods: {'POST'}, Name: validate_tool_package
+2025-07-30 16:07:54.765 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}/test, Methods: {'POST'}, Name: test_developer_tool
+2025-07-30 16:07:54.765 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/test/batch, Methods: {'POST'}, Name: batch_test_tools
+2025-07-30 16:07:54.765 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/health, Methods: {'GET'}, Name: get_mcp_servers_health
+2025-07-30 16:07:54.765 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status, Methods: {'GET'}, Name: get_mcp_servers_status
+2025-07-30 16:07:54.765 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status/{server_name}, Methods: {'GET'}, Name: get_mcp_server_status
+2025-07-30 16:07:54.765 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/restart/{server_name}, Methods: {'POST'}, Name: restart_mcp_server
+2025-07-30 16:07:54.765 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/start/{server_name}, Methods: {'POST'}, Name: start_mcp_server
+2025-07-30 16:07:54.765 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/stop/{server_name}, Methods: {'POST'}, Name: stop_mcp_server
+2025-07-30 16:07:54.765 | INFO     | app.main:<module>:192 - ==============================================================================
+2025-07-30 16:07:54.766 | INFO     | __main__:main:257 - 检查MCP服务器状态...
+2025-07-30 16:07:54.766 | WARNING  | __main__:main:268 - 没有运行中的MCP服务器，尝试启动...
+2025-07-30 16:07:54.766 | INFO     | app.services.mcp_manager:start_all_servers:368 - 开始启动所有MCP服务器...
+2025-07-30 16:07:54.766 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: playwright
+2025-07-30 16:07:54.767 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: minimax-mcp-js
+2025-07-30 16:07:54.769 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: amap-maps
+2025-07-30 16:07:54.770 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: web3-rpc
+2025-07-30 16:07:59.776 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 amap-maps 启动成功 (PID: 12011)
+2025-07-30 16:07:59.777 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 web3-rpc 启动成功 (PID: 12013)
+2025-07-30 16:08:11.290 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 playwright 启动成功 (PID: 12007)
+2025-07-30 16:08:11.290 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 minimax-mcp-js 启动成功 (PID: 12009)
+2025-07-30 16:08:11.290 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 playwright 启动成功
+2025-07-30 16:08:11.290 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 minimax-mcp-js 启动成功
+2025-07-30 16:08:11.290 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 amap-maps 启动成功
+2025-07-30 16:08:11.290 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 web3-rpc 启动成功
+2025-07-30 16:08:11.291 | INFO     | __main__:main:281 - 发现 4 个运行中的MCP服务器: playwright, minimax-mcp-js, amap-maps, web3-rpc
+2025-07-30 16:08:11.291 | INFO     | app.utils.mcp_client:__init__:84 - MCP客户端包装器：配置加载成功
+2025-07-30 16:08:11.291 | INFO     | app.utils.mcp_client:__init__:86 - 已加载 4 个MCP服务器配置
+2025-07-30 16:08:11.291 | INFO     | __main__:sync_all_tools:37 - 开始同步MCP工具到数据库...
+2025-07-30 16:08:11.291 | INFO     | __main__:sync_server_tools:92 - 开始同步服务器 playwright 的工具...
+2025-07-30 16:08:11.291 | INFO     | app.utils.mcp_client:_get_or_create_client:118 - 创建新的MCP客户端实例并连接到服务器: playwright
+2025-07-30 16:08:12.321 | INFO     | app.utils.mcp_client:_get_or_create_client:125 - 成功连接到MCP服务器并加入连接池: playwright
+2025-07-30 16:08:12.321 | ERROR    | app.utils.mcp_client:get_server_tools:227 - 获取服务器 playwright 工具信息时发生错误: 'list' object has no attribute 'items'
+2025-07-30 16:08:12.321 | ERROR    | __main__:sync_server_tools:108 - 获取服务器 playwright 工具信息失败: 获取工具信息失败: 'list' object has no attribute 'items'
+2025-07-30 16:08:12.321 | INFO     | __main__:sync_server_tools:92 - 开始同步服务器 minimax-mcp-js 的工具...
+2025-07-30 16:08:12.321 | INFO     | app.utils.mcp_client:_get_or_create_client:118 - 创建新的MCP客户端实例并连接到服务器: minimax-mcp-js
+2025-07-30 16:08:12.998 | INFO     | app.utils.mcp_client:_get_or_create_client:125 - 成功连接到MCP服务器并加入连接池: minimax-mcp-js
+2025-07-30 16:08:12.998 | ERROR    | app.utils.mcp_client:get_server_tools:227 - 获取服务器 minimax-mcp-js 工具信息时发生错误: 'list' object has no attribute 'items'
+2025-07-30 16:08:12.998 | ERROR    | __main__:sync_server_tools:108 - 获取服务器 minimax-mcp-js 工具信息失败: 获取工具信息失败: 'list' object has no attribute 'items'
+2025-07-30 16:08:12.998 | INFO     | __main__:sync_server_tools:92 - 开始同步服务器 amap-maps 的工具...
+2025-07-30 16:08:12.998 | INFO     | app.utils.mcp_client:_get_or_create_client:118 - 创建新的MCP客户端实例并连接到服务器: amap-maps
+2025-07-30 16:08:13.459 | INFO     | app.utils.mcp_client:_get_or_create_client:125 - 成功连接到MCP服务器并加入连接池: amap-maps
+2025-07-30 16:08:13.460 | ERROR    | app.utils.mcp_client:get_server_tools:227 - 获取服务器 amap-maps 工具信息时发生错误: 'list' object has no attribute 'items'
+2025-07-30 16:08:13.460 | ERROR    | __main__:sync_server_tools:108 - 获取服务器 amap-maps 工具信息失败: 获取工具信息失败: 'list' object has no attribute 'items'
+2025-07-30 16:08:13.460 | INFO     | __main__:sync_server_tools:92 - 开始同步服务器 web3-rpc 的工具...
+2025-07-30 16:08:13.460 | INFO     | app.utils.mcp_client:_get_or_create_client:118 - 创建新的MCP客户端实例并连接到服务器: web3-rpc
+2025-07-30 16:08:16.941 | INFO     | app.utils.mcp_client:_get_or_create_client:125 - 成功连接到MCP服务器并加入连接池: web3-rpc
+2025-07-30 16:08:16.941 | ERROR    | app.utils.mcp_client:get_server_tools:227 - 获取服务器 web3-rpc 工具信息时发生错误: 'list' object has no attribute 'items'
+2025-07-30 16:08:16.941 | ERROR    | __main__:sync_server_tools:108 - 获取服务器 web3-rpc 工具信息失败: 获取工具信息失败: 'list' object has no attribute 'items'
+2025-07-30 16:08:16.942 | INFO     | __main__:sync_all_tools:85 - MCP工具同步完成: 处理了 4 个服务器
+2025-07-30 16:08:16.942 | INFO     | __main__:sync_all_tools:86 - 同步统计: 新增 0 个，更新 0 个，失败 4 个
+2025-07-30 16:08:16.942 | INFO     | __main__:remove_orphaned_tools:194 - 开始清理孤立的MCP工具...
+2025-07-30 16:08:16.983 | INFO     | __main__:remove_orphaned_tools:235 - 未发现孤立的MCP工具
+2025-07-30 16:09:13.974 | INFO     | app.main:<module>:39 - 启动应用: AI Assistant API v0.1.0
+2025-07-30 16:09:13.974 | INFO     | app.main:<module>:40 - 数据库: ai_assistant
+2025-07-30 16:09:14.000 | INFO     | app.main:<module>:181 - ============================== Registered Routes ==============================
+2025-07-30 16:09:14.000 | INFO     | app.main:<module>:188 - Path: /openapi.json, Methods: {'HEAD', 'GET'}, Name: openapi
+2025-07-30 16:09:14.000 | INFO     | app.main:<module>:188 - Path: /redoc, Methods: {'HEAD', 'GET'}, Name: redoc_html
+2025-07-30 16:09:14.000 | INFO     | app.main:<module>:188 - Path: /docs, Methods: {'GET'}, Name: custom_swagger_ui_html
+2025-07-30 16:09:14.000 | INFO     | app.main:<module>:188 - Path: /, Methods: {'GET'}, Name: root
+2025-07-30 16:09:14.000 | INFO     | app.main:<module>:188 - Path: /health, Methods: {'GET'}, Name: health_check
+2025-07-30 16:09:14.000 | INFO     | app.main:<module>:188 - Path: /api/v1/intent/interpret, Methods: {'POST'}, Name: process_intent
+2025-07-30 16:09:14.000 | INFO     | app.main:<module>:188 - Path: /api/v1/intent/confirm, Methods: {'POST'}, Name: confirm_execution
+2025-07-30 16:09:14.000 | INFO     | app.main:<module>:188 - Path: /api/v1/execute, Methods: {'POST'}, Name: execute_tool
+2025-07-30 16:09:14.000 | INFO     | app.main:<module>:188 - Path: /api/v1/tools, Methods: {'GET'}, Name: get_tools
+2025-07-30 16:09:14.000 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/register, Methods: {'POST'}, Name: register
+2025-07-30 16:09:14.000 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/token, Methods: {'POST'}, Name: login_for_access_token
+2025-07-30 16:09:14.000 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/login, Methods: {'POST'}, Name: login
+2025-07-30 16:09:14.001 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/me, Methods: {'GET'}, Name: get_me
+2025-07-30 16:09:14.001 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'GET'}, Name: get_developer_tools
+2025-07-30 16:09:14.001 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'POST'}, Name: create_developer_tool
+2025-07-30 16:09:14.001 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'GET'}, Name: get_developer_tool
+2025-07-30 16:09:14.001 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'PUT'}, Name: update_developer_tool
+2025-07-30 16:09:14.001 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'DELETE'}, Name: delete_developer_tool
+2025-07-30 16:09:14.001 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload, Methods: {'POST'}, Name: upload_tool_package
+2025-07-30 16:09:14.001 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload/validate, Methods: {'POST'}, Name: validate_tool_package
+2025-07-30 16:09:14.001 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}/test, Methods: {'POST'}, Name: test_developer_tool
+2025-07-30 16:09:14.001 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/test/batch, Methods: {'POST'}, Name: batch_test_tools
+2025-07-30 16:09:14.001 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/health, Methods: {'GET'}, Name: get_mcp_servers_health
+2025-07-30 16:09:14.001 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status, Methods: {'GET'}, Name: get_mcp_servers_status
+2025-07-30 16:09:14.001 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status/{server_name}, Methods: {'GET'}, Name: get_mcp_server_status
+2025-07-30 16:09:14.001 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/restart/{server_name}, Methods: {'POST'}, Name: restart_mcp_server
+2025-07-30 16:09:14.001 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/start/{server_name}, Methods: {'POST'}, Name: start_mcp_server
+2025-07-30 16:09:14.001 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/stop/{server_name}, Methods: {'POST'}, Name: stop_mcp_server
+2025-07-30 16:09:14.001 | INFO     | app.main:<module>:192 - ==============================================================================
+2025-07-30 16:09:14.002 | INFO     | __main__:main:248 - 检查MCP服务器状态...
+2025-07-30 16:09:14.002 | WARNING  | __main__:main:259 - 没有运行中的MCP服务器，尝试启动...
+2025-07-30 16:09:14.002 | INFO     | app.services.mcp_manager:start_all_servers:368 - 开始启动所有MCP服务器...
+2025-07-30 16:09:14.002 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: playwright
+2025-07-30 16:09:14.003 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: minimax-mcp-js
+2025-07-30 16:09:14.005 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: amap-maps
+2025-07-30 16:09:14.006 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: web3-rpc
+2025-07-30 16:09:19.014 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 amap-maps 启动成功 (PID: 15300)
+2025-07-30 16:09:19.014 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 web3-rpc 启动成功 (PID: 15302)
+2025-07-30 16:09:30.524 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 playwright 启动成功 (PID: 15296)
+2025-07-30 16:09:30.524 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 minimax-mcp-js 启动成功 (PID: 15298)
+2025-07-30 16:09:30.524 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 playwright 启动成功
+2025-07-30 16:09:30.524 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 minimax-mcp-js 启动成功
+2025-07-30 16:09:30.524 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 amap-maps 启动成功
+2025-07-30 16:09:30.524 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 web3-rpc 启动成功
+2025-07-30 16:09:30.524 | INFO     | __main__:main:272 - 发现 4 个运行中的MCP服务器: playwright, minimax-mcp-js, amap-maps, web3-rpc
+2025-07-30 16:09:30.525 | INFO     | app.utils.mcp_client:__init__:84 - MCP客户端包装器：配置加载成功
+2025-07-30 16:09:30.525 | INFO     | app.utils.mcp_client:__init__:86 - 已加载 4 个MCP服务器配置
+2025-07-30 16:09:30.525 | INFO     | __main__:sync_all_tools:37 - 开始同步MCP工具到数据库...
+2025-07-30 16:09:30.525 | INFO     | __main__:sync_server_tools:92 - 开始同步服务器 playwright 的工具...
+2025-07-30 16:09:30.525 | INFO     | app.utils.mcp_client:_get_or_create_client:118 - 创建新的MCP客户端实例并连接到服务器: playwright
+2025-07-30 16:09:31.605 | INFO     | app.utils.mcp_client:_get_or_create_client:125 - 成功连接到MCP服务器并加入连接池: playwright
+2025-07-30 16:09:31.605 | ERROR    | app.utils.mcp_client:get_server_tools:227 - 获取服务器 playwright 工具信息时发生错误: 'list' object has no attribute 'items'
+2025-07-30 16:09:31.605 | ERROR    | __main__:sync_server_tools:108 - 获取服务器 playwright 工具信息失败: 获取工具信息失败: 'list' object has no attribute 'items'
+2025-07-30 16:09:31.605 | INFO     | __main__:sync_server_tools:92 - 开始同步服务器 minimax-mcp-js 的工具...
+2025-07-30 16:09:31.605 | INFO     | app.utils.mcp_client:_get_or_create_client:118 - 创建新的MCP客户端实例并连接到服务器: minimax-mcp-js
+2025-07-30 16:09:32.320 | INFO     | app.utils.mcp_client:_get_or_create_client:125 - 成功连接到MCP服务器并加入连接池: minimax-mcp-js
+2025-07-30 16:09:32.320 | ERROR    | app.utils.mcp_client:get_server_tools:227 - 获取服务器 minimax-mcp-js 工具信息时发生错误: 'list' object has no attribute 'items'
+2025-07-30 16:09:32.320 | ERROR    | __main__:sync_server_tools:108 - 获取服务器 minimax-mcp-js 工具信息失败: 获取工具信息失败: 'list' object has no attribute 'items'
+2025-07-30 16:09:32.321 | INFO     | __main__:sync_server_tools:92 - 开始同步服务器 amap-maps 的工具...
+2025-07-30 16:09:32.321 | INFO     | app.utils.mcp_client:_get_or_create_client:118 - 创建新的MCP客户端实例并连接到服务器: amap-maps
+2025-07-30 16:09:32.810 | INFO     | app.utils.mcp_client:_get_or_create_client:125 - 成功连接到MCP服务器并加入连接池: amap-maps
+2025-07-30 16:09:32.811 | ERROR    | app.utils.mcp_client:get_server_tools:227 - 获取服务器 amap-maps 工具信息时发生错误: 'list' object has no attribute 'items'
+2025-07-30 16:09:32.811 | ERROR    | __main__:sync_server_tools:108 - 获取服务器 amap-maps 工具信息失败: 获取工具信息失败: 'list' object has no attribute 'items'
+2025-07-30 16:09:32.811 | INFO     | __main__:sync_server_tools:92 - 开始同步服务器 web3-rpc 的工具...
+2025-07-30 16:09:32.811 | INFO     | app.utils.mcp_client:_get_or_create_client:118 - 创建新的MCP客户端实例并连接到服务器: web3-rpc
+2025-07-30 16:09:36.363 | INFO     | app.utils.mcp_client:_get_or_create_client:125 - 成功连接到MCP服务器并加入连接池: web3-rpc
+2025-07-30 16:09:36.363 | ERROR    | app.utils.mcp_client:get_server_tools:227 - 获取服务器 web3-rpc 工具信息时发生错误: 'list' object has no attribute 'items'
+2025-07-30 16:09:36.363 | ERROR    | __main__:sync_server_tools:108 - 获取服务器 web3-rpc 工具信息失败: 获取工具信息失败: 'list' object has no attribute 'items'
+2025-07-30 16:09:36.363 | INFO     | __main__:sync_all_tools:85 - MCP工具同步完成: 处理了 4 个服务器
+2025-07-30 16:09:36.363 | INFO     | __main__:sync_all_tools:86 - 同步统计: 新增 0 个，更新 0 个，失败 4 个
+2025-07-30 16:09:36.363 | INFO     | __main__:remove_orphaned_tools:185 - 开始清理孤立的MCP工具...
+2025-07-30 16:09:36.405 | INFO     | __main__:remove_orphaned_tools:226 - 未发现孤立的MCP工具
+2025-07-30 16:09:49.008 | INFO     | app.main:<module>:39 - 启动应用: AI Assistant API v0.1.0
+2025-07-30 16:09:49.008 | INFO     | app.main:<module>:40 - 数据库: ai_assistant
+2025-07-30 16:09:49.033 | INFO     | app.main:<module>:181 - ============================== Registered Routes ==============================
+2025-07-30 16:09:49.033 | INFO     | app.main:<module>:188 - Path: /openapi.json, Methods: {'GET', 'HEAD'}, Name: openapi
+2025-07-30 16:09:49.033 | INFO     | app.main:<module>:188 - Path: /redoc, Methods: {'GET', 'HEAD'}, Name: redoc_html
+2025-07-30 16:09:49.033 | INFO     | app.main:<module>:188 - Path: /docs, Methods: {'GET'}, Name: custom_swagger_ui_html
+2025-07-30 16:09:49.033 | INFO     | app.main:<module>:188 - Path: /, Methods: {'GET'}, Name: root
+2025-07-30 16:09:49.033 | INFO     | app.main:<module>:188 - Path: /health, Methods: {'GET'}, Name: health_check
+2025-07-30 16:09:49.033 | INFO     | app.main:<module>:188 - Path: /api/v1/intent/interpret, Methods: {'POST'}, Name: process_intent
+2025-07-30 16:09:49.033 | INFO     | app.main:<module>:188 - Path: /api/v1/intent/confirm, Methods: {'POST'}, Name: confirm_execution
+2025-07-30 16:09:49.033 | INFO     | app.main:<module>:188 - Path: /api/v1/execute, Methods: {'POST'}, Name: execute_tool
+2025-07-30 16:09:49.033 | INFO     | app.main:<module>:188 - Path: /api/v1/tools, Methods: {'GET'}, Name: get_tools
+2025-07-30 16:09:49.033 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/register, Methods: {'POST'}, Name: register
+2025-07-30 16:09:49.033 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/token, Methods: {'POST'}, Name: login_for_access_token
+2025-07-30 16:09:49.033 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/login, Methods: {'POST'}, Name: login
+2025-07-30 16:09:49.033 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/me, Methods: {'GET'}, Name: get_me
+2025-07-30 16:09:49.033 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'GET'}, Name: get_developer_tools
+2025-07-30 16:09:49.033 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'POST'}, Name: create_developer_tool
+2025-07-30 16:09:49.033 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'GET'}, Name: get_developer_tool
+2025-07-30 16:09:49.034 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'PUT'}, Name: update_developer_tool
+2025-07-30 16:09:49.034 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'DELETE'}, Name: delete_developer_tool
+2025-07-30 16:09:49.034 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload, Methods: {'POST'}, Name: upload_tool_package
+2025-07-30 16:09:49.034 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload/validate, Methods: {'POST'}, Name: validate_tool_package
+2025-07-30 16:09:49.034 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}/test, Methods: {'POST'}, Name: test_developer_tool
+2025-07-30 16:09:49.034 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/test/batch, Methods: {'POST'}, Name: batch_test_tools
+2025-07-30 16:09:49.034 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/health, Methods: {'GET'}, Name: get_mcp_servers_health
+2025-07-30 16:09:49.034 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status, Methods: {'GET'}, Name: get_mcp_servers_status
+2025-07-30 16:09:49.034 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status/{server_name}, Methods: {'GET'}, Name: get_mcp_server_status
+2025-07-30 16:09:49.034 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/restart/{server_name}, Methods: {'POST'}, Name: restart_mcp_server
+2025-07-30 16:09:49.034 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/start/{server_name}, Methods: {'POST'}, Name: start_mcp_server
+2025-07-30 16:09:49.034 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/stop/{server_name}, Methods: {'POST'}, Name: stop_mcp_server
+2025-07-30 16:09:49.034 | INFO     | app.main:<module>:192 - ==============================================================================
+2025-07-30 16:09:49.035 | INFO     | __main__:main:248 - 检查MCP服务器状态...
+2025-07-30 16:09:49.035 | WARNING  | __main__:main:259 - 没有运行中的MCP服务器，尝试启动...
+2025-07-30 16:09:49.035 | INFO     | app.services.mcp_manager:start_all_servers:368 - 开始启动所有MCP服务器...
+2025-07-30 16:09:49.035 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: playwright
+2025-07-30 16:09:49.036 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: minimax-mcp-js
+2025-07-30 16:09:49.038 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: amap-maps
+2025-07-30 16:09:49.039 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: web3-rpc
+2025-07-30 16:09:54.044 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 amap-maps 启动成功 (PID: 17264)
+2025-07-30 16:09:54.045 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 web3-rpc 启动成功 (PID: 17266)
+2025-07-30 16:10:05.554 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 playwright 启动成功 (PID: 17260)
+2025-07-30 16:10:05.554 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 minimax-mcp-js 启动成功 (PID: 17262)
+2025-07-30 16:10:05.554 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 playwright 启动成功
+2025-07-30 16:10:05.555 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 minimax-mcp-js 启动成功
+2025-07-30 16:10:05.555 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 amap-maps 启动成功
+2025-07-30 16:10:05.555 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 web3-rpc 启动成功
+2025-07-30 16:10:05.555 | INFO     | __main__:main:272 - 发现 4 个运行中的MCP服务器: playwright, minimax-mcp-js, amap-maps, web3-rpc
+2025-07-30 16:10:05.555 | INFO     | app.utils.mcp_client:__init__:84 - MCP客户端包装器：配置加载成功
+2025-07-30 16:10:05.555 | INFO     | app.utils.mcp_client:__init__:86 - 已加载 4 个MCP服务器配置
+2025-07-30 16:10:05.555 | INFO     | __main__:sync_all_tools:37 - 开始同步MCP工具到数据库...
+2025-07-30 16:10:05.555 | INFO     | __main__:sync_server_tools:92 - 开始同步服务器 playwright 的工具...
+2025-07-30 16:10:05.555 | INFO     | app.utils.mcp_client:_get_or_create_client:118 - 创建新的MCP客户端实例并连接到服务器: playwright
+2025-07-30 16:10:06.638 | INFO     | app.utils.mcp_client:_get_or_create_client:125 - 成功连接到MCP服务器并加入连接池: playwright
+2025-07-30 16:10:06.638 | ERROR    | app.utils.mcp_client:get_server_tools:227 - 获取服务器 playwright 工具信息时发生错误: 'list' object has no attribute 'items'
+2025-07-30 16:10:06.638 | ERROR    | __main__:sync_server_tools:108 - 获取服务器 playwright 工具信息失败: 获取工具信息失败: 'list' object has no attribute 'items'
+2025-07-30 16:10:06.638 | INFO     | __main__:sync_server_tools:92 - 开始同步服务器 minimax-mcp-js 的工具...
+2025-07-30 16:10:06.638 | INFO     | app.utils.mcp_client:_get_or_create_client:118 - 创建新的MCP客户端实例并连接到服务器: minimax-mcp-js
+2025-07-30 16:10:07.319 | INFO     | app.utils.mcp_client:_get_or_create_client:125 - 成功连接到MCP服务器并加入连接池: minimax-mcp-js
+2025-07-30 16:10:07.319 | ERROR    | app.utils.mcp_client:get_server_tools:227 - 获取服务器 minimax-mcp-js 工具信息时发生错误: 'list' object has no attribute 'items'
+2025-07-30 16:10:07.319 | ERROR    | __main__:sync_server_tools:108 - 获取服务器 minimax-mcp-js 工具信息失败: 获取工具信息失败: 'list' object has no attribute 'items'
+2025-07-30 16:10:07.320 | INFO     | __main__:sync_server_tools:92 - 开始同步服务器 amap-maps 的工具...
+2025-07-30 16:10:07.320 | INFO     | app.utils.mcp_client:_get_or_create_client:118 - 创建新的MCP客户端实例并连接到服务器: amap-maps
+2025-07-30 16:10:07.777 | INFO     | app.utils.mcp_client:_get_or_create_client:125 - 成功连接到MCP服务器并加入连接池: amap-maps
+2025-07-30 16:10:07.778 | ERROR    | app.utils.mcp_client:get_server_tools:227 - 获取服务器 amap-maps 工具信息时发生错误: 'list' object has no attribute 'items'
+2025-07-30 16:10:07.778 | ERROR    | __main__:sync_server_tools:108 - 获取服务器 amap-maps 工具信息失败: 获取工具信息失败: 'list' object has no attribute 'items'
+2025-07-30 16:10:07.778 | INFO     | __main__:sync_server_tools:92 - 开始同步服务器 web3-rpc 的工具...
+2025-07-30 16:10:07.778 | INFO     | app.utils.mcp_client:_get_or_create_client:118 - 创建新的MCP客户端实例并连接到服务器: web3-rpc
+2025-07-30 16:10:11.177 | INFO     | app.utils.mcp_client:_get_or_create_client:125 - 成功连接到MCP服务器并加入连接池: web3-rpc
+2025-07-30 16:10:11.177 | ERROR    | app.utils.mcp_client:get_server_tools:227 - 获取服务器 web3-rpc 工具信息时发生错误: 'list' object has no attribute 'items'
+2025-07-30 16:10:11.177 | ERROR    | __main__:sync_server_tools:108 - 获取服务器 web3-rpc 工具信息失败: 获取工具信息失败: 'list' object has no attribute 'items'
+2025-07-30 16:10:11.177 | INFO     | __main__:sync_all_tools:85 - MCP工具同步完成: 处理了 4 个服务器
+2025-07-30 16:10:11.177 | INFO     | __main__:sync_all_tools:86 - 同步统计: 新增 0 个，更新 0 个，失败 4 个
+2025-07-30 16:10:11.177 | INFO     | __main__:remove_orphaned_tools:185 - 开始清理孤立的MCP工具...
+2025-07-30 16:10:11.218 | INFO     | __main__:remove_orphaned_tools:226 - 未发现孤立的MCP工具
+2025-07-30 16:10:44.402 | INFO     | app.main:<module>:39 - 启动应用: AI Assistant API v0.1.0
+2025-07-30 16:10:44.402 | INFO     | app.main:<module>:40 - 数据库: ai_assistant
+2025-07-30 16:10:44.428 | INFO     | app.main:<module>:181 - ============================== Registered Routes ==============================
+2025-07-30 16:10:44.428 | INFO     | app.main:<module>:188 - Path: /openapi.json, Methods: {'GET', 'HEAD'}, Name: openapi
+2025-07-30 16:10:44.428 | INFO     | app.main:<module>:188 - Path: /redoc, Methods: {'GET', 'HEAD'}, Name: redoc_html
+2025-07-30 16:10:44.428 | INFO     | app.main:<module>:188 - Path: /docs, Methods: {'GET'}, Name: custom_swagger_ui_html
+2025-07-30 16:10:44.428 | INFO     | app.main:<module>:188 - Path: /, Methods: {'GET'}, Name: root
+2025-07-30 16:10:44.428 | INFO     | app.main:<module>:188 - Path: /health, Methods: {'GET'}, Name: health_check
+2025-07-30 16:10:44.428 | INFO     | app.main:<module>:188 - Path: /api/v1/intent/interpret, Methods: {'POST'}, Name: process_intent
+2025-07-30 16:10:44.428 | INFO     | app.main:<module>:188 - Path: /api/v1/intent/confirm, Methods: {'POST'}, Name: confirm_execution
+2025-07-30 16:10:44.428 | INFO     | app.main:<module>:188 - Path: /api/v1/execute, Methods: {'POST'}, Name: execute_tool
+2025-07-30 16:10:44.428 | INFO     | app.main:<module>:188 - Path: /api/v1/tools, Methods: {'GET'}, Name: get_tools
+2025-07-30 16:10:44.428 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/register, Methods: {'POST'}, Name: register
+2025-07-30 16:10:44.428 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/token, Methods: {'POST'}, Name: login_for_access_token
+2025-07-30 16:10:44.428 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/login, Methods: {'POST'}, Name: login
+2025-07-30 16:10:44.429 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/me, Methods: {'GET'}, Name: get_me
+2025-07-30 16:10:44.429 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'GET'}, Name: get_developer_tools
+2025-07-30 16:10:44.429 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'POST'}, Name: create_developer_tool
+2025-07-30 16:10:44.429 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'GET'}, Name: get_developer_tool
+2025-07-30 16:10:44.429 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'PUT'}, Name: update_developer_tool
+2025-07-30 16:10:44.429 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'DELETE'}, Name: delete_developer_tool
+2025-07-30 16:10:44.429 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload, Methods: {'POST'}, Name: upload_tool_package
+2025-07-30 16:10:44.429 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload/validate, Methods: {'POST'}, Name: validate_tool_package
+2025-07-30 16:10:44.429 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}/test, Methods: {'POST'}, Name: test_developer_tool
+2025-07-30 16:10:44.429 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/test/batch, Methods: {'POST'}, Name: batch_test_tools
+2025-07-30 16:10:44.429 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/health, Methods: {'GET'}, Name: get_mcp_servers_health
+2025-07-30 16:10:44.429 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status, Methods: {'GET'}, Name: get_mcp_servers_status
+2025-07-30 16:10:44.429 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status/{server_name}, Methods: {'GET'}, Name: get_mcp_server_status
+2025-07-30 16:10:44.429 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/restart/{server_name}, Methods: {'POST'}, Name: restart_mcp_server
+2025-07-30 16:10:44.429 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/start/{server_name}, Methods: {'POST'}, Name: start_mcp_server
+2025-07-30 16:10:44.429 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/stop/{server_name}, Methods: {'POST'}, Name: stop_mcp_server
+2025-07-30 16:10:44.429 | INFO     | app.main:<module>:192 - ==============================================================================
+2025-07-30 16:10:44.430 | INFO     | __main__:main:251 - 检查MCP服务器状态...
+2025-07-30 16:10:44.430 | WARNING  | __main__:main:262 - 没有运行中的MCP服务器，尝试启动...
+2025-07-30 16:10:44.430 | INFO     | app.services.mcp_manager:start_all_servers:368 - 开始启动所有MCP服务器...
+2025-07-30 16:10:44.430 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: playwright
+2025-07-30 16:10:44.431 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: minimax-mcp-js
+2025-07-30 16:10:44.433 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: amap-maps
+2025-07-30 16:10:44.434 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: web3-rpc
+2025-07-30 16:10:49.441 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 amap-maps 启动成功 (PID: 19797)
+2025-07-30 16:10:49.441 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 web3-rpc 启动成功 (PID: 19799)
+2025-07-30 16:11:00.953 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 playwright 启动成功 (PID: 19793)
+2025-07-30 16:11:00.953 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 minimax-mcp-js 启动成功 (PID: 19795)
+2025-07-30 16:11:00.953 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 playwright 启动成功
+2025-07-30 16:11:00.954 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 minimax-mcp-js 启动成功
+2025-07-30 16:11:00.954 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 amap-maps 启动成功
+2025-07-30 16:11:00.954 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 web3-rpc 启动成功
+2025-07-30 16:11:00.954 | INFO     | __main__:main:275 - 发现 4 个运行中的MCP服务器: playwright, minimax-mcp-js, amap-maps, web3-rpc
+2025-07-30 16:11:00.954 | INFO     | app.utils.mcp_client:__init__:84 - MCP客户端包装器：配置加载成功
+2025-07-30 16:11:00.954 | INFO     | app.utils.mcp_client:__init__:86 - 已加载 4 个MCP服务器配置
+2025-07-30 16:11:00.954 | INFO     | __main__:sync_all_tools:37 - 开始同步MCP工具到数据库...
+2025-07-30 16:11:00.954 | INFO     | __main__:sync_server_tools:92 - 开始同步服务器 playwright 的工具...
+2025-07-30 16:11:00.954 | INFO     | app.utils.mcp_client:_get_or_create_client:118 - 创建新的MCP客户端实例并连接到服务器: playwright
+2025-07-30 16:11:02.046 | INFO     | app.utils.mcp_client:_get_or_create_client:125 - 成功连接到MCP服务器并加入连接池: playwright
+2025-07-30 16:11:02.046 | ERROR    | app.utils.mcp_client:get_server_tools:227 - 获取服务器 playwright 工具信息时发生错误: 'list' object has no attribute 'items'
+2025-07-30 16:11:02.046 | ERROR    | __main__:sync_server_tools:108 - 获取服务器 playwright 工具信息失败: 获取工具信息失败: 'list' object has no attribute 'items'
+2025-07-30 16:11:02.046 | INFO     | __main__:sync_server_tools:92 - 开始同步服务器 minimax-mcp-js 的工具...
+2025-07-30 16:11:02.046 | INFO     | app.utils.mcp_client:_get_or_create_client:118 - 创建新的MCP客户端实例并连接到服务器: minimax-mcp-js
+2025-07-30 16:11:02.727 | INFO     | app.utils.mcp_client:_get_or_create_client:125 - 成功连接到MCP服务器并加入连接池: minimax-mcp-js
+2025-07-30 16:11:02.727 | ERROR    | app.utils.mcp_client:get_server_tools:227 - 获取服务器 minimax-mcp-js 工具信息时发生错误: 'list' object has no attribute 'items'
+2025-07-30 16:11:02.727 | ERROR    | __main__:sync_server_tools:108 - 获取服务器 minimax-mcp-js 工具信息失败: 获取工具信息失败: 'list' object has no attribute 'items'
+2025-07-30 16:11:02.727 | INFO     | __main__:sync_server_tools:92 - 开始同步服务器 amap-maps 的工具...
+2025-07-30 16:11:02.727 | INFO     | app.utils.mcp_client:_get_or_create_client:118 - 创建新的MCP客户端实例并连接到服务器: amap-maps
+2025-07-30 16:11:03.188 | INFO     | app.utils.mcp_client:_get_or_create_client:125 - 成功连接到MCP服务器并加入连接池: amap-maps
+2025-07-30 16:11:03.189 | ERROR    | app.utils.mcp_client:get_server_tools:227 - 获取服务器 amap-maps 工具信息时发生错误: 'list' object has no attribute 'items'
+2025-07-30 16:11:03.189 | ERROR    | __main__:sync_server_tools:108 - 获取服务器 amap-maps 工具信息失败: 获取工具信息失败: 'list' object has no attribute 'items'
+2025-07-30 16:11:03.189 | INFO     | __main__:sync_server_tools:92 - 开始同步服务器 web3-rpc 的工具...
+2025-07-30 16:11:03.189 | INFO     | app.utils.mcp_client:_get_or_create_client:118 - 创建新的MCP客户端实例并连接到服务器: web3-rpc
+2025-07-30 16:11:06.653 | INFO     | app.utils.mcp_client:_get_or_create_client:125 - 成功连接到MCP服务器并加入连接池: web3-rpc
+2025-07-30 16:11:06.654 | ERROR    | app.utils.mcp_client:get_server_tools:227 - 获取服务器 web3-rpc 工具信息时发生错误: 'list' object has no attribute 'items'
+2025-07-30 16:11:06.654 | ERROR    | __main__:sync_server_tools:108 - 获取服务器 web3-rpc 工具信息失败: 获取工具信息失败: 'list' object has no attribute 'items'
+2025-07-30 16:11:06.654 | INFO     | __main__:sync_all_tools:85 - MCP工具同步完成: 处理了 4 个服务器
+2025-07-30 16:11:06.654 | INFO     | __main__:sync_all_tools:86 - 同步统计: 新增 0 个，更新 0 个，失败 4 个
+2025-07-30 16:11:06.654 | INFO     | __main__:remove_orphaned_tools:188 - 开始清理孤立的MCP工具...
+2025-07-30 16:11:06.696 | INFO     | __main__:remove_orphaned_tools:229 - 未发现孤立的MCP工具
+2025-07-30 16:11:25.649 | INFO     | app.main:<module>:39 - 启动应用: AI Assistant API v0.1.0
+2025-07-30 16:11:25.649 | INFO     | app.main:<module>:40 - 数据库: ai_assistant
+2025-07-30 16:11:25.675 | INFO     | app.main:<module>:181 - ============================== Registered Routes ==============================
+2025-07-30 16:11:25.675 | INFO     | app.main:<module>:188 - Path: /openapi.json, Methods: {'GET', 'HEAD'}, Name: openapi
+2025-07-30 16:11:25.675 | INFO     | app.main:<module>:188 - Path: /redoc, Methods: {'GET', 'HEAD'}, Name: redoc_html
+2025-07-30 16:11:25.675 | INFO     | app.main:<module>:188 - Path: /docs, Methods: {'GET'}, Name: custom_swagger_ui_html
+2025-07-30 16:11:25.675 | INFO     | app.main:<module>:188 - Path: /, Methods: {'GET'}, Name: root
+2025-07-30 16:11:25.675 | INFO     | app.main:<module>:188 - Path: /health, Methods: {'GET'}, Name: health_check
+2025-07-30 16:11:25.675 | INFO     | app.main:<module>:188 - Path: /api/v1/intent/interpret, Methods: {'POST'}, Name: process_intent
+2025-07-30 16:11:25.675 | INFO     | app.main:<module>:188 - Path: /api/v1/intent/confirm, Methods: {'POST'}, Name: confirm_execution
+2025-07-30 16:11:25.675 | INFO     | app.main:<module>:188 - Path: /api/v1/execute, Methods: {'POST'}, Name: execute_tool
+2025-07-30 16:11:25.675 | INFO     | app.main:<module>:188 - Path: /api/v1/tools, Methods: {'GET'}, Name: get_tools
+2025-07-30 16:11:25.676 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/register, Methods: {'POST'}, Name: register
+2025-07-30 16:11:25.676 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/token, Methods: {'POST'}, Name: login_for_access_token
+2025-07-30 16:11:25.676 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/login, Methods: {'POST'}, Name: login
+2025-07-30 16:11:25.676 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/me, Methods: {'GET'}, Name: get_me
+2025-07-30 16:11:25.676 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'GET'}, Name: get_developer_tools
+2025-07-30 16:11:25.676 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'POST'}, Name: create_developer_tool
+2025-07-30 16:11:25.676 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'GET'}, Name: get_developer_tool
+2025-07-30 16:11:25.676 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'PUT'}, Name: update_developer_tool
+2025-07-30 16:11:25.676 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'DELETE'}, Name: delete_developer_tool
+2025-07-30 16:11:25.676 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload, Methods: {'POST'}, Name: upload_tool_package
+2025-07-30 16:11:25.676 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload/validate, Methods: {'POST'}, Name: validate_tool_package
+2025-07-30 16:11:25.676 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}/test, Methods: {'POST'}, Name: test_developer_tool
+2025-07-30 16:11:25.676 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/test/batch, Methods: {'POST'}, Name: batch_test_tools
+2025-07-30 16:11:25.676 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/health, Methods: {'GET'}, Name: get_mcp_servers_health
+2025-07-30 16:11:25.676 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status, Methods: {'GET'}, Name: get_mcp_servers_status
+2025-07-30 16:11:25.676 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status/{server_name}, Methods: {'GET'}, Name: get_mcp_server_status
+2025-07-30 16:11:25.676 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/restart/{server_name}, Methods: {'POST'}, Name: restart_mcp_server
+2025-07-30 16:11:25.676 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/start/{server_name}, Methods: {'POST'}, Name: start_mcp_server
+2025-07-30 16:11:25.676 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/stop/{server_name}, Methods: {'POST'}, Name: stop_mcp_server
+2025-07-30 16:11:25.677 | INFO     | app.main:<module>:192 - ==============================================================================
+2025-07-30 16:11:25.677 | INFO     | __main__:main:251 - 检查MCP服务器状态...
+2025-07-30 16:11:25.677 | WARNING  | __main__:main:262 - 没有运行中的MCP服务器，尝试启动...
+2025-07-30 16:11:25.677 | INFO     | app.services.mcp_manager:start_all_servers:368 - 开始启动所有MCP服务器...
+2025-07-30 16:11:25.677 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: playwright
+2025-07-30 16:11:25.678 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: minimax-mcp-js
+2025-07-30 16:11:25.680 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: amap-maps
+2025-07-30 16:11:25.681 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: web3-rpc
+2025-07-30 16:11:30.688 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 amap-maps 启动成功 (PID: 21952)
+2025-07-30 16:11:30.689 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 web3-rpc 启动成功 (PID: 21954)
+2025-07-30 16:11:42.200 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 playwright 启动成功 (PID: 21948)
+2025-07-30 16:11:42.200 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 minimax-mcp-js 启动成功 (PID: 21950)
+2025-07-30 16:11:42.201 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 playwright 启动成功
+2025-07-30 16:11:42.201 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 minimax-mcp-js 启动成功
+2025-07-30 16:11:42.201 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 amap-maps 启动成功
+2025-07-30 16:11:42.201 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 web3-rpc 启动成功
+2025-07-30 16:11:42.201 | INFO     | __main__:main:275 - 发现 4 个运行中的MCP服务器: playwright, minimax-mcp-js, amap-maps, web3-rpc
+2025-07-30 16:11:42.201 | INFO     | app.utils.mcp_client:__init__:84 - MCP客户端包装器：配置加载成功
+2025-07-30 16:11:42.201 | INFO     | app.utils.mcp_client:__init__:86 - 已加载 4 个MCP服务器配置
+2025-07-30 16:11:42.201 | INFO     | __main__:sync_all_tools:37 - 开始同步MCP工具到数据库...
+2025-07-30 16:11:42.201 | INFO     | __main__:sync_server_tools:92 - 开始同步服务器 playwright 的工具...
+2025-07-30 16:11:42.201 | INFO     | app.utils.mcp_client:_get_or_create_client:118 - 创建新的MCP客户端实例并连接到服务器: playwright
+2025-07-30 16:11:43.268 | INFO     | app.utils.mcp_client:_get_or_create_client:125 - 成功连接到MCP服务器并加入连接池: playwright
+2025-07-30 16:11:43.269 | ERROR    | app.utils.mcp_client:get_server_tools:227 - 获取服务器 playwright 工具信息时发生错误: 'list' object has no attribute 'items'
+2025-07-30 16:11:43.269 | ERROR    | __main__:sync_server_tools:108 - 获取服务器 playwright 工具信息失败: 获取工具信息失败: 'list' object has no attribute 'items'
+2025-07-30 16:11:43.269 | INFO     | __main__:sync_server_tools:92 - 开始同步服务器 minimax-mcp-js 的工具...
+2025-07-30 16:11:43.269 | INFO     | app.utils.mcp_client:_get_or_create_client:118 - 创建新的MCP客户端实例并连接到服务器: minimax-mcp-js
+2025-07-30 16:11:43.951 | INFO     | app.utils.mcp_client:_get_or_create_client:125 - 成功连接到MCP服务器并加入连接池: minimax-mcp-js
+2025-07-30 16:11:43.951 | ERROR    | app.utils.mcp_client:get_server_tools:227 - 获取服务器 minimax-mcp-js 工具信息时发生错误: 'list' object has no attribute 'items'
+2025-07-30 16:11:43.951 | ERROR    | __main__:sync_server_tools:108 - 获取服务器 minimax-mcp-js 工具信息失败: 获取工具信息失败: 'list' object has no attribute 'items'
+2025-07-30 16:11:43.951 | INFO     | __main__:sync_server_tools:92 - 开始同步服务器 amap-maps 的工具...
+2025-07-30 16:11:43.952 | INFO     | app.utils.mcp_client:_get_or_create_client:118 - 创建新的MCP客户端实例并连接到服务器: amap-maps
+2025-07-30 16:11:44.413 | INFO     | app.utils.mcp_client:_get_or_create_client:125 - 成功连接到MCP服务器并加入连接池: amap-maps
+2025-07-30 16:11:44.414 | ERROR    | app.utils.mcp_client:get_server_tools:227 - 获取服务器 amap-maps 工具信息时发生错误: 'list' object has no attribute 'items'
+2025-07-30 16:11:44.414 | ERROR    | __main__:sync_server_tools:108 - 获取服务器 amap-maps 工具信息失败: 获取工具信息失败: 'list' object has no attribute 'items'
+2025-07-30 16:11:44.414 | INFO     | __main__:sync_server_tools:92 - 开始同步服务器 web3-rpc 的工具...
+2025-07-30 16:11:44.414 | INFO     | app.utils.mcp_client:_get_or_create_client:118 - 创建新的MCP客户端实例并连接到服务器: web3-rpc
+2025-07-30 16:11:47.877 | INFO     | app.utils.mcp_client:_get_or_create_client:125 - 成功连接到MCP服务器并加入连接池: web3-rpc
+2025-07-30 16:11:47.877 | ERROR    | app.utils.mcp_client:get_server_tools:227 - 获取服务器 web3-rpc 工具信息时发生错误: 'list' object has no attribute 'items'
+2025-07-30 16:11:47.877 | ERROR    | __main__:sync_server_tools:108 - 获取服务器 web3-rpc 工具信息失败: 获取工具信息失败: 'list' object has no attribute 'items'
+2025-07-30 16:11:47.877 | INFO     | __main__:sync_all_tools:85 - MCP工具同步完成: 处理了 4 个服务器
+2025-07-30 16:11:47.877 | INFO     | __main__:sync_all_tools:86 - 同步统计: 新增 0 个，更新 0 个，失败 4 个
+2025-07-30 16:11:47.877 | INFO     | __main__:remove_orphaned_tools:188 - 开始清理孤立的MCP工具...
+2025-07-30 16:11:47.916 | INFO     | __main__:remove_orphaned_tools:229 - 未发现孤立的MCP工具
+2025-07-30 16:11:58.124 | INFO     | app.main:<module>:39 - 启动应用: AI Assistant API v0.1.0
+2025-07-30 16:11:58.124 | INFO     | app.main:<module>:40 - 数据库: ai_assistant
+2025-07-30 16:11:58.149 | INFO     | app.main:<module>:181 - ============================== Registered Routes ==============================
+2025-07-30 16:11:58.150 | INFO     | app.main:<module>:188 - Path: /openapi.json, Methods: {'HEAD', 'GET'}, Name: openapi
+2025-07-30 16:11:58.150 | INFO     | app.main:<module>:188 - Path: /redoc, Methods: {'HEAD', 'GET'}, Name: redoc_html
+2025-07-30 16:11:58.150 | INFO     | app.main:<module>:188 - Path: /docs, Methods: {'GET'}, Name: custom_swagger_ui_html
+2025-07-30 16:11:58.150 | INFO     | app.main:<module>:188 - Path: /, Methods: {'GET'}, Name: root
+2025-07-30 16:11:58.150 | INFO     | app.main:<module>:188 - Path: /health, Methods: {'GET'}, Name: health_check
+2025-07-30 16:11:58.150 | INFO     | app.main:<module>:188 - Path: /api/v1/intent/interpret, Methods: {'POST'}, Name: process_intent
+2025-07-30 16:11:58.150 | INFO     | app.main:<module>:188 - Path: /api/v1/intent/confirm, Methods: {'POST'}, Name: confirm_execution
+2025-07-30 16:11:58.150 | INFO     | app.main:<module>:188 - Path: /api/v1/execute, Methods: {'POST'}, Name: execute_tool
+2025-07-30 16:11:58.150 | INFO     | app.main:<module>:188 - Path: /api/v1/tools, Methods: {'GET'}, Name: get_tools
+2025-07-30 16:11:58.150 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/register, Methods: {'POST'}, Name: register
+2025-07-30 16:11:58.150 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/token, Methods: {'POST'}, Name: login_for_access_token
+2025-07-30 16:11:58.150 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/login, Methods: {'POST'}, Name: login
+2025-07-30 16:11:58.150 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/me, Methods: {'GET'}, Name: get_me
+2025-07-30 16:11:58.150 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'GET'}, Name: get_developer_tools
+2025-07-30 16:11:58.150 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'POST'}, Name: create_developer_tool
+2025-07-30 16:11:58.150 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'GET'}, Name: get_developer_tool
+2025-07-30 16:11:58.150 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'PUT'}, Name: update_developer_tool
+2025-07-30 16:11:58.151 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'DELETE'}, Name: delete_developer_tool
+2025-07-30 16:11:58.151 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload, Methods: {'POST'}, Name: upload_tool_package
+2025-07-30 16:11:58.151 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload/validate, Methods: {'POST'}, Name: validate_tool_package
+2025-07-30 16:11:58.151 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}/test, Methods: {'POST'}, Name: test_developer_tool
+2025-07-30 16:11:58.151 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/test/batch, Methods: {'POST'}, Name: batch_test_tools
+2025-07-30 16:11:58.151 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/health, Methods: {'GET'}, Name: get_mcp_servers_health
+2025-07-30 16:11:58.151 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status, Methods: {'GET'}, Name: get_mcp_servers_status
+2025-07-30 16:11:58.151 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status/{server_name}, Methods: {'GET'}, Name: get_mcp_server_status
+2025-07-30 16:11:58.151 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/restart/{server_name}, Methods: {'POST'}, Name: restart_mcp_server
+2025-07-30 16:11:58.151 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/start/{server_name}, Methods: {'POST'}, Name: start_mcp_server
+2025-07-30 16:11:58.151 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/stop/{server_name}, Methods: {'POST'}, Name: stop_mcp_server
+2025-07-30 16:11:58.151 | INFO     | app.main:<module>:192 - ==============================================================================
+2025-07-30 16:11:58.152 | INFO     | __main__:main:251 - 检查MCP服务器状态...
+2025-07-30 16:11:58.152 | WARNING  | __main__:main:262 - 没有运行中的MCP服务器，尝试启动...
+2025-07-30 16:11:58.152 | INFO     | app.services.mcp_manager:start_all_servers:368 - 开始启动所有MCP服务器...
+2025-07-30 16:11:58.152 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: playwright
+2025-07-30 16:11:58.153 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: minimax-mcp-js
+2025-07-30 16:11:58.155 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: amap-maps
+2025-07-30 16:11:58.156 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: web3-rpc
+2025-07-30 16:12:03.162 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 amap-maps 启动成功 (PID: 23729)
+2025-07-30 16:12:03.162 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 web3-rpc 启动成功 (PID: 23731)
+2025-07-30 16:12:14.675 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 playwright 启动成功 (PID: 23725)
+2025-07-30 16:12:14.676 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 minimax-mcp-js 启动成功 (PID: 23727)
+2025-07-30 16:12:14.676 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 playwright 启动成功
+2025-07-30 16:12:14.676 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 minimax-mcp-js 启动成功
+2025-07-30 16:12:14.676 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 amap-maps 启动成功
+2025-07-30 16:12:14.676 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 web3-rpc 启动成功
+2025-07-30 16:12:14.676 | INFO     | __main__:main:275 - 发现 4 个运行中的MCP服务器: playwright, minimax-mcp-js, amap-maps, web3-rpc
+2025-07-30 16:12:14.676 | INFO     | app.utils.mcp_client:__init__:84 - MCP客户端包装器：配置加载成功
+2025-07-30 16:12:14.676 | INFO     | app.utils.mcp_client:__init__:86 - 已加载 4 个MCP服务器配置
+2025-07-30 16:12:14.676 | INFO     | __main__:sync_all_tools:37 - 开始同步MCP工具到数据库...
+2025-07-30 16:12:14.676 | INFO     | __main__:sync_server_tools:92 - 开始同步服务器 playwright 的工具...
+2025-07-30 16:12:14.677 | INFO     | app.utils.mcp_client:_get_or_create_client:118 - 创建新的MCP客户端实例并连接到服务器: playwright
+2025-07-30 16:12:15.736 | INFO     | app.utils.mcp_client:_get_or_create_client:125 - 成功连接到MCP服务器并加入连接池: playwright
+2025-07-30 16:12:15.737 | ERROR    | app.utils.mcp_client:get_server_tools:227 - 获取服务器 playwright 工具信息时发生错误: 'list' object has no attribute 'items'
+2025-07-30 16:12:15.737 | ERROR    | __main__:sync_server_tools:108 - 获取服务器 playwright 工具信息失败: 获取工具信息失败: 'list' object has no attribute 'items'
+2025-07-30 16:12:15.737 | INFO     | __main__:sync_server_tools:92 - 开始同步服务器 minimax-mcp-js 的工具...
+2025-07-30 16:12:15.737 | INFO     | app.utils.mcp_client:_get_or_create_client:118 - 创建新的MCP客户端实例并连接到服务器: minimax-mcp-js
+2025-07-30 16:12:16.421 | INFO     | app.utils.mcp_client:_get_or_create_client:125 - 成功连接到MCP服务器并加入连接池: minimax-mcp-js
+2025-07-30 16:12:16.421 | ERROR    | app.utils.mcp_client:get_server_tools:227 - 获取服务器 minimax-mcp-js 工具信息时发生错误: 'list' object has no attribute 'items'
+2025-07-30 16:12:16.421 | ERROR    | __main__:sync_server_tools:108 - 获取服务器 minimax-mcp-js 工具信息失败: 获取工具信息失败: 'list' object has no attribute 'items'
+2025-07-30 16:12:16.421 | INFO     | __main__:sync_server_tools:92 - 开始同步服务器 amap-maps 的工具...
+2025-07-30 16:12:16.421 | INFO     | app.utils.mcp_client:_get_or_create_client:118 - 创建新的MCP客户端实例并连接到服务器: amap-maps
+2025-07-30 16:12:16.888 | INFO     | app.utils.mcp_client:_get_or_create_client:125 - 成功连接到MCP服务器并加入连接池: amap-maps
+2025-07-30 16:12:16.888 | ERROR    | app.utils.mcp_client:get_server_tools:227 - 获取服务器 amap-maps 工具信息时发生错误: 'list' object has no attribute 'items'
+2025-07-30 16:12:16.888 | ERROR    | __main__:sync_server_tools:108 - 获取服务器 amap-maps 工具信息失败: 获取工具信息失败: 'list' object has no attribute 'items'
+2025-07-30 16:12:16.889 | INFO     | __main__:sync_server_tools:92 - 开始同步服务器 web3-rpc 的工具...
+2025-07-30 16:12:16.889 | INFO     | app.utils.mcp_client:_get_or_create_client:118 - 创建新的MCP客户端实例并连接到服务器: web3-rpc
+2025-07-30 16:12:20.302 | INFO     | app.utils.mcp_client:_get_or_create_client:125 - 成功连接到MCP服务器并加入连接池: web3-rpc
+2025-07-30 16:12:20.302 | ERROR    | app.utils.mcp_client:get_server_tools:227 - 获取服务器 web3-rpc 工具信息时发生错误: 'list' object has no attribute 'items'
+2025-07-30 16:12:20.302 | ERROR    | __main__:sync_server_tools:108 - 获取服务器 web3-rpc 工具信息失败: 获取工具信息失败: 'list' object has no attribute 'items'
+2025-07-30 16:12:20.302 | INFO     | __main__:sync_all_tools:85 - MCP工具同步完成: 处理了 4 个服务器
+2025-07-30 16:12:20.303 | INFO     | __main__:sync_all_tools:86 - 同步统计: 新增 0 个，更新 0 个，失败 4 个
+2025-07-30 16:12:20.303 | INFO     | __main__:remove_orphaned_tools:188 - 开始清理孤立的MCP工具...
+2025-07-30 16:12:20.346 | INFO     | __main__:remove_orphaned_tools:229 - 未发现孤立的MCP工具
+2025-07-30 16:13:27.925 | INFO     | app.main:<module>:39 - 启动应用: AI Assistant API v0.1.0
+2025-07-30 16:13:27.925 | INFO     | app.main:<module>:40 - 数据库: ai_assistant
+2025-07-30 16:13:27.951 | INFO     | app.main:<module>:181 - ============================== Registered Routes ==============================
+2025-07-30 16:13:27.951 | INFO     | app.main:<module>:188 - Path: /openapi.json, Methods: {'HEAD', 'GET'}, Name: openapi
+2025-07-30 16:13:27.951 | INFO     | app.main:<module>:188 - Path: /redoc, Methods: {'HEAD', 'GET'}, Name: redoc_html
+2025-07-30 16:13:27.951 | INFO     | app.main:<module>:188 - Path: /docs, Methods: {'GET'}, Name: custom_swagger_ui_html
+2025-07-30 16:13:27.951 | INFO     | app.main:<module>:188 - Path: /, Methods: {'GET'}, Name: root
+2025-07-30 16:13:27.951 | INFO     | app.main:<module>:188 - Path: /health, Methods: {'GET'}, Name: health_check
+2025-07-30 16:13:27.951 | INFO     | app.main:<module>:188 - Path: /api/v1/intent/interpret, Methods: {'POST'}, Name: process_intent
+2025-07-30 16:13:27.951 | INFO     | app.main:<module>:188 - Path: /api/v1/intent/confirm, Methods: {'POST'}, Name: confirm_execution
+2025-07-30 16:13:27.952 | INFO     | app.main:<module>:188 - Path: /api/v1/execute, Methods: {'POST'}, Name: execute_tool
+2025-07-30 16:13:27.952 | INFO     | app.main:<module>:188 - Path: /api/v1/tools, Methods: {'GET'}, Name: get_tools
+2025-07-30 16:13:27.952 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/register, Methods: {'POST'}, Name: register
+2025-07-30 16:13:27.952 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/token, Methods: {'POST'}, Name: login_for_access_token
+2025-07-30 16:13:27.952 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/login, Methods: {'POST'}, Name: login
+2025-07-30 16:13:27.952 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/me, Methods: {'GET'}, Name: get_me
+2025-07-30 16:13:27.952 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'GET'}, Name: get_developer_tools
+2025-07-30 16:13:27.952 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'POST'}, Name: create_developer_tool
+2025-07-30 16:13:27.952 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'GET'}, Name: get_developer_tool
+2025-07-30 16:13:27.952 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'PUT'}, Name: update_developer_tool
+2025-07-30 16:13:27.952 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'DELETE'}, Name: delete_developer_tool
+2025-07-30 16:13:27.952 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload, Methods: {'POST'}, Name: upload_tool_package
+2025-07-30 16:13:27.952 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload/validate, Methods: {'POST'}, Name: validate_tool_package
+2025-07-30 16:13:27.952 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}/test, Methods: {'POST'}, Name: test_developer_tool
+2025-07-30 16:13:27.952 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/test/batch, Methods: {'POST'}, Name: batch_test_tools
+2025-07-30 16:13:27.952 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/health, Methods: {'GET'}, Name: get_mcp_servers_health
+2025-07-30 16:13:27.952 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status, Methods: {'GET'}, Name: get_mcp_servers_status
+2025-07-30 16:13:27.952 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status/{server_name}, Methods: {'GET'}, Name: get_mcp_server_status
+2025-07-30 16:13:27.953 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/restart/{server_name}, Methods: {'POST'}, Name: restart_mcp_server
+2025-07-30 16:13:27.953 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/start/{server_name}, Methods: {'POST'}, Name: start_mcp_server
+2025-07-30 16:13:27.953 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/stop/{server_name}, Methods: {'POST'}, Name: stop_mcp_server
+2025-07-30 16:13:27.953 | INFO     | app.main:<module>:192 - ==============================================================================
