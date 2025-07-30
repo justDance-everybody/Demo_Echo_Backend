@@ -246,27 +246,37 @@ const MainPage = () => {
         }
     }, [isAuthenticated, setState, setResultData, voiceCoordinator, resetUIState]);
 
-    const handleUserConfirm = useCallback(() => {
+    const handleUserConfirm = useCallback(async () => {
         console.log(`[Session: ${sessionId}] 用户确认了操作`);
         closeConfirmModal();
         
-        // 从pendingAction获取工具信息
-        let toolId, params, userId = 1;
-        
-        if (pendingAction?.tool_calls && pendingAction.tool_calls.length > 0) {
-            const firstToolCall = pendingAction.tool_calls[0];
-            toolId = firstToolCall.tool_id;
-            params = firstToolCall.parameters || {};
-        } else {
-            toolId = pendingAction?.action || 'default_confirm_action';
-            params = pendingAction?.params || {};
+        try {
+            setState(INTERACTION_STATES.THINKING);
+            
+            // 调用后端的confirm接口，传递用户确认信息
+            const confirmResult = await apiClient.confirm(sessionId, true);
+            
+            if (confirmResult.success && confirmResult.content) {
+                setResultData({ status: 'success', data: confirmResult });
+                
+                // 提取要播报的文本
+                const textToSpeak = confirmResult.content || '操作已完成';
+                
+                setState(INTERACTION_STATES.SPEAKING);
+                voiceCoordinator.speak(textToSpeak, () => {
+                    console.log('确认执行结果播报完毕，重置状态');
+                    resetUIState();
+                });
+            } else {
+                throw new Error(confirmResult.error || '确认执行失败');
+            }
+        } catch (error) {
+            errorHandlerRef.current.handleError(error, ERROR_TYPES.TOOL_EXECUTION, {
+                sessionId,
+                retryCallback: () => handleUserConfirm()
+            });
         }
-        
-        console.log(`[Session: ${sessionId}] 准备执行工具: ${toolId}，参数:`, params);
-        
-        // 执行工具调用
-        executeToolAndHandleResult(toolId, params, sessionId, userId);
-    }, [pendingAction, closeConfirmModal, sessionId, executeToolAndHandleResult]);
+    }, [sessionId, closeConfirmModal, setState, setResultData, voiceCoordinator, resetUIState, errorHandlerRef]);
 
     const handleUserRetry = useCallback(() => {
         closeConfirmModal();

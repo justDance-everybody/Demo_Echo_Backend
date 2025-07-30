@@ -12,9 +12,30 @@
 
 ### 服务地址
 
-**重要**: 后端服务端口可能根据配置不同而变化，请先确认实际运行端口：
+**重要**: 请根据开发环境选择正确的服务地址：
 
+#### 本地开发环境
+- **API基础路径**: `http://localhost:3000/api/v1`
+- **API文档**: `http://localhost:3000/docs` (Swagger UI)
+- **健康检查**: `http://localhost:3000/health`
+
+#### 生产环境（公网部署）
+- **API基础路径**: `https://rqoufedpoguc.sealosgzg.site/api/v1`
+- **API文档**: `https://rqoufedpoguc.sealosgzg.site/docs` (Swagger UI)
+- **健康检查**: `https://rqoufedpoguc.sealosgzg.site/health`
+
+### 服务状态确认
+
+**本地开发环境**:
 ```bash
+# 检查后端服务是否运行
+curl http://localhost:3000/health
+# 期望响应: {"status":"ok","timestamp":1753900335.8781202}
+
+# 检查API文档是否可访问
+curl -I http://localhost:3000/docs
+# 期望响应: HTTP/1.1 200 OK
+
 # 检查后端配置文件中的端口设置
 cat backend/.env | grep PORT
 # 或者
@@ -23,7 +44,6 @@ grep "PORT" backend/app/config.py
 # 检查正在运行的服务端口
 ps aux | grep uvicorn
 lsof -i :3000  # 检查3000端口
-lsof -i :8000  # 检查8000端口
 ```
 
 后端服务已部署到公网：
@@ -58,7 +78,12 @@ async function login(username, password) {
   formData.append('username', username);
   formData.append('password', password);
   
-  const response = await fetch('https://rqoufedpoguc.sealosgzg.site/api/v1/auth/token', {
+  // 根据环境选择API基础URL
+  const API_BASE_URL = process.env.NODE_ENV === 'production' 
+    ? 'https://rqoufedpoguc.sealosgzg.site'
+    : 'http://localhost:3000';
+  
+  const response = await fetch(`${API_BASE_URL}/api/v1/auth/token`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
@@ -83,6 +108,11 @@ async function login(username, password) {
 async function apiCall(endpoint, options = {}) {
   const token = localStorage.getItem('accessToken');
   
+  // 根据环境选择API基础URL
+  const API_BASE_URL = process.env.NODE_ENV === 'production' 
+    ? 'https://rqoufedpoguc.sealosgzg.site'
+    : 'http://localhost:3000';
+  
   const defaultOptions = {
     headers: {
       'Content-Type': 'application/json',
@@ -91,7 +121,7 @@ async function apiCall(endpoint, options = {}) {
     }
   };
   
-  return fetch(`https://rqoufedpoguc.sealosgzg.site/api/v1${endpoint}`, {
+  return fetch(`${API_BASE_URL}/api/v1${endpoint}`, {
     ...defaultOptions,
     ...options
   });
@@ -136,13 +166,15 @@ async function apiCall(endpoint, options = {}) {
 
 ## 🧪 测试账号
 
-后端已预置测试账号，可直接使用：
+后端已预置测试账号，账号信息从环境变量 `/home/devbox/project/backend/.env` 中加载：
 
-| 角色 | 用户名 | 密码 | 访问权限 |
-|------|--------|------|----------|
-| 普通用户 | `testuser_5090` | `8lpcUY2BOt` | 基础AI功能 |
-| 开发者 | `devuser_5090` | `mryuWTGdMk` | 基础功能 + 开发者控制台 |
-| 管理员 | `adminuser_5090` | `SAKMRtxCjT` | 所有功能 |
+| 角色 | 环境变量 | 默认值 | 访问权限 |
+|------|----------|--------|----------|
+| 普通用户 | `TEST_USER_USERNAME` / `TEST_USER_PASSWORD` | `testuser_5090` / `8lpcUY2BOt` | 基础AI功能 |
+| 开发者 | `TEST_DEVELOPER_USERNAME` / `TEST_DEVELOPER_PASSWORD` | `devuser_5090` / `mryuWTGdMk` | 基础功能 + 开发者控制台 |
+| 管理员 | `TEST_ADMIN_USERNAME` / `TEST_ADMIN_PASSWORD` | `adminuser_5090` / `SAKMRtxCjT` | 所有功能 |
+
+**注意**: 实际使用的账号密码以 `.env` 文件中配置的环境变量为准，上述默认值仅作为备用。
 
 ## 📋 API字段命名规范
 
@@ -239,13 +271,16 @@ async function confirmExecution(session_id, user_input) {
   });
   
   return response.json();
-  // 响应格式:
+  // 当前响应格式 (统一执行服务重构后的标准化格式):
   // {
   //   "session_id": "uuid-string",
   //   "success": true,
   //   "content": "执行结果内容",
   //   "error": null
   // }
+  //
+  // 注意: 该接口已从旧的复杂格式(包含execution_results数组)演进为
+  // 当前的简化格式，提供更清晰的成功/失败状态和错误处理
 }
 ```
 
@@ -376,10 +411,26 @@ async function getMCPStatus() {
 
 ### 前端 `.env` 配置
 
+**本地开发环境** (`.env.development`):
 ```bash
-# 在前端项目根目录创建 .env 文件
-# 后端服务已部署到公网
+# 本地开发环境配置
+REACT_APP_API_BASE_URL=http://localhost:3000
+REACT_APP_API_PREFIX=/api/v1
+NODE_ENV=development
+```
+
+**生产环境** (`.env.production`):
+```bash
+# 生产环境配置
 REACT_APP_API_BASE_URL=https://rqoufedpoguc.sealosgzg.site
+REACT_APP_API_PREFIX=/api/v1
+NODE_ENV=production
+```
+
+**通用配置** (`.env`):
+```bash
+# 默认配置，可被环境特定配置覆盖
+REACT_APP_API_BASE_URL=http://localhost:3000
 REACT_APP_API_PREFIX=/api/v1
 ```
 
@@ -389,7 +440,8 @@ REACT_APP_API_PREFIX=/api/v1
 // services/apiClient.js
 class ApiClient {
   constructor() {
-    this.baseURL = process.env.REACT_APP_API_BASE_URL || 'https://rqoufedpoguc.sealosgzg.site';
+    // 优先使用环境变量，本地开发默认使用localhost:3000
+    this.baseURL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3000';
     this.apiPrefix = process.env.REACT_APP_API_PREFIX || '/api/v1';
   }
   
@@ -532,6 +584,34 @@ async function getUserConfirmation() {
 }
 ```
 
+## ⚠️ 服务稳定性说明
+
+### 本地开发环境稳定性
+
+在本地开发过程中，可能会遇到以下间歇性问题：
+
+**常见现象**:
+- API调用偶尔返回连接错误
+- 健康检查接口响应缓慢
+- 服务重启后需要等待一段时间才能正常响应
+
+**根本原因**:
+1. **数据库连接池初始化**: 服务启动时需要建立数据库连接池
+2. **MCP服务器启动**: 需要等待所有MCP服务器完全启动
+3. **依赖服务检查**: 系统会检查各种依赖服务的可用性
+4. **缓存预热**: 某些缓存数据需要在首次请求时加载
+
+**最佳实践**:
+- 服务启动后等待30-60秒再进行API测试
+- 使用健康检查接口确认服务完全就绪: `curl http://localhost:3000/health`
+- 避免在服务启动过程中频繁重启
+- 如遇到问题，先检查后端日志: `tail -f backend/logs/api.log`
+
+**环境配置一致性**:
+- 确保使用正确的环境配置（本地开发 vs 生产环境）
+- 文档已更新以明确区分不同环境的配置
+- 避免混用不同环境的API地址
+
 ## 🚨 常见问题与解决方案
 
 ### 1. 认证与权限错误
@@ -616,13 +696,14 @@ const result = await apiClient.execute(toolId, params, sessionId, userId);
 
 ### 快速测试API和权限
 
+**本地开发环境测试**:
 ```bash
 # 使用公网域名测试API
 
-# 1. 测试普通用户登录
+# 1. 测试普通用户登录（使用环境变量中的账号密码）
 curl -X POST "https://rqoufedpoguc.sealosgzg.site/api/v1/auth/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "username=testuser_5090&password=8lpcUY2BOt"
+  -d "username=${TEST_USER_USERNAME:-testuser_5090}&password=${TEST_USER_PASSWORD:-8lpcUY2BOt}"
 
 # 2. 使用返回的token测试基础接口（应该成功）
 curl -X GET "https://rqoufedpoguc.sealosgzg.site/api/v1/tools" \
@@ -632,10 +713,10 @@ curl -X GET "https://rqoufedpoguc.sealosgzg.site/api/v1/tools" \
 curl -X GET "https://rqoufedpoguc.sealosgzg.site/api/v1/dev/tools" \
   -H "Authorization: Bearer YOUR_TOKEN_HERE"
 
-# 4. 测试开发者用户登录
+# 4. 测试开发者用户登录（使用环境变量中的账号密码）
 curl -X POST "https://rqoufedpoguc.sealosgzg.site/api/v1/auth/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "username=devuser_5090&password=mryuWTGdMk"
+  -d "username=${TEST_DEVELOPER_USERNAME:-devuser_5090}&password=${TEST_DEVELOPER_PASSWORD:-mryuWTGdMk}"
 
 # 5. 开发者token测试开发者接口（应该成功）
 curl -X GET "https://rqoufedpoguc.sealosgzg.site/api/v1/dev/tools" \

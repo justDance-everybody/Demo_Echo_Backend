@@ -101,7 +101,7 @@ class MCPToolSynchronizer:
         
         try:
             # 获取服务器工具信息
-            tools_info = await self.mcp_client.get_tool_info(server_name)
+            tools_info = await self.mcp_client.get_server_tools(server_name)
             
             if not tools_info.get("success"):
                 error_msg = tools_info.get("error", "未知错误")
@@ -115,30 +115,24 @@ class MCPToolSynchronizer:
             
             # 同步每个工具
             async for db in get_async_db_session():
-                try:
-                    for tool_info in tools:
-                        try:
-                            sync_result = await self._sync_single_tool(db, server_name, tool_info)
-                            if sync_result == "created":
-                                result["tools_synced"] += 1
-                            elif sync_result == "updated":
-                                result["tools_updated"] += 1
-                            else:
-                                result["tools_failed"] += 1
-                        except Exception as e:
-                            logger.error(f"同步工具 {tool_info.get('name', 'unknown')} 失败: {e}")
+                for tool_info in tools:
+                    try:
+                        sync_result = await self._sync_single_tool(db, server_name, tool_info)
+                        if sync_result == "created":
+                            result["tools_synced"] += 1
+                        elif sync_result == "updated":
+                            result["tools_updated"] += 1
+                        else:
                             result["tools_failed"] += 1
-                    
-                    await db.commit()
-                    logger.info(f"服务器 {server_name} 工具同步完成: 新增 {result['tools_synced']} 个，更新 {result['tools_updated']} 个")
-                    break
+                    except Exception as e:
+                        logger.error(f"同步工具 {tool_info.get('name', 'unknown')} 失败: {e}")
+                        logger.error(f"工具信息: {tool_info}")
+                        import traceback
+                        logger.error(f"详细错误信息: {traceback.format_exc()}")
+                        result["tools_failed"] += 1
                 
-                except Exception as e:
-                    await db.rollback()
-                    logger.error(f"同步服务器 {server_name} 工具时数据库操作失败: {e}")
-                    result["success"] = False
-                    result["error"] = str(e)
-                    break
+                logger.info(f"服务器 {server_name} 工具同步完成: 新增 {result['tools_synced']} 个，更新 {result['tools_updated']} 个")
+                break
         
         except Exception as e:
             logger.error(f"同步服务器 {server_name} 工具时发生异常: {e}")
@@ -151,43 +145,59 @@ class MCPToolSynchronizer:
         """同步单个工具到数据库"""
         tool_name = tool_info.get("name")
         if not tool_name:
-            raise ValueError("工具名称不能为空")
+            logger.warning(f"工具信息缺少名称: {tool_info}")
+            return "failed"
         
-        # 查询是否已存在
-        result = await db.execute(
-            select(Tool).where(
-                Tool.tool_id == tool_name,
-                Tool.server_name == server_name
+        logger.debug(f"开始同步工具: {tool_name} (服务器: {server_name})")
+        
+        try:
+            # 查询是否已存在
+            logger.debug(f"查询现有工具: {tool_name}")
+            result = await db.execute(
+                select(Tool).where(
+                    Tool.tool_id == tool_name,
+                    Tool.server_name == server_name
+                )
             )
-        )
-        existing_tool = result.scalars().first()
-        
-        # 准备工具数据
-        tool_data = {
-            "tool_id": tool_name,
-            "name": tool_info.get("name", tool_name),
-            "description": tool_info.get("description", ""),
-            "type": "mcp",
-            "server_name": server_name,
-            "request_schema": tool_info.get("inputSchema", {}),
-            "endpoint": {},  # MCP工具使用空字典而不是None
-            "status": "active"  # 使用正确的枚举值
-        }
-        
-        if existing_tool:
-            # 更新现有工具
-            for key, value in tool_data.items():
-                setattr(existing_tool, key, value)
+            existing_tool = result.scalars().first()
+            logger.debug(f"查询结果: {'找到现有工具' if existing_tool else '未找到现有工具'}")
             
-            logger.debug(f"更新工具: {tool_name} (服务器: {server_name})")
-            return "updated"
-        else:
-            # 创建新工具
-            new_tool = Tool(**tool_data)
-            db.add(new_tool)
+            # 准备工具数据
+            tool_data = {
+                "tool_id": tool_name,
+                "name": tool_info.get("name", tool_name),
+                "description": tool_info.get("description", ""),
+                "type": "mcp",
+                "server_name": server_name,
+                "request_schema": tool_info.get("inputSchema", {}),
+                "endpoint": {},  # MCP工具使用空字典而不是None
+                "status": "active"  # 使用正确的枚举值
+            }
+            logger.debug(f"工具数据准备完成: {tool_data}")
             
-            logger.debug(f"创建工具: {tool_name} (服务器: {server_name})")
-            return "created"
+            if existing_tool:
+                # 更新现有工具
+                logger.debug(f"更新现有工具: {tool_name}")
+                for key, value in tool_data.items():
+                    setattr(existing_tool, key, value)
+                
+                logger.info(f"✅ 更新工具: {tool_name} (服务器: {server_name})")
+                return "updated"
+            else:
+                # 创建新工具
+                logger.debug(f"创建新工具: {tool_name}")
+                new_tool = Tool(**tool_data)
+                db.add(new_tool)
+                
+                logger.info(f"✅ 创建工具: {tool_name} (服务器: {server_name})")
+                return "created"
+        
+        except Exception as e:
+            logger.error(f"❌ 同步工具 {tool_name} 失败: {e}")
+            logger.error(f"工具信息: {tool_info}")
+            import traceback
+            logger.error(f"详细错误信息: {traceback.format_exc()}")
+            raise e  # 重新抛出异常以便上层处理
     
     async def remove_orphaned_tools(self) -> Dict[str, Any]:
         """移除孤立的MCP工具（对应的服务器不存在或未运行）"""
@@ -257,8 +267,7 @@ async def main():
         logger.info("检查MCP服务器状态...")
         from app.services.mcp_manager import mcp_manager
         
-        # 加载配置并启动服务器
-        await mcp_manager.load_config()
+        # MCP管理器已在初始化时加载配置
         
         running_servers = [
             name for name in mcp_manager.servers.keys()

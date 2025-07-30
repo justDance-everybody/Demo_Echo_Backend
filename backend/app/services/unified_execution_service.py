@@ -135,7 +135,7 @@ class UnifiedExecutionService:
     def __init__(self):
         self.execute_service = ExecuteService()
         self.intent_service = IntentService()
-        self.execution_timeout = 90  # 90秒超时
+        self.execution_timeout = 120  # 120秒超时
     
     @asynccontextmanager
     async def get_session_manager(self, db: AsyncSession):
@@ -391,10 +391,17 @@ class UnifiedExecutionService:
                     )
                     
                     # 7. 构造响应
+                    # 确保正确提取执行结果的内容
+                    content = result.get("content", "执行完成")
+                    
+                    # 添加调试日志
+                    logger.info(f"[Session: {session_id}] 执行结果: success={result.get('success')}, content长度={len(str(content))}")
+                    logger.debug(f"[Session: {session_id}] 完整执行结果: {result}")
+                    
                     response_data = {
                         "session_id": session_id,
                         "success": True,
-                        "content": result.get("content", "执行完成"),
+                        "content": content,
                         "error": None
                     }
                     

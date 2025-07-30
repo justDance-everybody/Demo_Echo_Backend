@@ -368,22 +368,21 @@ const createDeveloperApplication = async (applicationData) => {
 };
 
 // 确认执行
-const confirm = async (session_id, confirmed = true, user_id = null) => {
+const confirm = async (session_id, confirmed = true, user_input = '确认') => {
   try {
-    console.log('确认执行请求:', { session_id, confirmed, user_id });
+    console.log('确认执行请求:', { session_id, confirmed, user_input });
     
     // 参数验证
     if (!session_id) {
       throw new Error('session_id 是必需的');
     }
     
-    if (typeof confirmed !== 'boolean') {
-      throw new Error('confirmed 必须是布尔值');
-    }
+    // 根据confirmed参数生成相应的user_input
+    const actualUserInput = confirmed ? (user_input || '确认') : '取消';
     
     const requestData = {
       session_id: session_id,
-      confirmed: confirmed
+      user_input: actualUserInput
     };
     
     // 注意：user_id由后端从JWT token中获取，前端不需要传递
