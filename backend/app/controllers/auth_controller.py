@@ -5,7 +5,7 @@ from loguru import logger
 
 from app.schemas.auth import Token, UserCreate, UserLogin, UserResponse
 from app.services.auth_service import AuthService
-from app.utils.db import get_db
+from app.utils.db import get_async_db_session
 from app.models.user import User
 from app.utils.security import get_current_user
 
@@ -15,7 +15,7 @@ class AuthController:
     @staticmethod
     async def login(
         form_data: OAuth2PasswordRequestForm = Depends(),
-        db: AsyncSession = Depends(get_db)
+        db: AsyncSession = Depends(get_async_db_session)
     ) -> Token:
         """
         用户登录并获取访问令牌
@@ -47,7 +47,7 @@ class AuthController:
     @staticmethod
     async def register(
         user_data: UserCreate,
-        db: AsyncSession = Depends(get_db)
+        db: AsyncSession = Depends(get_async_db_session)
     ) -> UserResponse:
         """
         注册新用户
@@ -89,4 +89,4 @@ class AuthController:
         Returns:
             UserResponse: 用户信息响应
         """
-        return UserResponse(id=current_user.id, username=current_user.username) 
+        return UserResponse(id=current_user.id, username=current_user.username)

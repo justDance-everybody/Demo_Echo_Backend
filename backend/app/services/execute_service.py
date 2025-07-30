@@ -85,6 +85,17 @@ class ExecuteService:
 
             if not tool:
                 logger.error(f"服务层：未找到工具: tool_id={tool_id}")
+                if session_id and session:
+                    try:
+                        session.status = 'error'
+                        db.add(session)
+                        error_log = Log(session_id=session_id, step='execute_end', status='error', message=f"Tool '{tool_id}' not found")
+                        db.add(error_log)
+                        await db.commit()
+                        logger.info(f"Updated session {session_id} status to error and logged tool not found.")
+                    except Exception as db_err:
+                        logger.error(f"Database error during tool not found logging/status update for session {session_id}: {db_err}", exc_info=True)
+                        await db.rollback()
                 return ExecuteResponse(
                     tool_id=tool_id,
                     success=False,
@@ -95,15 +106,60 @@ class ExecuteService:
                     },
                     session_id=session_id,
                 )
+            
+            # 验证工具配置的完整性
+            if not tool.tool_id or not tool.tool_id.strip():
+                error_msg = "工具ID为空或无效"
+                logger.error(f"服务层：{error_msg}: tool_id='{tool_id}'")
+                return ExecuteResponse(
+                    tool_id=tool_id,
+                    success=False,
+                    data=None,
+                    error={
+                        "code": "INVALID_TOOL_ID",
+                        "message": error_msg,
+                    },
+                    session_id=session_id,
+                )
 
             # 2. 根据工具类型决定执行方式
             if tool.type == "mcp":
                 # 执行 MCP 工具
                 logger.info(f"服务层：检测到 MCP 类型工具: tool_id={tool_id}")
                 
+                # 验证MCP工具的server_name
+                if not tool.server_name or tool.server_name.strip() in ['', 'None', 'null']:
+                    error_msg = f"MCP工具 '{tool_id}' 的服务器名称无效: '{tool.server_name}'"
+                    logger.error(error_msg)
+                    return ExecuteResponse(
+                        tool_id=tool_id,
+                        success=False,
+                        data=None,
+                        error={
+                            "code": "INVALID_MCP_SERVER_NAME",
+                            "message": error_msg,
+                        },
+                        session_id=session_id,
+                    )
+                
                 # 检查MCP服务器状态
                 from app.services.mcp_manager import mcp_manager
-                server_status = mcp_manager.get_server_status(tool.server_name)
+                try:
+                    server_status = mcp_manager.get_server_status(tool.server_name)
+                except ValueError as e:
+                    # 服务器不存在
+                    error_msg = f"MCP服务器 '{tool.server_name}' 不存在，无法执行工具 {tool_id}"
+                    logger.error(error_msg)
+                    return ExecuteResponse(
+                        tool_id=tool_id,
+                        success=False,
+                        data=None,
+                        error={
+                            "code": "MCP_SERVER_NOT_FOUND",
+                            "message": error_msg,
+                        },
+                        session_id=session_id,
+                    )
                 
                 if server_status and server_status.marked_failed:
                     error_msg = f"MCP服务器 {tool.server_name} 已被标记为失败，无法执行工具 {tool_id}"

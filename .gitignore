@@ -98,27 +98,33 @@ venv.bak/
 frontend/node_modules/.cache/
 *.pack
 
-# Configuration files with sensitive information
-# MCP server configurations containing API keys
+# Sensitive configuration files
+# MCP server configurations with API keys
 mcp_servers.json
 MCP_Client/mcp_servers.json
-MCP_Client/config/mcp_servers.json
 MCPTEST/mcp_servers.json
 
-# Backend configuration files
-backend/.env
-backend/app/config/local.py
+# Environment files with secrets
+.env.*
+!.env.example
+!.env.template
 
-# Any file containing API keys or secrets
-*api_key*
-*secret*
-*token*
+# Private keys and certificates
 *.key
 *.pem
 *.p12
 *.pfx
 
-# Exclude example files from ignore (keep them in repo)
-!*.example
-!*_example*
-!example_*
+# API keys and secrets
+*api_key*
+*secret*
+*private*
+!*example*
+!*template*
+!*sample*
+
+# JWT secrets and tokens
+jwt_secret*
+token*
+!*example*
+!*template*

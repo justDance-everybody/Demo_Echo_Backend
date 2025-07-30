@@ -13,6 +13,53 @@ from app.utils.security import get_current_user, get_admin_user
 
 router = APIRouter()
 
+@router.get("/mcp/health", 
+           summary="获取MCP服务器健康状态（无需认证）",
+           description="获取系统中所有MCP服务器的基本运行状态信息，无需认证。")
+async def get_mcp_servers_health() -> Dict[str, Any]:
+    """
+    获取所有MCP服务器健康状态（无需认证）
+    
+    Returns:
+        Dict[str, Any]: 包含所有MCP服务器基本状态信息的字典
+    """
+    try:
+        # 获取所有服务器状态
+        servers_status = {}
+        for server_name in mcp_manager.servers.keys():
+            status = mcp_manager.get_server_status(server_name)
+            servers_status[server_name] = {
+                "status": "running" if status.running else "stopped",
+                "restart_count": status.restart_count,
+                "consecutive_failures": status.consecutive_failures,
+                "is_blacklisted": status.marked_failed
+            }
+        
+        # 统计信息
+        total_servers = len(servers_status)
+        running_servers = sum(1 for s in servers_status.values() if s['status'] == 'running')
+        failed_servers = sum(1 for s in servers_status.values() if s['status'] != 'running')
+        blacklisted_servers = sum(1 for s in servers_status.values() if s['is_blacklisted'])
+        
+        return {
+            "success": True,
+            "data": {
+                "servers": servers_status,
+                "summary": {
+                    "total": total_servers,
+                    "running": running_servers,
+                    "failed": failed_servers,
+                    "blacklisted": blacklisted_servers
+                }
+            }
+        }
+    except Exception as e:
+        logger.error(f"获取MCP服务器健康状态失败: {e}")
+        return {
+            "success": False,
+            "error": f"获取MCP服务器健康状态失败: {str(e)}"
+        }
+
 @router.get("/mcp/status", 
            summary="获取所有MCP服务器状态",
            description="获取系统中所有MCP服务器的运行状态信息，包括运行状态、重启次数等。")

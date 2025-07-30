@@ -1,7 +1,7 @@
 from sqlalchemy import Column, BigInteger, String, Text, DateTime, ForeignKey
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
-from app.utils.db import Base, SessionLocal
+from app.utils.db import Base
 
 class Log(Base):
     """操作日志模型"""
@@ -22,13 +22,5 @@ class Log(Base):
     
     @classmethod
     def create(cls, session_id, step, status, message=None):
-        """创建日志记录"""
-        db = SessionLocal()
-        try:
-            log = cls(session_id=session_id, step=step, status=status, message=message)
-            db.add(log)
-            db.commit()
-            db.refresh(log)
-            return log
-        finally:
-            db.close() 
+        """创建日志记录 - 已废弃，请使用异步方法"""
+        raise NotImplementedError("请使用异步数据库操作方法")

@@ -135,7 +135,7 @@ class UnifiedExecutionService:
     def __init__(self):
         self.execute_service = ExecuteService()
         self.intent_service = IntentService()
-        self.execution_timeout = 30  # 30秒超时
+        self.execution_timeout = 90  # 90秒超时
     
     @asynccontextmanager
     async def get_session_manager(self, db: AsyncSession):
@@ -189,17 +189,15 @@ class UnifiedExecutionService:
                         timeout=self.execution_timeout
                     )
                     
-                    # 5. 更新会话状态为完成
-                    await session_manager.update_session_status(session_id, "completed")
-                    
-                    # 6. 记录执行成功
-                    await session_manager.log_operation(
-                        session_id, "execute", "success", "工具执行成功"
-                    )
-                    
-                    # 7. 构造响应（确保包含所有必需字段）
-                    if hasattr(result, 'data'):
-                        # 如果result是ExecuteResponse对象
+                    # 5. 检查execute_service的执行结果
+                    if hasattr(result, 'success') and result.success:
+                        # 执行成功
+                        await session_manager.update_session_status(session_id, "completed")
+                        await session_manager.log_operation(
+                            session_id, "execute", "success", "工具执行成功"
+                        )
+                        
+                        # 构造成功响应
                         response_data = {
                             "tool_id": request.tool_id,
                             "success": True,
@@ -207,18 +205,28 @@ class UnifiedExecutionService:
                             "error": None,
                             "session_id": session_id
                         }
+                        
+                        logger.info(f"工具执行成功: {session_id}, 工具: {request.tool_id}")
+                        return ExecuteResponse(**response_data)
                     else:
-                        # 如果result是字典或其他类型
+                        # 执行失败
+                        error_info = result.error if hasattr(result, 'error') else {"code": "UNKNOWN_ERROR", "message": "工具执行失败"}
+                        await session_manager.update_session_status(session_id, "error", str(error_info))
+                        await session_manager.log_operation(
+                            session_id, "execute", "error", f"工具执行失败: {error_info}"
+                        )
+                        
+                        # 构造失败响应
                         response_data = {
                             "tool_id": request.tool_id,
-                            "success": True,
-                            "data": result if isinstance(result, dict) else {"result": str(result)},
-                            "error": None,
+                            "success": False,
+                            "data": None,
+                            "error": error_info,
                             "session_id": session_id
                         }
-                    
-                    logger.info(f"工具执行成功: {session_id}, 工具: {request.tool_id}")
-                    return ExecuteResponse(**response_data)
+                        
+                        logger.error(f"工具执行失败: {session_id}, 工具: {request.tool_id}, 错误: {error_info}")
+                        return ExecuteResponse(**response_data)
                     
                 except asyncio.TimeoutError:
                     error_msg = f"工具执行超时 ({self.execution_timeout}秒)"

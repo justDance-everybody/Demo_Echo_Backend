@@ -46,16 +46,31 @@ class MCPClient:
             args = [name]
             env = os.environ.copy()
         print(f"启动 MCP 服务器: {cmd} {' '.join(args)}")
-        reader, writer = await self.exit_stack.enter_async_context(
-            stdio_client(StdioServerParameters(command=cmd, args=args, env=env))
-        )
-        self.session = await self.exit_stack.enter_async_context(
-            ClientSession(reader, writer)
-        )
-        await self.session.initialize()
-        resp = await self.session.list_tools()
+        try:
+            # 为stdio_client连接添加10秒超时
+            reader, writer = await asyncio.wait_for(
+                self.exit_stack.enter_async_context(
+                    stdio_client(StdioServerParameters(command=cmd, args=args, env=env))
+                ),
+                timeout=10.0
+            )
+            # 为session初始化添加10秒超时
+            self.session = await asyncio.wait_for(
+                self.exit_stack.enter_async_context(
+                    ClientSession(reader, writer)
+                ),
+                timeout=10.0
+            )
+            await asyncio.wait_for(self.session.initialize(), timeout=10.0)
+            resp = await asyncio.wait_for(self.session.list_tools(), timeout=10.0)
+        except asyncio.TimeoutError:
+            print(f"连接到 MCP 服务器 {name} 超时 (10秒)")
+            raise RuntimeError(f"连接到 MCP 服务器 {name} 超时")
+        except Exception as e:
+            print(f"连接到 MCP 服务器 {name} 失败: {e}")
+            raise
         self.tools = resp.tools
-        print("\\n--- 可用工具详细信息 ---")
+        print("\n--- 可用工具详细信息 ---")
         if not self.tools:
             print("未找到任何可用工具。")
         else:
@@ -69,9 +84,9 @@ class MCPClient:
                         schema_str = json.dumps(tool.inputSchema, ensure_ascii=False, indent=2)
                     except TypeError:
                         schema_str = f"无法序列化为 JSON: {tool.inputSchema}"
-                print(f"  Input Schema (用于 request_schema):\\n{schema_str}")
+                print(f"  Input Schema (用于 request_schema):\n{schema_str}")
                 print("-" * 20)
-        print(f"已连接 MCP，共找到 {len(self.tools)} 个工具。\\n")
+        print(f"已连接 MCP，共找到 {len(self.tools)} 个工具。\n")
 
     async def process_query(self, query: str) -> str:
         if not self.session: return "请先连接到 MCP 服务器。"

@@ -562,6 +562,59 @@ start_backend_service() {
             log_message "INFO" "服务地址: http://localhost:$SERVICE_PORT"
             log_message "INFO" "API文档: http://localhost:$SERVICE_PORT/docs"
             log_message "INFO" "健康检查: http://localhost:$SERVICE_PORT/health"
+            
+            # 显示MCP服务器启动状态
+            echo -e "\n${BLUE}=== MCP服务器启动状态 ===${NC}"
+            log_message "INFO" "正在检查MCP服务器状态..."
+            
+            # 等待几秒让MCP服务器有时间启动
+            sleep 3
+            
+            local mcp_status_response=$(curl -s --max-time 10 "http://localhost:$SERVICE_PORT/api/v1/mcp/health" 2>/dev/null)
+            if [ $? -eq 0 ] && [ ! -z "$mcp_status_response" ]; then
+                local success=$(echo "$mcp_status_response" | grep -o '"success":[^,]*' | cut -d':' -f2 | tr -d ' "')
+                if [ "$success" = "true" ]; then
+                    local total=$(echo "$mcp_status_response" | grep -o '"total":[0-9]*' | cut -d':' -f2)
+                    local running=$(echo "$mcp_status_response" | grep -o '"running":[0-9]*' | cut -d':' -f2)
+                    local failed=$(echo "$mcp_status_response" | grep -o '"failed":[0-9]*' | cut -d':' -f2)
+                    
+                    if [ ! -z "$total" ] && [ ! -z "$running" ] && [ ! -z "$failed" ]; then
+                        echo -e "${CYAN}MCP服务器总数: $total, 运行中: ${GREEN}$running${NC}, 失败: ${RED}$failed${NC}"
+                        
+                        # 显示各个服务器状态
+                        if command -v jq >/dev/null 2>&1; then
+                            # 使用jq解析JSON
+                            echo "$mcp_status_response" | jq -r '.data.servers | to_entries[] | "\(.key) \(.value.status) \(.value.restart_count)"' 2>/dev/null | while read server_name server_status restart_count; do
+                                if [ "$server_status" = "running" ]; then
+                                    echo -e "  ${GREEN}✓${NC} $server_name: 运行中 (重启次数: ${restart_count:-0})"
+                                else
+                                    echo -e "  ${RED}✗${NC} $server_name: 已停止 (重启次数: ${restart_count:-0})"
+                                fi
+                            done
+                        else
+                            # 备用解析方法（不依赖jq）
+                            echo "$mcp_status_response" | grep -o '"[^"]*":{[^}]*"status":"[^"]*"[^}]*}' | while IFS= read -r server_block; do
+                                local server_name=$(echo "$server_block" | sed 's/^"\([^"]*\)".*/\1/')
+                                local server_status=$(echo "$server_block" | grep -o '"status":"[^"]*"' | cut -d'"' -f4)
+                                local restart_count=$(echo "$server_block" | grep -o '"restart_count":[0-9]*' | sed 's/.*://')
+                                
+                                if [ "$server_status" = "running" ]; then
+                                    echo -e "  ${GREEN}✓${NC} $server_name: 运行中 (重启次数: ${restart_count:-0})"
+                                else
+                                    echo -e "  ${RED}✗${NC} $server_name: 已停止 (重启次数: ${restart_count:-0})"
+                                fi
+                            done
+                        fi
+                    else
+                        echo -e "${YELLOW}⚠ 无法解析MCP服务器状态信息${NC}"
+                    fi
+                else
+                    echo -e "${RED}✗ MCP服务器状态API响应错误${NC}"
+                fi
+            else
+                echo -e "${YELLOW}⚠ 暂时无法获取MCP服务器状态，请稍后使用 '$0 status' 查看${NC}"
+            fi
+            
             return 0
         fi
         
@@ -653,6 +706,59 @@ safe_start_backend() {
         log_message "INFO" "  重启服务: $0 restart"
         log_message "INFO" "  查看状态: $0 status"
         log_message "INFO" "  监控服务: $0 monitor"
+        
+        # 显示MCP服务器启动状态
+        echo -e "\n${BLUE}=== MCP服务器启动状态 ===${NC}"
+        log_message "INFO" "正在检查MCP服务器状态..."
+        
+        # 等待几秒让MCP服务器有时间启动
+        sleep 3
+        
+        local mcp_status_response=$(curl -s --max-time 10 "http://localhost:$SERVICE_PORT/api/v1/mcp/health" 2>/dev/null)
+        if [ $? -eq 0 ] && [ ! -z "$mcp_status_response" ]; then
+            local success=$(echo "$mcp_status_response" | grep -o '"success":[^,]*' | cut -d':' -f2 | tr -d ' "')
+            if [ "$success" = "true" ]; then
+                local total=$(echo "$mcp_status_response" | grep -o '"total":[0-9]*' | cut -d':' -f2)
+                local running=$(echo "$mcp_status_response" | grep -o '"running":[0-9]*' | cut -d':' -f2)
+                local failed=$(echo "$mcp_status_response" | grep -o '"failed":[0-9]*' | cut -d':' -f2)
+                
+                if [ ! -z "$total" ] && [ ! -z "$running" ] && [ ! -z "$failed" ]; then
+                    echo -e "${CYAN}MCP服务器总数: $total, 运行中: ${GREEN}$running${NC}, 失败: ${RED}$failed${NC}"
+                    
+                    # 显示各个服务器状态
+                    if command -v jq >/dev/null 2>&1; then
+                        # 使用jq解析JSON
+                        echo "$mcp_status_response" | jq -r '.data.servers | to_entries[] | "\(.key) \(.value.status) \(.value.restart_count)"' 2>/dev/null | while read server_name server_status restart_count; do
+                            if [ "$server_status" = "running" ]; then
+                                echo -e "  ${GREEN}✓${NC} $server_name: 运行中 (重启次数: ${restart_count:-0})"
+                            else
+                                echo -e "  ${RED}✗${NC} $server_name: 已停止 (重启次数: ${restart_count:-0})"
+                            fi
+                        done
+                    else
+                        # 备用解析方法（不依赖jq）
+                        echo "$mcp_status_response" | grep -o '"[^"]*":{[^}]*"status":"[^"]*"[^}]*}' | while IFS= read -r server_block; do
+                            local server_name=$(echo "$server_block" | sed 's/^"\([^"]*\)".*/\1/')
+                            local server_status=$(echo "$server_block" | grep -o '"status":"[^"]*"' | cut -d'"' -f4)
+                            local restart_count=$(echo "$server_block" | grep -o '"restart_count":[0-9]*' | sed 's/.*://')
+                            
+                            if [ "$server_status" = "running" ]; then
+                                echo -e "  ${GREEN}✓${NC} $server_name: 运行中 (重启次数: ${restart_count:-0})"
+                            else
+                                echo -e "  ${RED}✗${NC} $server_name: 已停止 (重启次数: ${restart_count:-0})"
+                            fi
+                        done
+                    fi
+                else
+                    echo -e "${YELLOW}⚠ 无法解析MCP服务器状态信息${NC}"
+                fi
+            else
+                echo -e "${RED}✗ MCP服务器状态API响应错误${NC}"
+            fi
+        else
+            echo -e "${YELLOW}⚠ 暂时无法获取MCP服务器状态，请稍后使用 '$0 status' 查看${NC}"
+        fi
+        
         return 0
     else
         log_message "ERROR" "❌ 后端服务启动失败，请检查日志"
@@ -835,6 +941,76 @@ show_status() {
         tail -10 "$systemd_log" | while read line; do
             echo -e "${YELLOW}  $line${NC}"
         done
+    fi
+    
+    # MCP服务器状态
+    echo -e "\n${BLUE}=== MCP服务器状态 ===${NC}"
+    if check_service_status; then
+        # 尝试获取MCP服务器状态
+        local mcp_status_response=$(curl -s --max-time 10 "http://localhost:$SERVICE_PORT/api/v1/mcp/health" 2>/dev/null)
+        if [ $? -eq 0 ] && [ ! -z "$mcp_status_response" ]; then
+            # 解析JSON响应（简单解析）
+            local success=$(echo "$mcp_status_response" | grep -o '"success":[^,]*' | cut -d':' -f2 | tr -d ' "')
+            if [ "$success" = "true" ]; then
+                echo -e "${GREEN}✓ MCP服务器状态API: 可访问${NC}"
+                
+                # 提取服务器统计信息
+                local total=$(echo "$mcp_status_response" | grep -o '"total":[0-9]*' | cut -d':' -f2)
+                local running=$(echo "$mcp_status_response" | grep -o '"running":[0-9]*' | cut -d':' -f2)
+                local failed=$(echo "$mcp_status_response" | grep -o '"failed":[0-9]*' | cut -d':' -f2)
+                local blacklisted=$(echo "$mcp_status_response" | grep -o '"blacklisted":[0-9]*' | cut -d':' -f2)
+                
+                if [ ! -z "$total" ] && [ ! -z "$running" ] && [ ! -z "$failed" ]; then
+                    echo -e "${CYAN}服务器总数:${NC} $total"
+                    echo -e "${GREEN}运行中:${NC} $running"
+                    if [ "$failed" -gt 0 ]; then
+                        echo -e "${RED}失败:${NC} $failed"
+                    else
+                        echo -e "${GREEN}失败:${NC} $failed"
+                    fi
+                    if [ ! -z "$blacklisted" ] && [ "$blacklisted" -gt 0 ]; then
+                        echo -e "${YELLOW}已禁用:${NC} $blacklisted"
+                    fi
+                    
+                    # 显示各个服务器的详细状态
+                    echo -e "\n${CYAN}详细状态:${NC}"
+                    # 使用更可靠的方法解析服务器状态
+                    if command -v jq >/dev/null 2>&1; then
+                        # 使用jq解析JSON
+                        echo "$mcp_status_response" | jq -r '.data.servers | to_entries[] | "\(.key) \(.value.status) \(.value.restart_count)"' 2>/dev/null | while read server_name server_status restart_count; do
+                            if [ "$server_status" = "running" ]; then
+                                echo -e "  ${GREEN}✓${NC} $server_name: 运行中 (重启次数: ${restart_count:-0})"
+                            else
+                                echo -e "  ${RED}✗${NC} $server_name: 已停止 (重启次数: ${restart_count:-0})"
+                            fi
+                        done
+                    else
+                        # 备用解析方法（不依赖jq）
+                        echo "$mcp_status_response" | grep -o '"[^"]*":{[^}]*"status":"[^"]*"[^}]*}' | while IFS= read -r server_block; do
+                            local server_name=$(echo "$server_block" | sed 's/^"\([^"]*\)".*/\1/')
+                            local server_status=$(echo "$server_block" | grep -o '"status":"[^"]*"' | cut -d'"' -f4)
+                            local restart_count=$(echo "$server_block" | grep -o '"restart_count":[0-9]*' | sed 's/.*://')
+                            
+                            if [ "$server_status" = "running" ]; then
+                                echo -e "  ${GREEN}✓${NC} $server_name: 运行中 (重启次数: ${restart_count:-0})"
+                            else
+                                echo -e "  ${RED}✗${NC} $server_name: 已停止 (重启次数: ${restart_count:-0})"
+                            fi
+                        done
+                    fi
+                else
+                    echo -e "${YELLOW}⚠ 无法解析MCP服务器统计信息${NC}"
+                fi
+            else
+                echo -e "${RED}✗ MCP服务器状态API: 响应错误${NC}"
+                echo -e "${YELLOW}响应内容:${NC} $(echo "$mcp_status_response" | head -c 200)..."
+            fi
+        else
+            echo -e "${RED}✗ MCP服务器状态API: 无法访问${NC}"
+            echo -e "${YELLOW}提示: 请确保后端服务正常运行并且API端点可访问${NC}"
+        fi
+    else
+        echo -e "${YELLOW}⚠ 后端服务未运行，无法获取MCP服务器状态${NC}"
     fi
     
     # 重启建议
