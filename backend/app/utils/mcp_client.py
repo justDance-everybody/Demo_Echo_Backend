@@ -196,8 +196,12 @@ class MCPClientWrapper:
         # 直接调用 call_tool
         logger.info(f"准备通过MCP客户端 ('{self._connected_server}') 执行工具: tool={tool_id}, params={params}")
         try:
-            # 直接调用 MCPClient 的 session 的 call_tool 方法
-            tool_result = await self.client.session.call_tool(tool_id, params)
+            # 直接调用 MCPClient 的 session 的 call_tool 方法，添加30秒超时
+            import asyncio
+            tool_result = await asyncio.wait_for(
+                self.client.session.call_tool(tool_id, params), 
+                timeout=30.0
+            )
             
             # 提取结果内容
             if hasattr(tool_result, 'content'):
@@ -225,6 +229,16 @@ class MCPClientWrapper:
                 }
             }
             logger.info(f"MCP客户端执行工具成功: tool={tool_id}")
+        except asyncio.TimeoutError:
+            logger.error(f"MCP客户端执行工具超时: tool={tool_id} (30秒)")
+            result = {
+                "tool_id": tool_id,
+                "success": False,
+                "error": {
+                    "code": "MCP_EXECUTION_TIMEOUT",
+                    "message": f"工具 {tool_id} 执行超时 (30秒)，请稍后重试"
+                }
+            }
         except Exception as e:
             logger.error(f"MCP客户端执行工具失败: tool={tool_id}, error={e}")
             result = {

@@ -1,5 +1,10 @@
 {
   "devDependencies": {
     "msw": "^2.10.4"
+  },
+  "dependencies": {
+    "@amap/amap-maps-mcp-server": "^0.0.8",
+    "@playwright/mcp": "^0.0.32",
+    "minimax-mcp-js": "^0.0.17"
   }
 }

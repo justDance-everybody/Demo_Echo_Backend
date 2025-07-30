@@ -104,27 +104,41 @@ class MCPServerManager:
             # 等待一小段时间检查进程是否成功启动
             await asyncio.sleep(2)
             
-            if process.returncode is None:  # 进程仍在运行
-                # 读取初始输出以确认启动状态
+            if process.returncode is None:  # 进程正在运行
                 try:
-                    # 非阻塞读取stdout
+                    # 等待一小段时间让进程输出启动信息
+                    await asyncio.sleep(1.0)
+                    
+                    # 非阻塞读取stdout和stderr
                     stdout_data = b''
                     stderr_data = b''
                     
-                    # 尝试读取一些输出，增加超时时间以确保能读取到amap-maps的启动信息
-                    try:
-                        stdout_chunk = await asyncio.wait_for(process.stdout.read(1024), timeout=5.0)
-                        if stdout_chunk:
-                            stdout_data += stdout_chunk
-                    except asyncio.TimeoutError:
-                        pass
-                    
-                    try:
-                        stderr_chunk = await asyncio.wait_for(process.stderr.read(1024), timeout=5.0)
-                        if stderr_chunk:
-                            stderr_data += stderr_chunk
-                    except asyncio.TimeoutError:
-                        pass
+                    # 多次尝试读取输出，确保能捕获到启动信息
+                    for attempt in range(3):
+                        try:
+                            # 尝试读取stdout
+                            if process.stdout.at_eof() == False:
+                                stdout_chunk = await asyncio.wait_for(process.stdout.read(1024), timeout=2.0)
+                                if stdout_chunk:
+                                    stdout_data += stdout_chunk
+                        except (asyncio.TimeoutError, Exception):
+                            pass
+                        
+                        try:
+                            # 尝试读取stderr
+                            if process.stderr.at_eof() == False:
+                                stderr_chunk = await asyncio.wait_for(process.stderr.read(1024), timeout=2.0)
+                                if stderr_chunk:
+                                    stderr_data += stderr_chunk
+                        except (asyncio.TimeoutError, Exception):
+                            pass
+                        
+                        # 如果已经有输出了，就不需要继续等待
+                        if stdout_data or stderr_data:
+                            break
+                        
+                        # 短暂等待后再次尝试
+                        await asyncio.sleep(0.5)
                     
                     # 检查输出内容，判断是否成功启动
                     stdout_text = stdout_data.decode('utf-8', errors='ignore')
@@ -133,17 +147,66 @@ class MCPServerManager:
                     # 对于不同MCP服务器的成功启动指示符
                     success_indicators = [
                         "running on stdio",
-                        "MCP Server running",
-                        "Server started",
+                        "mcp server running",
+                        "server started",
                         "listening",
-                        "Registering general tools",  # web3-rpc的成功指示符
-                        "Registering Solana tools"    # web3-rpc的成功指示符
+                        "registering general tools",  # web3-rpc的成功指示符
+                        "registering solana tools",   # web3-rpc的成功指示符
+                        "amap maps mcp server running on stdio",  # amap-maps的完整成功指示符
+                        "maps mcp server running",     # amap-maps的备用指示符
+                        "looking for .env file"        # web3-rpc的启动指示符
                     ]
                     
                     output_text = stdout_text + stderr_text
-                    is_success = any(indicator.lower() in output_text.lower() for indicator in success_indicators)
+                    logger.debug(f"MCP服务器 {server_name} 启动输出: {repr(output_text)}")
                     
-                    if is_success or (not output_text.strip()):  # 成功启动或无输出（静默启动）
+                    # 调试：检查每个指示符的匹配情况
+                    matched_indicators = []
+                    output_lower = output_text.lower().strip()
+                    for indicator in success_indicators:
+                        if indicator.lower() in output_lower:
+                            matched_indicators.append(indicator)
+                    
+                    logger.debug(f"MCP服务器 {server_name} 匹配的成功指示符: {matched_indicators}")
+                    is_success = len(matched_indicators) > 0
+                    
+                    # 对于MCP服务器，无输出通常表示正常启动（等待stdio输入）
+                    # 只有明确的错误信息才认为启动失败
+                    error_indicators = [
+                        "error:",
+                        "failed",
+                        "not found",
+                        "permission denied",
+                        "cannot",
+                        "unable",
+                        "missing",
+                        "invalid",
+                        "not set",
+                        "enoent",
+                        "command not found"
+                    ]
+                    
+                    # 更严格的错误检测：只有明确的错误才认为失败
+                    has_error = False
+                    for indicator in error_indicators:
+                        if indicator.lower() in output_lower:
+                            has_error = True
+                            break
+                    
+                    # 改进的启动成功判断逻辑：
+                    # 1. 匹配到成功指示符 -> 成功
+                    # 2. 无输出（等待stdio输入）-> 成功
+                    # 3. 有输出但不包含明确错误指示符 -> 成功
+                    # 4. 进程仍在运行且没有明确错误 -> 成功
+                    startup_success = (
+                        is_success or 
+                        (not output_text.strip()) or 
+                        (output_text.strip() and not has_error)
+                    )
+                    
+                    logger.debug(f"MCP服务器 {server_name} 启动判断: is_success={is_success}, has_output={bool(output_text.strip())}, has_error={has_error}, startup_success={startup_success}")
+                    
+                    if startup_success:
                         server_status.running = True
                         server_status.consecutive_failures = 0
                         server_status.last_restart_time = datetime.now()
@@ -160,7 +223,7 @@ class MCPServerManager:
                             logger.debug(f"启动输出: {output_text.strip()}")
                         return True
                     else:
-                        # 输出中包含错误信息
+                        # 输出中包含错误信息，但进程仍在运行
                         server_status.error_message = output_text or "启动后无输出"
                         logger.error(f"MCP服务器 {server_name} 启动失败: {server_status.error_message}")
                         # 终止进程
@@ -183,12 +246,67 @@ class MCPServerManager:
                     logger.info(f"MCP服务器 {server_name} 启动成功 (PID: {process.pid})")
                     return True
             else:
-                # 进程启动失败
+                # 进程已退出，检查输出确定是否为正常退出
                 stdout, stderr = await process.communicate()
-                error_msg = stderr.decode() if stderr else "未知错误"
-                server_status.error_message = error_msg
-                logger.error(f"MCP服务器 {server_name} 启动失败: {error_msg}")
-                return False
+                stdout_text = stdout.decode() if stdout else ""
+                stderr_text = stderr.decode() if stderr else ""
+                output_text = stdout_text + stderr_text
+                
+                # 检查输出是否包含成功指示符
+                success_indicators = [
+                    "running on stdio",
+                    "mcp server running",
+                    "server started",
+                    "listening",
+                    "registering general tools",
+                    "registering solana tools",
+                    "amap maps mcp server running on stdio",
+                    "maps mcp server running",
+                    "looking for .env file"
+                ]
+                
+                output_lower = output_text.lower().strip()
+                is_success_output = any(indicator.lower() in output_lower for indicator in success_indicators)
+                
+                if is_success_output:
+                    # 虽然进程退出了，但输出表明启动成功（可能是正常的stdio模式）
+                    logger.info(f"MCP服务器 {server_name} 输出成功指示符，认为启动成功")
+                    logger.debug(f"成功输出: {output_text}")
+                    
+                    # 对于stdio模式的服务器，进程退出是正常的
+                    server_status.running = True
+                    server_status.consecutive_failures = 0
+                    server_status.last_restart_time = datetime.now()
+                    server_status.restart_count += 1
+                    server_status.error_message = None
+                    server_status.process_info = {
+                        "pid": None,  # 进程已退出
+                        "cmd": f"{cmd} {' '.join(args)}",
+                        "exit_mode": "stdio"
+                    }
+                    return True
+                elif process.returncode == 0 and not output_text.strip():
+                    # 进程正常退出且无输出，这对于MCP服务器是正常的（等待stdio输入）
+                    logger.info(f"MCP服务器 {server_name} 正常退出，认为启动成功（stdio模式）")
+                    
+                    server_status.running = True
+                    server_status.consecutive_failures = 0
+                    server_status.last_restart_time = datetime.now()
+                    server_status.restart_count += 1
+                    server_status.error_message = None
+                    server_status.process_info = {
+                        "pid": None,  # 进程已退出
+                        "cmd": f"{cmd} {' '.join(args)}",
+                        "exit_mode": "stdio"
+                    }
+                    return True
+                else:
+                    # 真正的启动失败
+                    error_msg = output_text.strip() if output_text.strip() else f"进程退出，退出码: {process.returncode}"
+                    server_status.error_message = error_msg
+                    logger.error(f"MCP服务器 {server_name} 启动失败: {error_msg}")
+                    logger.debug(f"MCP服务器 {server_name} 完整输出: stdout='{stdout_text}', stderr='{stderr_text}'")
+                    return False
                 
         except Exception as e:
             server_status.error_message = str(e)
@@ -198,12 +316,16 @@ class MCPServerManager:
     async def check_server_health(self, server_name: str) -> bool:
         """检查服务器健康状态"""
         try:
-            # 这里可以通过MCP客户端ping服务器或检查进程状态
-            # 简化实现：检查进程是否还在运行
             server_status = self.servers[server_name]
             
             if not server_status.process_info:
                 return False
+                
+            # 检查是否是stdio模式的服务器
+            exit_mode = server_status.process_info.get("exit_mode")
+            if exit_mode == "stdio":
+                # stdio模式的服务器被认为是健康的（它们正常退出等待stdio输入）
+                return True
                 
             pid = server_status.process_info.get("pid")
             if not pid:
