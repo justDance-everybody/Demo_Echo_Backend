@@ -142,56 +142,9 @@ class ExecuteService:
                         session_id=session_id,
                     )
                 
-                # 检查MCP服务器状态
-                from app.services.mcp_manager import mcp_manager
-                try:
-                    server_status = mcp_manager.get_server_status(tool.server_name)
-                except ValueError as e:
-                    # 服务器不存在
-                    error_msg = f"MCP服务器 '{tool.server_name}' 不存在，无法执行工具 {tool_id}"
-                    logger.error(error_msg)
-                    return ExecuteResponse(
-                        tool_id=tool_id,
-                        success=False,
-                        data=None,
-                        error={
-                            "code": "MCP_SERVER_NOT_FOUND",
-                            "message": error_msg,
-                        },
-                        session_id=session_id,
-                    )
-                
-                if server_status and server_status.marked_failed:
-                    error_msg = f"MCP服务器 {tool.server_name} 已被标记为失败，无法执行工具 {tool_id}"
-                    logger.warning(error_msg)
-                    return ExecuteResponse(
-                        tool_id=tool_id,
-                        success=False,
-                        data=None,
-                        error={
-                            "code": "MCP_SERVER_FAILED",
-                            "message": error_msg,
-                        },
-                        session_id=session_id,
-                    )
-                
-                # 确保服务器正在运行
-                if not server_status or not server_status.running:
-                    logger.info(f"MCP服务器 {tool.server_name} 未运行，尝试启动...")
-                    try:
-                        await mcp_manager.start_server(tool.server_name)
-                    except Exception as start_err:
-                        logger.error(f"启动MCP服务器 {tool.server_name} 失败: {start_err}")
-                        return ExecuteResponse(
-                            tool_id=tool_id,
-                            success=False,
-                            data=None,
-                            error={
-                                "code": "MCP_SERVER_START_FAILED",
-                                "message": f"无法启动MCP服务器 {tool.server_name}: {start_err}",
-                            },
-                            session_id=session_id,
-                        )
+                # 暂时跳过MCP服务器管理检查，直接使用MCP客户端连接
+                # 这样可以避免重复启动进程的问题
+                logger.info(f"直接使用MCP客户端执行工具: {tool_id} (服务器: {tool.server_name})")
                 
                 # 执行MCP工具
                 target_server = tool.server_name

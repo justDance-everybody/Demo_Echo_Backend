@@ -391,22 +391,54 @@ class UnifiedExecutionService:
                     )
                     
                     # 7. 构造响应
-                    # 确保正确提取执行结果的内容
-                    content = result.get("content", "执行完成")
+                    # 检查工具执行是否真正成功
+                    execution_success = result.get("success", False)
                     
-                    # 添加调试日志
-                    logger.info(f"[Session: {session_id}] 执行结果: success={result.get('success')}, content长度={len(str(content))}")
-                    logger.debug(f"[Session: {session_id}] 完整执行结果: {result}")
-                    
-                    response_data = {
-                        "session_id": session_id,
-                        "success": True,
-                        "content": content,
-                        "error": None
-                    }
-                    
-                    logger.info(f"确认执行成功: {session_id}")
-                    return ConfirmResponse(**response_data)
+                    if execution_success:
+                        # 执行成功，提取内容
+                        content = result.get("content", "执行完成")
+                        
+                        # 添加调试日志
+                        logger.info(f"[Session: {session_id}] 执行结果: success={execution_success}, content长度={len(str(content))}")
+                        logger.debug(f"[Session: {session_id}] 完整执行结果: {result}")
+                        
+                        # 如果 content 为空或者是默认值，尝试从 detailed_results 中提取
+                        if not content or content == "执行完成":
+                            detailed_results = result.get("detailed_results", [])
+                            if detailed_results:
+                                content_parts = []
+                                for detail in detailed_results:
+                                    if detail.get("data") and detail["data"].get("tts_message"):
+                                        content_parts.append(detail["data"]["tts_message"])
+                                if content_parts:
+                                    content = "\n\n".join(content_parts)
+                                    logger.info(f"[Session: {session_id}] 从 detailed_results 中提取到内容: {content}")
+                        
+                        response_data = {
+                            "session_id": session_id,
+                            "success": True,
+                            "content": content,
+                            "error": None
+                        }
+                        
+                        logger.info(f"确认执行成功: {session_id}")
+                        return ConfirmResponse(**response_data)
+                    else:
+                        # 执行失败，返回错误信息
+                        error_msg = result.get("error", "工具执行失败")
+                        logger.error(f"[Session: {session_id}] 工具执行失败: {error_msg}")
+                        
+                        await session_manager.update_session_status(session_id, "error", error_msg)
+                        await session_manager.log_operation(
+                            session_id, "confirm", "error", error_msg
+                        )
+                        
+                        return ConfirmResponse(
+                            session_id=session_id,
+                            success=False,
+                            content=None,
+                            error=error_msg
+                        )
                     
                 except asyncio.TimeoutError:
                     error_msg = f"确认执行超时 ({self.execution_timeout}秒)"
