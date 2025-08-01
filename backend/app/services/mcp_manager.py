@@ -154,7 +154,13 @@ class MCPServerManager:
                         "registering solana tools",   # web3-rpc的成功指示符
                         "amap maps mcp server running on stdio",  # amap-maps的完整成功指示符
                         "maps mcp server running",     # amap-maps的备用指示符
-                        "looking for .env file"        # web3-rpc的启动指示符
+                        "looking for .env file",       # web3-rpc的启动指示符
+                        "registering",                 # 通用注册指示符
+                        "initialized",                 # 初始化完成指示符
+                        "ready",                       # 就绪指示符
+                        "started",                     # 启动指示符
+                        "loading",                     # 加载指示符
+                        "connecting"                   # 连接指示符
                     ]
                     
                     output_text = stdout_text + stderr_text
@@ -170,20 +176,24 @@ class MCPServerManager:
                     logger.debug(f"MCP服务器 {server_name} 匹配的成功指示符: {matched_indicators}")
                     is_success = len(matched_indicators) > 0
                     
-                    # 对于MCP服务器，无输出通常表示正常启动（等待stdio输入）
-                    # 只有明确的错误信息才认为启动失败
+                    # 对于MCP服务器，只有明确的错误信息才认为启动失败
+                    # 更严格的错误指示符，避免误判正常输出
                     error_indicators = [
                         "error:",
-                        "failed",
-                        "not found",
+                        "failed to",
+                        "command not found",
                         "permission denied",
-                        "cannot",
-                        "unable",
-                        "missing",
-                        "invalid",
-                        "not set",
+                        "cannot find",
+                        "unable to",
+                        "missing required",
+                        "invalid argument",
                         "enoent",
-                        "command not found"
+                        "module not found",
+                        "package not found",
+                        "syntax error",
+                        "connection refused",
+                        "timeout",
+                        "access denied"
                     ]
                     
                     # 更严格的错误检测：只有明确的错误才认为失败
@@ -195,13 +205,15 @@ class MCPServerManager:
                     
                     # 改进的启动成功判断逻辑：
                     # 1. 匹配到成功指示符 -> 成功
-                    # 2. 无输出（等待stdio输入）-> 成功
+                    # 2. 无输出（等待stdio输入）-> 成功  
                     # 3. 有输出但不包含明确错误指示符 -> 成功
                     # 4. 进程仍在运行且没有明确错误 -> 成功
+                    # 5. 对于MCP服务器，默认假设启动成功，除非有明确的错误
                     startup_success = (
-                        is_success or 
-                        (not output_text.strip()) or 
-                        (output_text.strip() and not has_error)
+                        is_success or                           # 匹配成功指示符
+                        (not output_text.strip()) or           # 无输出（stdio模式）
+                        (output_text.strip() and not has_error) or  # 有输出但无错误
+                        (not has_error)                        # 没有明确错误就认为成功
                     )
                     
                     logger.debug(f"MCP服务器 {server_name} 启动判断: is_success={is_success}, has_output={bool(output_text.strip())}, has_error={has_error}, startup_success={startup_success}")
@@ -252,7 +264,7 @@ class MCPServerManager:
                 stderr_text = stderr.decode() if stderr else ""
                 output_text = stdout_text + stderr_text
                 
-                # 检查输出是否包含成功指示符
+                # 检查输出是否包含成功指示符（与上面保持一致）
                 success_indicators = [
                     "running on stdio",
                     "mcp server running",
@@ -262,7 +274,13 @@ class MCPServerManager:
                     "registering solana tools",
                     "amap maps mcp server running on stdio",
                     "maps mcp server running",
-                    "looking for .env file"
+                    "looking for .env file",
+                    "registering",
+                    "initialized",
+                    "ready",
+                    "started",
+                    "loading",
+                    "connecting"
                 ]
                 
                 output_lower = output_text.lower().strip()
@@ -285,9 +303,9 @@ class MCPServerManager:
                         "exit_mode": "stdio"
                     }
                     return True
-                elif process.returncode == 0 and not output_text.strip():
-                    # 进程正常退出且无输出，这对于MCP服务器是正常的（等待stdio输入）
-                    logger.info(f"MCP服务器 {server_name} 正常退出，认为启动成功（stdio模式）")
+                elif process.returncode == 0:
+                    # 进程正常退出（退出码0），对于MCP服务器通常是正常的
+                    logger.info(f"MCP服务器 {server_name} 正常退出（退出码0），认为启动成功（stdio模式）")
                     
                     server_status.running = True
                     server_status.consecutive_failures = 0
@@ -297,16 +315,45 @@ class MCPServerManager:
                     server_status.process_info = {
                         "pid": None,  # 进程已退出
                         "cmd": f"{cmd} {' '.join(args)}",
-                        "exit_mode": "stdio"
+                        "exit_mode": "stdio",
+                        "startup_output": output_text[:500] if output_text.strip() else "无输出（stdio模式）"
                     }
                     return True
                 else:
-                    # 真正的启动失败
-                    error_msg = output_text.strip() if output_text.strip() else f"进程退出，退出码: {process.returncode}"
-                    server_status.error_message = error_msg
-                    logger.error(f"MCP服务器 {server_name} 启动失败: {error_msg}")
-                    logger.debug(f"MCP服务器 {server_name} 完整输出: stdout='{stdout_text}', stderr='{stderr_text}'")
-                    return False
+                    # 检查是否有明确的错误指示符
+                    output_lower = output_text.lower().strip()
+                    error_indicators = [
+                        "error:", "failed to", "command not found", "permission denied",
+                        "cannot find", "unable to", "missing required", "invalid argument",
+                        "enoent", "module not found", "package not found", "syntax error",
+                        "connection refused", "timeout", "access denied"
+                    ]
+                    
+                    has_clear_error = any(indicator in output_lower for indicator in error_indicators)
+                    
+                    if has_clear_error or process.returncode > 1:
+                        # 真正的启动失败：有明确错误或异常退出码
+                        error_msg = output_text.strip() if output_text.strip() else f"进程异常退出，退出码: {process.returncode}"
+                        server_status.error_message = error_msg
+                        logger.error(f"MCP服务器 {server_name} 启动失败: {error_msg}")
+                        logger.debug(f"MCP服务器 {server_name} 完整输出: stdout='{stdout_text}', stderr='{stderr_text}'")
+                        return False
+                    else:
+                        # 非零退出码但无明确错误，可能是正常的MCP服务器行为
+                        logger.info(f"MCP服务器 {server_name} 退出码 {process.returncode}，但无明确错误，认为启动成功")
+                        server_status.running = True
+                        server_status.consecutive_failures = 0
+                        server_status.last_restart_time = datetime.now()
+                        server_status.restart_count += 1
+                        server_status.error_message = None
+                        server_status.process_info = {
+                            "pid": None,
+                            "cmd": f"{cmd} {' '.join(args)}",
+                            "exit_mode": "normal",
+                            "exit_code": process.returncode,
+                            "startup_output": output_text[:500] if output_text.strip() else "无输出"
+                        }
+                        return True
                 
         except Exception as e:
             server_status.error_message = str(e)

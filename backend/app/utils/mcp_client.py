@@ -3,6 +3,7 @@ import os
 import sys
 import logging
 import json
+import asyncio
 from dotenv import load_dotenv
 from loguru import logger
 from app.config import settings
@@ -64,6 +65,9 @@ class MCPClientWrapper:
         # 连接池：缓存已连接的客户端实例
         self._connection_pool = {}
         self._connection_lock = {}
+        # 进程管理：跟踪已启动的MCP进程
+        self._managed_processes = {}  # {server_name: {"pid": int, "start_time": float}}
+        self._process_lock = asyncio.Lock()
         
         try:
             # 加载MCP服务器配置
@@ -93,40 +97,296 @@ class MCPClientWrapper:
             self._connection_lock = {}
     
     async def _get_or_create_client(self, target_server: str) -> 'MCPClient':
-        """获取或创建MCP客户端实例（使用连接池）"""
+        """
+        获取或创建MCP客户端实例（使用优化的连接池）
+        
+        Args:
+            target_server: 目标MCP服务器名称
+            
+        Returns:
+            MCPClient: MCP客户端实例
+            
+        Raises:
+            ValueError: 当目标服务器不存在于配置中时
+            RuntimeError: 当连接失败时
+        """
         # 检查目标服务器是否存在于配置中
         if target_server not in self.server_configs:
             raise ValueError(f"目标MCP服务器 '{target_server}' 未在配置中找到")
 
-        # 检查连接池中是否已有可用连接
+        # 优化的连接复用逻辑：更严格的连接验证
         if target_server in self._connection_pool:
             client = self._connection_pool[target_server]
-            # 检查连接是否仍然有效
-            try:
-                if client and client.session:
-                    logger.debug(f"复用现有MCP客户端连接: {target_server}")
-                    return client
-            except Exception as e:
-                logger.warning(f"现有连接无效，将重新创建: {e}")
-                # 清理无效连接
+            if client and hasattr(client, 'session') and client.session:
                 try:
+                    # 简单的连接健康检查
+                    if hasattr(client.session, '_transport') and client.session._transport:
+                        logger.info(f"复用现有MCP客户端连接: {target_server}")
+                        return client
+                except Exception as health_check_err:
+                    logger.warning(f"连接健康检查失败: {health_check_err}")
+            
+            # 清理无效连接
+            logger.info(f"清理无效连接: {target_server}")
+            try:
+                if client and hasattr(client, 'close'):
                     await client.close()
-                except:
-                    pass
-                del self._connection_pool[target_server]
+            except:
+                pass
+            del self._connection_pool[target_server]
+            
+            # 同时清理进程管理记录（如果连接失败，进程可能也有问题）
+            async with self._process_lock:
+                if target_server in self._managed_processes:
+                    managed_info = self._managed_processes[target_server]
+                    logger.warning(f"连接失败，清理进程管理记录 (PID: {managed_info['pid']}): {target_server}")
+                    del self._managed_processes[target_server]
 
-        logger.info(f"创建新的MCP客户端实例并连接到服务器: {target_server}")
+        logger.info(f"为服务器 {target_server} 创建新的MCP客户端连接")
+        
+        # 优化的进程检查逻辑：支持多种MCP服务器类型
+        server_config = self.server_configs.get(target_server)
+        if not server_config:
+            raise ValueError(f"未找到服务器配置: {target_server}")
+        
+        # 使用进程管理器检查和启动进程
+        async with self._process_lock:
+            process_pid = await self._ensure_mcp_process(target_server, server_config)
+        
+        # 创建客户端连接
         try:
-            # 创建新的客户端实例
             client = MCPClient()
             await client.connect(target_server)
+            
             # 将连接加入连接池
             self._connection_pool[target_server] = client
             logger.info(f"成功连接到MCP服务器并加入连接池: {target_server}")
             return client
+            
         except Exception as e:
             logger.error(f"连接到MCP服务器 '{target_server}' 失败: {e}")
             raise RuntimeError(f"连接到MCP服务器 '{target_server}' 失败: {e}")
+    
+    async def _find_existing_process(self, target_server: str, server_config: dict) -> Optional[int]:
+        """
+        查找现有的MCP进程
+        
+        Args:
+            target_server: 服务器名称
+            server_config: 服务器配置
+            
+        Returns:
+            Optional[int]: 进程PID，如果没有找到则返回None
+        """
+        try:
+            import psutil
+            
+            cmd = server_config["command"]
+            args = server_config.get("args", [])
+            
+            # 构建进程匹配模式
+            search_patterns = []
+            
+            # 根据不同的服务器类型构建搜索模式
+            if target_server == "minimax-mcp-js":
+                search_patterns = ["minimax-mcp-js", "minimax"]
+            elif target_server == "amap-maps":
+                search_patterns = ["amap-maps-mcp-server", "amap"]
+            elif target_server == "playwright":
+                search_patterns = ["playwright", "@playwright/mcp"]
+            elif target_server == "web3-rpc":
+                search_patterns = ["web3-mcp", "web3"]
+            else:
+                # 通用模式：使用命令和参数
+                search_patterns = [target_server, cmd] + args
+            
+            for proc in psutil.process_iter(['pid', 'cmdline']):
+                try:
+                    cmdline = ' '.join(proc.info['cmdline']) if proc.info['cmdline'] else ''
+                    
+                    # 检查是否匹配任何搜索模式
+                    for pattern in search_patterns:
+                        if pattern and pattern in cmdline:
+                            logger.debug(f"找到匹配进程: PID={proc.info['pid']}, cmdline={cmdline}")
+                            return proc.info['pid']
+                            
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                    continue
+                    
+        except Exception as e:
+            logger.warning(f"检查现有进程时出错: {e}")
+            
+        return None
+    
+    async def _ensure_mcp_process(self, target_server: str, server_config: dict) -> int:
+        """
+        确保MCP进程运行（统一的进程管理入口）
+        
+        Args:
+            target_server: 服务器名称
+            server_config: 服务器配置
+            
+        Returns:
+            int: 运行中的进程PID
+        """
+        import time
+        
+        # 1. 检查我们管理的进程是否还在运行
+        if target_server in self._managed_processes:
+            managed_info = self._managed_processes[target_server]
+            pid = managed_info["pid"]
+            
+            try:
+                import psutil
+                if psutil.pid_exists(pid):
+                    proc = psutil.Process(pid)
+                    if proc.is_running():
+                        logger.info(f"复用已管理的MCP进程 (PID: {pid}): {target_server}")
+                        return pid
+                    else:
+                        logger.warning(f"已管理的进程不再运行，清理记录: {target_server}")
+                        del self._managed_processes[target_server]
+                else:
+                    logger.warning(f"已管理的进程PID不存在，清理记录: {target_server}")
+                    del self._managed_processes[target_server]
+            except Exception as e:
+                logger.warning(f"检查已管理进程时出错: {e}，清理记录")
+                del self._managed_processes[target_server]
+        
+        # 2. 查找系统中现有的进程
+        existing_pid = await self._find_existing_process(target_server, server_config)
+        if existing_pid:
+            # 将现有进程纳入管理
+            self._managed_processes[target_server] = {
+                "pid": existing_pid,
+                "start_time": time.time()
+            }
+            logger.info(f"发现并纳入管理现有MCP进程 (PID: {existing_pid}): {target_server}")
+            return existing_pid
+        
+        # 3. 启动新进程
+        new_pid = await self._start_mcp_process(target_server, server_config)
+        self._managed_processes[target_server] = {
+            "pid": new_pid,
+            "start_time": time.time()
+        }
+        logger.info(f"启动并管理新的MCP进程 (PID: {new_pid}): {target_server}")
+        return new_pid
+    
+    async def cleanup_dead_processes(self):
+        """
+        清理已死亡的进程记录（定期维护方法）
+        """
+        async with self._process_lock:
+            dead_servers = []
+            
+            for server_name, managed_info in self._managed_processes.items():
+                pid = managed_info["pid"]
+                try:
+                    import psutil
+                    if not psutil.pid_exists(pid) or not psutil.Process(pid).is_running():
+                        dead_servers.append(server_name)
+                        logger.info(f"发现死亡进程，准备清理: {server_name} (PID: {pid})")
+                except Exception as e:
+                    dead_servers.append(server_name)
+                    logger.warning(f"检查进程状态时出错，准备清理: {server_name} (PID: {pid}), 错误: {e}")
+            
+            # 清理死亡进程的记录
+            for server_name in dead_servers:
+                del self._managed_processes[server_name]
+                # 同时清理对应的连接池
+                if server_name in self._connection_pool:
+                    del self._connection_pool[server_name]
+                    logger.info(f"同时清理连接池: {server_name}")
+            
+            if dead_servers:
+                logger.info(f"已清理 {len(dead_servers)} 个死亡进程记录: {dead_servers}")
+    
+    def get_managed_processes_info(self) -> dict:
+        """
+        获取当前管理的进程信息（用于调试和监控）
+        
+        Returns:
+            dict: 进程信息字典
+        """
+        import time
+        result = {}
+        
+        for server_name, managed_info in self._managed_processes.items():
+            pid = managed_info["pid"]
+            start_time = managed_info["start_time"]
+            uptime = time.time() - start_time
+            
+            try:
+                import psutil
+                is_running = psutil.pid_exists(pid) and psutil.Process(pid).is_running()
+            except:
+                is_running = False
+            
+            result[server_name] = {
+                "pid": pid,
+                "start_time": start_time,
+                "uptime_seconds": uptime,
+                "is_running": is_running
+            }
+        
+        return result
+    
+    async def _start_mcp_process(self, target_server: str, server_config: dict) -> int:
+        """
+        启动新的MCP服务器进程
+        
+        Args:
+            target_server: 服务器名称
+            server_config: 服务器配置
+            
+        Returns:
+            int: 新进程的PID
+            
+        Raises:
+            RuntimeError: 当进程启动失败时
+        """
+        import subprocess
+        import time
+        
+        cmd = server_config["command"]
+        args = server_config.get("args", [])
+        env_vars = server_config.get("env", {})
+        
+        # 准备环境变量
+        process_env = os.environ.copy()
+        process_env.update(env_vars)
+        
+        logger.info(f"启动MCP服务器进程: {cmd} {' '.join(args)}")
+        
+        try:
+            # 启动进程
+            process = subprocess.Popen(
+                [cmd] + args,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                stdin=subprocess.PIPE,
+                env=process_env,
+                preexec_fn=os.setsid if hasattr(os, 'setsid') else None  # 创建新的进程组
+            )
+            
+            # 等待进程启动
+            time.sleep(3)  # 给进程更多启动时间
+            
+            if process.poll() is None:  # 进程仍在运行
+                logger.info(f"成功启动MCP服务器进程 (PID: {process.pid}): {target_server}")
+                return process.pid
+            else:
+                # 进程已退出，读取错误信息
+                stdout, stderr = process.communicate()
+                error_msg = stderr.decode('utf-8') if stderr else stdout.decode('utf-8')
+                logger.error(f"MCP服务器进程启动失败，退出码: {process.returncode}")
+                logger.error(f"错误输出: {error_msg}")
+                raise RuntimeError(f"MCP服务器进程启动失败: {error_msg}")
+                
+        except Exception as e:
+            logger.error(f"启动MCP服务器进程失败: {e}")
+            raise RuntimeError(f"启动MCP服务器进程失败: {e}")
 
     async def get_tool_info(self, intent_type: str, query: str) -> Dict[str, Any]:
         """
@@ -277,7 +537,6 @@ class MCPClientWrapper:
             logger.info(f"准备通过MCP客户端 ('{target_server}') 执行工具: tool={tool_id}, params={params}")
             
             # 直接调用 MCPClient 的 session 的 call_tool 方法，添加120秒超时
-            import asyncio
             tool_result = await asyncio.wait_for(
                 client.session.call_tool(tool_id, params), 
                 timeout=120.0
@@ -322,14 +581,33 @@ class MCPClientWrapper:
             }
         except Exception as e:
             logger.error(f"MCP客户端执行工具失败: tool={tool_id}, error={e}")
-            # 如果执行失败，可能是连接问题，清理连接池中的该连接
-            if target_server in self._connection_pool:
+            
+            # 优化的错误处理：只在特定错误类型时清理连接
+            error_str = str(e).lower()
+            should_cleanup_connection = any([
+                "connection" in error_str,
+                "transport" in error_str,
+                "broken pipe" in error_str,
+                "connection reset" in error_str,
+                "session closed" in error_str
+            ])
+            
+            if should_cleanup_connection and target_server in self._connection_pool:
                 try:
                     await self._connection_pool[target_server].close()
                 except:
                     pass
                 del self._connection_pool[target_server]
-                logger.info(f"已从连接池中移除失效连接: {target_server}")
+                logger.info(f"由于连接错误，已从连接池中移除连接: {target_server}")
+                
+                # 同时清理进程管理记录
+                async with self._process_lock:
+                    if target_server in self._managed_processes:
+                        managed_info = self._managed_processes[target_server]
+                        logger.warning(f"工具执行失败，清理进程管理记录 (PID: {managed_info['pid']}): {target_server}")
+                        del self._managed_processes[target_server]
+            else:
+                logger.debug(f"保留连接池中的连接，错误可能是临时的: {target_server}")
             
             result = {
                 "tool_id": tool_id,

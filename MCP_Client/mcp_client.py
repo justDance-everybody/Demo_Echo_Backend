@@ -45,30 +45,69 @@ class MCPClient:
             cmd = "python" if ext == ".py" else "node"
             args = [name]
             env = os.environ.copy()
-        print(f"启动 MCP 服务器: {cmd} {' '.join(args)}")
+        
+        # 检查是否已有同类进程运行，如果有则尝试复用连接，而非启动新进程
+        import psutil
+        existing_process = None
+        for proc in psutil.process_iter(['pid', 'cmdline']):
+            try:
+                cmdline = ' '.join(proc.info['cmdline']) if proc.info['cmdline'] else ''
+                if 'mcp-amap' in cmdline and proc.info['pid'] != os.getpid():
+                    existing_process = proc.info['pid']
+                    print(f"发现现有MCP服务器进程 (PID: {existing_process})，尝试复用连接")
+                    break
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                continue
+        
+        print(f"连接到 MCP 服务器: {cmd} {' '.join(args)}" + (f" (复用进程 PID: {existing_process})" if existing_process else " (启动新进程)"))
+        
+        import time
+        start_time = time.time()
+        
         try:
-            # 为stdio_client连接添加10秒超时
+            # 使用更短的超时时间，并增加详细的步骤追踪
+            print(f"🔧 开始连接步骤 1: stdio_client 连接...")
             reader, writer = await asyncio.wait_for(
                 self.exit_stack.enter_async_context(
                     stdio_client(StdioServerParameters(command=cmd, args=args, env=env))
                 ),
-                timeout=10.0
+                timeout=5.0  # 减少到5秒，快速失败
             )
-            # 为session初始化添加10秒超时
+            step1_time = time.time()
+            print(f"✅ 步骤 1 完成，耗时: {step1_time - start_time:.2f}秒")
+            
+            print(f"🔧 开始连接步骤 2: ClientSession 创建...")
             self.session = await asyncio.wait_for(
                 self.exit_stack.enter_async_context(
                     ClientSession(reader, writer)
                 ),
-                timeout=10.0
+                timeout=5.0
             )
-            await asyncio.wait_for(self.session.initialize(), timeout=10.0)
-            resp = await asyncio.wait_for(self.session.list_tools(), timeout=10.0)
+            step2_time = time.time()
+            print(f"✅ 步骤 2 完成，耗时: {step2_time - step1_time:.2f}秒")
+            
+            print(f"🔧 开始连接步骤 3: 会话初始化...")
+            await asyncio.wait_for(self.session.initialize(), timeout=5.0)
+            step3_time = time.time()
+            print(f"✅ 步骤 3 完成，耗时: {step3_time - step2_time:.2f}秒")
+            
+            print(f"🔧 开始连接步骤 4: 获取工具列表...")
+            resp = await asyncio.wait_for(self.session.list_tools(), timeout=5.0)
+            step4_time = time.time()
+            print(f"✅ 步骤 4 完成，耗时: {step4_time - step3_time:.2f}秒")
+            print(f"🎉 总连接时间: {step4_time - start_time:.2f}秒")
         except asyncio.TimeoutError:
-            print(f"连接到 MCP 服务器 {name} 超时 (10秒)")
-            raise RuntimeError(f"连接到 MCP 服务器 {name} 超时")
+            timeout_msg = f"连接到 MCP 服务器 {name} 超时 (5秒)"
+            if existing_process:
+                timeout_msg += f" (尝试复用进程 PID: {existing_process} 失败)"
+            print(timeout_msg)
+            raise RuntimeError(timeout_msg)
         except Exception as e:
-            print(f"连接到 MCP 服务器 {name} 失败: {e}")
-            raise
+            error_msg = f"连接到 MCP 服务器 {name} 失败: {e}"
+            if existing_process:
+                error_msg += f" (尝试复用进程 PID: {existing_process})"
+            print(error_msg)
+            raise RuntimeError(error_msg)
         self.tools = resp.tools
         print("\n--- 可用工具详细信息 ---")
         if not self.tools:

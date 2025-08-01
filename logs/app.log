@@ -3618,3 +3618,256 @@ success
 2025-07-30 16:13:27.953 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/start/{server_name}, Methods: {'POST'}, Name: start_mcp_server
 2025-07-30 16:13:27.953 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/stop/{server_name}, Methods: {'POST'}, Name: stop_mcp_server
 2025-07-30 16:13:27.953 | INFO     | app.main:<module>:192 - ==============================================================================
+2025-07-31 17:26:46.490 | INFO     | app.main:<module>:39 - 启动应用: AI Assistant API v0.1.0
+2025-07-31 17:26:46.491 | INFO     | app.main:<module>:40 - 数据库: ai_assistant
+2025-07-31 17:26:46.516 | INFO     | app.main:<module>:181 - ============================== Registered Routes ==============================
+2025-07-31 17:26:46.516 | INFO     | app.main:<module>:188 - Path: /openapi.json, Methods: {'HEAD', 'GET'}, Name: openapi
+2025-07-31 17:26:46.516 | INFO     | app.main:<module>:188 - Path: /redoc, Methods: {'HEAD', 'GET'}, Name: redoc_html
+2025-07-31 17:26:46.516 | INFO     | app.main:<module>:188 - Path: /docs, Methods: {'GET'}, Name: custom_swagger_ui_html
+2025-07-31 17:26:46.516 | INFO     | app.main:<module>:188 - Path: /, Methods: {'GET'}, Name: root
+2025-07-31 17:26:46.516 | INFO     | app.main:<module>:188 - Path: /health, Methods: {'GET'}, Name: health_check
+2025-07-31 17:26:46.516 | INFO     | app.main:<module>:188 - Path: /api/v1/intent/interpret, Methods: {'POST'}, Name: process_intent
+2025-07-31 17:26:46.516 | INFO     | app.main:<module>:188 - Path: /api/v1/intent/confirm, Methods: {'POST'}, Name: confirm_execution
+2025-07-31 17:26:46.517 | INFO     | app.main:<module>:188 - Path: /api/v1/execute, Methods: {'POST'}, Name: execute_tool
+2025-07-31 17:26:46.517 | INFO     | app.main:<module>:188 - Path: /api/v1/tools, Methods: {'GET'}, Name: get_tools
+2025-07-31 17:26:46.517 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/register, Methods: {'POST'}, Name: register
+2025-07-31 17:26:46.517 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/token, Methods: {'POST'}, Name: login_for_access_token
+2025-07-31 17:26:46.517 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/login, Methods: {'POST'}, Name: login
+2025-07-31 17:26:46.517 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/me, Methods: {'GET'}, Name: get_me
+2025-07-31 17:26:46.517 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'GET'}, Name: get_developer_tools
+2025-07-31 17:26:46.517 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'POST'}, Name: create_developer_tool
+2025-07-31 17:26:46.517 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'GET'}, Name: get_developer_tool
+2025-07-31 17:26:46.517 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'PUT'}, Name: update_developer_tool
+2025-07-31 17:26:46.517 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'DELETE'}, Name: delete_developer_tool
+2025-07-31 17:26:46.517 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload, Methods: {'POST'}, Name: upload_tool_package
+2025-07-31 17:26:46.518 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload/validate, Methods: {'POST'}, Name: validate_tool_package
+2025-07-31 17:26:46.518 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}/test, Methods: {'POST'}, Name: test_developer_tool
+2025-07-31 17:26:46.518 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/test/batch, Methods: {'POST'}, Name: batch_test_tools
+2025-07-31 17:26:46.518 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/health, Methods: {'GET'}, Name: get_mcp_servers_health
+2025-07-31 17:26:46.518 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status, Methods: {'GET'}, Name: get_mcp_servers_status
+2025-07-31 17:26:46.518 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status/{server_name}, Methods: {'GET'}, Name: get_mcp_server_status
+2025-07-31 17:26:46.518 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/restart/{server_name}, Methods: {'POST'}, Name: restart_mcp_server
+2025-07-31 17:26:46.518 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/start/{server_name}, Methods: {'POST'}, Name: start_mcp_server
+2025-07-31 17:26:46.518 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/stop/{server_name}, Methods: {'POST'}, Name: stop_mcp_server
+2025-07-31 17:26:46.518 | INFO     | app.main:<module>:192 - ==============================================================================
+2025-07-31 18:38:29.016 | INFO     | app.main:<module>:39 - 启动应用: AI Assistant API v0.1.0
+2025-07-31 18:38:29.016 | INFO     | app.main:<module>:40 - 数据库: ai_assistant
+2025-07-31 18:38:29.043 | INFO     | app.main:<module>:181 - ============================== Registered Routes ==============================
+2025-07-31 18:38:29.043 | INFO     | app.main:<module>:188 - Path: /openapi.json, Methods: {'HEAD', 'GET'}, Name: openapi
+2025-07-31 18:38:29.043 | INFO     | app.main:<module>:188 - Path: /redoc, Methods: {'HEAD', 'GET'}, Name: redoc_html
+2025-07-31 18:38:29.043 | INFO     | app.main:<module>:188 - Path: /docs, Methods: {'GET'}, Name: custom_swagger_ui_html
+2025-07-31 18:38:29.043 | INFO     | app.main:<module>:188 - Path: /, Methods: {'GET'}, Name: root
+2025-07-31 18:38:29.043 | INFO     | app.main:<module>:188 - Path: /health, Methods: {'GET'}, Name: health_check
+2025-07-31 18:38:29.043 | INFO     | app.main:<module>:188 - Path: /api/v1/intent/interpret, Methods: {'POST'}, Name: process_intent
+2025-07-31 18:38:29.043 | INFO     | app.main:<module>:188 - Path: /api/v1/intent/confirm, Methods: {'POST'}, Name: confirm_execution
+2025-07-31 18:38:29.044 | INFO     | app.main:<module>:188 - Path: /api/v1/execute, Methods: {'POST'}, Name: execute_tool
+2025-07-31 18:38:29.044 | INFO     | app.main:<module>:188 - Path: /api/v1/tools, Methods: {'GET'}, Name: get_tools
+2025-07-31 18:38:29.044 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/register, Methods: {'POST'}, Name: register
+2025-07-31 18:38:29.044 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/token, Methods: {'POST'}, Name: login_for_access_token
+2025-07-31 18:38:29.044 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/login, Methods: {'POST'}, Name: login
+2025-07-31 18:38:29.044 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/me, Methods: {'GET'}, Name: get_me
+2025-07-31 18:38:29.044 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'GET'}, Name: get_developer_tools
+2025-07-31 18:38:29.044 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'POST'}, Name: create_developer_tool
+2025-07-31 18:38:29.044 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'GET'}, Name: get_developer_tool
+2025-07-31 18:38:29.044 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'PUT'}, Name: update_developer_tool
+2025-07-31 18:38:29.044 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'DELETE'}, Name: delete_developer_tool
+2025-07-31 18:38:29.045 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload, Methods: {'POST'}, Name: upload_tool_package
+2025-07-31 18:38:29.045 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload/validate, Methods: {'POST'}, Name: validate_tool_package
+2025-07-31 18:38:29.045 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}/test, Methods: {'POST'}, Name: test_developer_tool
+2025-07-31 18:38:29.045 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/test/batch, Methods: {'POST'}, Name: batch_test_tools
+2025-07-31 18:38:29.045 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/health, Methods: {'GET'}, Name: get_mcp_servers_health
+2025-07-31 18:38:29.045 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status, Methods: {'GET'}, Name: get_mcp_servers_status
+2025-07-31 18:38:29.045 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status/{server_name}, Methods: {'GET'}, Name: get_mcp_server_status
+2025-07-31 18:38:29.045 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/restart/{server_name}, Methods: {'POST'}, Name: restart_mcp_server
+2025-07-31 18:38:29.045 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/start/{server_name}, Methods: {'POST'}, Name: start_mcp_server
+2025-07-31 18:38:29.045 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/stop/{server_name}, Methods: {'POST'}, Name: stop_mcp_server
+2025-07-31 18:38:29.045 | INFO     | app.main:<module>:192 - ==============================================================================
+2025-07-31 18:38:29.046 | INFO     | backend.app.utils.mcp_client:<module>:36 - 已设置LLM和MCP环境变量，用于启动MCP客户端进程
+2025-07-31 18:38:29.046 | INFO     | backend.app.utils.mcp_client:<module>:37 - MCP服务器配置文件路径: /home/devbox/project/MCP_Client/config/mcp_servers.json
+2025-07-31 18:38:29.077 | INFO     | backend.app.utils.mcp_client:<module>:54 - 成功导入MCP客户端库
+2025-07-31 18:38:29.077 | INFO     | backend.app.utils.mcp_client:__init__:85 - MCP客户端包装器：配置加载成功
+2025-07-31 18:38:29.077 | INFO     | backend.app.utils.mcp_client:__init__:87 - 已加载 4 个MCP服务器配置
+2025-07-31 18:38:29.078 | INFO     | backend.app.utils.mcp_client:__init__:85 - MCP客户端包装器：配置加载成功
+2025-07-31 18:38:29.078 | INFO     | backend.app.utils.mcp_client:__init__:87 - 已加载 4 个MCP服务器配置
+2025-07-31 18:38:29.078 | INFO     | backend.app.utils.mcp_client:_get_or_create_client:119 - 创建新的MCP客户端实例并连接到服务器: amap-maps
+2025-07-31 18:38:29.531 | INFO     | backend.app.utils.mcp_client:_get_or_create_client:126 - 成功连接到MCP服务器并加入连接池: amap-maps
+2025-07-31 18:38:29.531 | INFO     | backend.app.utils.mcp_client:execute_tool:278 - 准备通过MCP客户端 ('amap-maps') 执行工具: tool=maps_weather, params={'city': '深圳'}
+2025-07-31 18:38:29.728 | INFO     | backend.app.utils.mcp_client:execute_tool:311 - MCP客户端执行工具成功: tool=maps_weather
+2025-07-31 18:40:59.531 | INFO     | app.main:<module>:39 - 启动应用: AI Assistant API v0.1.0
+2025-07-31 18:40:59.531 | INFO     | app.main:<module>:40 - 数据库: ai_assistant
+2025-07-31 18:40:59.558 | INFO     | app.main:<module>:181 - ============================== Registered Routes ==============================
+2025-07-31 18:40:59.558 | INFO     | app.main:<module>:188 - Path: /openapi.json, Methods: {'HEAD', 'GET'}, Name: openapi
+2025-07-31 18:40:59.558 | INFO     | app.main:<module>:188 - Path: /redoc, Methods: {'HEAD', 'GET'}, Name: redoc_html
+2025-07-31 18:40:59.558 | INFO     | app.main:<module>:188 - Path: /docs, Methods: {'GET'}, Name: custom_swagger_ui_html
+2025-07-31 18:40:59.558 | INFO     | app.main:<module>:188 - Path: /, Methods: {'GET'}, Name: root
+2025-07-31 18:40:59.558 | INFO     | app.main:<module>:188 - Path: /health, Methods: {'GET'}, Name: health_check
+2025-07-31 18:40:59.558 | INFO     | app.main:<module>:188 - Path: /api/v1/intent/interpret, Methods: {'POST'}, Name: process_intent
+2025-07-31 18:40:59.558 | INFO     | app.main:<module>:188 - Path: /api/v1/intent/confirm, Methods: {'POST'}, Name: confirm_execution
+2025-07-31 18:40:59.559 | INFO     | app.main:<module>:188 - Path: /api/v1/execute, Methods: {'POST'}, Name: execute_tool
+2025-07-31 18:40:59.559 | INFO     | app.main:<module>:188 - Path: /api/v1/tools, Methods: {'GET'}, Name: get_tools
+2025-07-31 18:40:59.559 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/register, Methods: {'POST'}, Name: register
+2025-07-31 18:40:59.559 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/token, Methods: {'POST'}, Name: login_for_access_token
+2025-07-31 18:40:59.559 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/login, Methods: {'POST'}, Name: login
+2025-07-31 18:40:59.559 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/me, Methods: {'GET'}, Name: get_me
+2025-07-31 18:40:59.559 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'GET'}, Name: get_developer_tools
+2025-07-31 18:40:59.559 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'POST'}, Name: create_developer_tool
+2025-07-31 18:40:59.559 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'GET'}, Name: get_developer_tool
+2025-07-31 18:40:59.559 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'PUT'}, Name: update_developer_tool
+2025-07-31 18:40:59.559 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'DELETE'}, Name: delete_developer_tool
+2025-07-31 18:40:59.559 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload, Methods: {'POST'}, Name: upload_tool_package
+2025-07-31 18:40:59.559 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload/validate, Methods: {'POST'}, Name: validate_tool_package
+2025-07-31 18:40:59.559 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}/test, Methods: {'POST'}, Name: test_developer_tool
+2025-07-31 18:40:59.559 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/test/batch, Methods: {'POST'}, Name: batch_test_tools
+2025-07-31 18:40:59.559 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/health, Methods: {'GET'}, Name: get_mcp_servers_health
+2025-07-31 18:40:59.560 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status, Methods: {'GET'}, Name: get_mcp_servers_status
+2025-07-31 18:40:59.560 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status/{server_name}, Methods: {'GET'}, Name: get_mcp_server_status
+2025-07-31 18:40:59.560 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/restart/{server_name}, Methods: {'POST'}, Name: restart_mcp_server
+2025-07-31 18:40:59.560 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/start/{server_name}, Methods: {'POST'}, Name: start_mcp_server
+2025-07-31 18:40:59.560 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/stop/{server_name}, Methods: {'POST'}, Name: stop_mcp_server
+2025-07-31 18:40:59.560 | INFO     | app.main:<module>:192 - ==============================================================================
+2025-07-31 18:40:59.561 | INFO     | backend.app.utils.mcp_client:<module>:36 - 已设置LLM和MCP环境变量，用于启动MCP客户端进程
+2025-07-31 18:40:59.561 | INFO     | backend.app.utils.mcp_client:<module>:37 - MCP服务器配置文件路径: /home/devbox/project/MCP_Client/config/mcp_servers.json
+2025-07-31 18:40:59.592 | INFO     | backend.app.utils.mcp_client:<module>:54 - 成功导入MCP客户端库
+2025-07-31 18:40:59.592 | INFO     | backend.app.utils.mcp_client:__init__:85 - MCP客户端包装器：配置加载成功
+2025-07-31 18:40:59.592 | INFO     | backend.app.utils.mcp_client:__init__:87 - 已加载 4 个MCP服务器配置
+2025-07-31 18:40:59.592 | INFO     | backend.app.utils.mcp_client:_get_or_create_client:119 - 创建新的MCP客户端实例并连接到服务器: amap-maps
+2025-07-31 18:41:00.064 | INFO     | backend.app.utils.mcp_client:_get_or_create_client:126 - 成功连接到MCP服务器并加入连接池: amap-maps
+2025-07-31 18:41:00.064 | INFO     | backend.app.utils.mcp_client:execute_tool:278 - 准备通过MCP客户端 ('amap-maps') 执行工具: tool=maps_weather, params={'city': '深圳'}
+2025-07-31 18:41:00.247 | INFO     | backend.app.utils.mcp_client:execute_tool:311 - MCP客户端执行工具成功: tool=maps_weather
+2025-07-31 18:41:00.270 | INFO     | backend.app.utils.db:create_db_engine:53 - 数据库连接成功
+2025-07-31 18:41:00.270 | INFO     | backend.app.utils.db:create_async_db_engine:120 - 数据库URL已转换为异步兼容: mysql+aiomysql://root:b9clqt26@test-db-mysql.ns-6dvkv8ga.svc:3306/ai_assistant
+2025-07-31 18:41:00.271 | INFO     | backend.app.utils.db:create_async_db_engine:141 - 异步数据库引擎创建成功
+2025-07-31 18:41:00.289 | INFO     | backend.app.utils.db:create_db_engine:53 - 数据库连接成功
+2025-07-31 18:54:14.177 | INFO     | app.main:<module>:39 - 启动应用: AI Assistant API v0.1.0
+2025-07-31 18:54:14.177 | INFO     | app.main:<module>:40 - 数据库: ai_assistant
+2025-07-31 18:54:14.210 | INFO     | app.main:<module>:181 - ============================== Registered Routes ==============================
+2025-07-31 18:54:14.210 | INFO     | app.main:<module>:188 - Path: /openapi.json, Methods: {'HEAD', 'GET'}, Name: openapi
+2025-07-31 18:54:14.210 | INFO     | app.main:<module>:188 - Path: /redoc, Methods: {'HEAD', 'GET'}, Name: redoc_html
+2025-07-31 18:54:14.210 | INFO     | app.main:<module>:188 - Path: /docs, Methods: {'GET'}, Name: custom_swagger_ui_html
+2025-07-31 18:54:14.210 | INFO     | app.main:<module>:188 - Path: /, Methods: {'GET'}, Name: root
+2025-07-31 18:54:14.211 | INFO     | app.main:<module>:188 - Path: /health, Methods: {'GET'}, Name: health_check
+2025-07-31 18:54:14.211 | INFO     | app.main:<module>:188 - Path: /api/v1/intent/interpret, Methods: {'POST'}, Name: process_intent
+2025-07-31 18:54:14.211 | INFO     | app.main:<module>:188 - Path: /api/v1/intent/confirm, Methods: {'POST'}, Name: confirm_execution
+2025-07-31 18:54:14.211 | INFO     | app.main:<module>:188 - Path: /api/v1/execute, Methods: {'POST'}, Name: execute_tool
+2025-07-31 18:54:14.211 | INFO     | app.main:<module>:188 - Path: /api/v1/tools, Methods: {'GET'}, Name: get_tools
+2025-07-31 18:54:14.211 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/register, Methods: {'POST'}, Name: register
+2025-07-31 18:54:14.211 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/token, Methods: {'POST'}, Name: login_for_access_token
+2025-07-31 18:54:14.211 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/login, Methods: {'POST'}, Name: login
+2025-07-31 18:54:14.211 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/me, Methods: {'GET'}, Name: get_me
+2025-07-31 18:54:14.211 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'GET'}, Name: get_developer_tools
+2025-07-31 18:54:14.211 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'POST'}, Name: create_developer_tool
+2025-07-31 18:54:14.211 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'GET'}, Name: get_developer_tool
+2025-07-31 18:54:14.211 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'PUT'}, Name: update_developer_tool
+2025-07-31 18:54:14.211 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'DELETE'}, Name: delete_developer_tool
+2025-07-31 18:54:14.211 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload, Methods: {'POST'}, Name: upload_tool_package
+2025-07-31 18:54:14.211 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload/validate, Methods: {'POST'}, Name: validate_tool_package
+2025-07-31 18:54:14.211 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}/test, Methods: {'POST'}, Name: test_developer_tool
+2025-07-31 18:54:14.212 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/test/batch, Methods: {'POST'}, Name: batch_test_tools
+2025-07-31 18:54:14.212 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/health, Methods: {'GET'}, Name: get_mcp_servers_health
+2025-07-31 18:54:14.212 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status, Methods: {'GET'}, Name: get_mcp_servers_status
+2025-07-31 18:54:14.212 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status/{server_name}, Methods: {'GET'}, Name: get_mcp_server_status
+2025-07-31 18:54:14.212 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/restart/{server_name}, Methods: {'POST'}, Name: restart_mcp_server
+2025-07-31 18:54:14.212 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/start/{server_name}, Methods: {'POST'}, Name: start_mcp_server
+2025-07-31 18:54:14.212 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/stop/{server_name}, Methods: {'POST'}, Name: stop_mcp_server
+2025-07-31 18:54:14.212 | INFO     | app.main:<module>:192 - ==============================================================================
+2025-07-31 18:54:14.212 | INFO     | backend.app.utils.mcp_client:<module>:36 - 已设置LLM和MCP环境变量，用于启动MCP客户端进程
+2025-07-31 18:54:14.213 | INFO     | backend.app.utils.mcp_client:<module>:37 - MCP服务器配置文件路径: /home/devbox/project/MCP_Client/config/mcp_servers.json
+2025-07-31 18:54:14.243 | INFO     | backend.app.utils.mcp_client:<module>:54 - 成功导入MCP客户端库
+2025-07-31 18:54:14.244 | INFO     | backend.app.utils.mcp_client:__init__:85 - MCP客户端包装器：配置加载成功
+2025-07-31 18:54:14.244 | INFO     | backend.app.utils.mcp_client:__init__:87 - 已加载 4 个MCP服务器配置
+2025-07-31 18:54:14.244 | INFO     | backend.app.utils.mcp_client:_get_or_create_client:112 - 创建新的MCP客户端实例并连接到服务器: amap-maps
+2025-07-31 18:54:14.721 | INFO     | backend.app.utils.mcp_client:_get_or_create_client:119 - 成功连接到MCP服务器并加入连接池: amap-maps
+2025-07-31 18:54:14.721 | INFO     | backend.app.utils.mcp_client:execute_tool:271 - 准备通过MCP客户端 ('amap-maps') 执行工具: tool=maps_weather, params={'city': '深圳'}
+2025-07-31 18:54:14.910 | INFO     | backend.app.utils.mcp_client:execute_tool:304 - MCP客户端执行工具成功: tool=maps_weather
+2025-07-31 18:54:14.931 | INFO     | backend.app.utils.db:create_db_engine:53 - 数据库连接成功
+2025-07-31 18:54:14.932 | INFO     | backend.app.utils.db:create_async_db_engine:120 - 数据库URL已转换为异步兼容: mysql+aiomysql://root:b9clqt26@test-db-mysql.ns-6dvkv8ga.svc:3306/ai_assistant
+2025-07-31 18:54:14.932 | INFO     | backend.app.utils.db:create_async_db_engine:141 - 异步数据库引擎创建成功
+2025-07-31 18:54:14.950 | INFO     | backend.app.utils.db:create_db_engine:53 - 数据库连接成功
+2025-07-31 19:00:30.318 | INFO     | app.main:<module>:39 - 启动应用: AI Assistant API v0.1.0
+2025-07-31 19:00:30.318 | INFO     | app.main:<module>:40 - 数据库: ai_assistant
+2025-07-31 19:00:30.344 | INFO     | app.main:<module>:181 - ============================== Registered Routes ==============================
+2025-07-31 19:00:30.344 | INFO     | app.main:<module>:188 - Path: /openapi.json, Methods: {'HEAD', 'GET'}, Name: openapi
+2025-07-31 19:00:30.345 | INFO     | app.main:<module>:188 - Path: /redoc, Methods: {'HEAD', 'GET'}, Name: redoc_html
+2025-07-31 19:00:30.345 | INFO     | app.main:<module>:188 - Path: /docs, Methods: {'GET'}, Name: custom_swagger_ui_html
+2025-07-31 19:00:30.345 | INFO     | app.main:<module>:188 - Path: /, Methods: {'GET'}, Name: root
+2025-07-31 19:00:30.345 | INFO     | app.main:<module>:188 - Path: /health, Methods: {'GET'}, Name: health_check
+2025-07-31 19:00:30.345 | INFO     | app.main:<module>:188 - Path: /api/v1/intent/interpret, Methods: {'POST'}, Name: process_intent
+2025-07-31 19:00:30.345 | INFO     | app.main:<module>:188 - Path: /api/v1/intent/confirm, Methods: {'POST'}, Name: confirm_execution
+2025-07-31 19:00:30.345 | INFO     | app.main:<module>:188 - Path: /api/v1/execute, Methods: {'POST'}, Name: execute_tool
+2025-07-31 19:00:30.345 | INFO     | app.main:<module>:188 - Path: /api/v1/tools, Methods: {'GET'}, Name: get_tools
+2025-07-31 19:00:30.345 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/register, Methods: {'POST'}, Name: register
+2025-07-31 19:00:30.345 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/token, Methods: {'POST'}, Name: login_for_access_token
+2025-07-31 19:00:30.346 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/login, Methods: {'POST'}, Name: login
+2025-07-31 19:00:30.346 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/me, Methods: {'GET'}, Name: get_me
+2025-07-31 19:00:30.346 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'GET'}, Name: get_developer_tools
+2025-07-31 19:00:30.346 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'POST'}, Name: create_developer_tool
+2025-07-31 19:00:30.346 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'GET'}, Name: get_developer_tool
+2025-07-31 19:00:30.346 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'PUT'}, Name: update_developer_tool
+2025-07-31 19:00:30.346 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'DELETE'}, Name: delete_developer_tool
+2025-07-31 19:00:30.346 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload, Methods: {'POST'}, Name: upload_tool_package
+2025-07-31 19:00:30.346 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload/validate, Methods: {'POST'}, Name: validate_tool_package
+2025-07-31 19:00:30.346 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}/test, Methods: {'POST'}, Name: test_developer_tool
+2025-07-31 19:00:30.346 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/test/batch, Methods: {'POST'}, Name: batch_test_tools
+2025-07-31 19:00:30.347 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/health, Methods: {'GET'}, Name: get_mcp_servers_health
+2025-07-31 19:00:30.347 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status, Methods: {'GET'}, Name: get_mcp_servers_status
+2025-07-31 19:00:30.347 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status/{server_name}, Methods: {'GET'}, Name: get_mcp_server_status
+2025-07-31 19:00:30.347 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/restart/{server_name}, Methods: {'POST'}, Name: restart_mcp_server
+2025-07-31 19:00:30.347 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/start/{server_name}, Methods: {'POST'}, Name: start_mcp_server
+2025-07-31 19:00:30.347 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/stop/{server_name}, Methods: {'POST'}, Name: stop_mcp_server
+2025-07-31 19:00:30.347 | INFO     | app.main:<module>:192 - ==============================================================================
+2025-07-31 19:00:30.348 | INFO     | backend.app.utils.mcp_client:<module>:36 - 已设置LLM和MCP环境变量，用于启动MCP客户端进程
+2025-07-31 19:00:30.348 | INFO     | backend.app.utils.mcp_client:<module>:37 - MCP服务器配置文件路径: /home/devbox/project/MCP_Client/config/mcp_servers.json
+2025-07-31 19:00:30.380 | INFO     | backend.app.utils.mcp_client:<module>:54 - 成功导入MCP客户端库
+2025-07-31 19:00:30.380 | INFO     | backend.app.utils.mcp_client:__init__:85 - MCP客户端包装器：配置加载成功
+2025-07-31 19:00:30.380 | INFO     | backend.app.utils.mcp_client:__init__:87 - 已加载 4 个MCP服务器配置
+2025-07-31 19:00:30.380 | INFO     | backend.app.utils.mcp_client:__init__:85 - MCP客户端包装器：配置加载成功
+2025-07-31 19:00:30.380 | INFO     | backend.app.utils.mcp_client:__init__:87 - 已加载 4 个MCP服务器配置
+2025-07-31 19:00:30.381 | INFO     | backend.app.utils.mcp_client:_get_or_create_client:112 - 创建新的MCP客户端实例并连接到服务器: amap-maps
+2025-07-31 19:00:30.850 | INFO     | backend.app.utils.mcp_client:_get_or_create_client:119 - 成功连接到MCP服务器并加入连接池: amap-maps
+2025-07-31 19:00:30.850 | INFO     | backend.app.utils.mcp_client:execute_tool:271 - 准备通过MCP客户端 ('amap-maps') 执行工具: tool=maps_weather, params={'city': '深圳'}
+2025-07-31 19:00:31.029 | INFO     | backend.app.utils.mcp_client:execute_tool:304 - MCP客户端执行工具成功: tool=maps_weather
+2025-07-31 20:49:56.132 | INFO     | app.main:<module>:39 - 启动应用: AI Assistant API v0.1.0
+2025-07-31 20:49:56.132 | INFO     | app.main:<module>:40 - 数据库: ai_assistant
+2025-07-31 20:49:56.157 | INFO     | app.main:<module>:181 - ============================== Registered Routes ==============================
+2025-07-31 20:49:56.157 | INFO     | app.main:<module>:188 - Path: /openapi.json, Methods: {'HEAD', 'GET'}, Name: openapi
+2025-07-31 20:49:56.158 | INFO     | app.main:<module>:188 - Path: /redoc, Methods: {'HEAD', 'GET'}, Name: redoc_html
+2025-07-31 20:49:56.158 | INFO     | app.main:<module>:188 - Path: /docs, Methods: {'GET'}, Name: custom_swagger_ui_html
+2025-07-31 20:49:56.158 | INFO     | app.main:<module>:188 - Path: /, Methods: {'GET'}, Name: root
+2025-07-31 20:49:56.158 | INFO     | app.main:<module>:188 - Path: /health, Methods: {'GET'}, Name: health_check
+2025-07-31 20:49:56.158 | INFO     | app.main:<module>:188 - Path: /api/v1/intent/interpret, Methods: {'POST'}, Name: process_intent
+2025-07-31 20:49:56.158 | INFO     | app.main:<module>:188 - Path: /api/v1/intent/confirm, Methods: {'POST'}, Name: confirm_execution
+2025-07-31 20:49:56.158 | INFO     | app.main:<module>:188 - Path: /api/v1/execute, Methods: {'POST'}, Name: execute_tool
+2025-07-31 20:49:56.158 | INFO     | app.main:<module>:188 - Path: /api/v1/tools, Methods: {'GET'}, Name: get_tools
+2025-07-31 20:49:56.158 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/register, Methods: {'POST'}, Name: register
+2025-07-31 20:49:56.158 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/token, Methods: {'POST'}, Name: login_for_access_token
+2025-07-31 20:49:56.158 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/login, Methods: {'POST'}, Name: login
+2025-07-31 20:49:56.158 | INFO     | app.main:<module>:188 - Path: /api/v1/auth/me, Methods: {'GET'}, Name: get_me
+2025-07-31 20:49:56.158 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'GET'}, Name: get_developer_tools
+2025-07-31 20:49:56.158 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools, Methods: {'POST'}, Name: create_developer_tool
+2025-07-31 20:49:56.158 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'GET'}, Name: get_developer_tool
+2025-07-31 20:49:56.158 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'PUT'}, Name: update_developer_tool
+2025-07-31 20:49:56.158 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}, Methods: {'DELETE'}, Name: delete_developer_tool
+2025-07-31 20:49:56.158 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload, Methods: {'POST'}, Name: upload_tool_package
+2025-07-31 20:49:56.159 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/upload/validate, Methods: {'POST'}, Name: validate_tool_package
+2025-07-31 20:49:56.159 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/{tool_id}/test, Methods: {'POST'}, Name: test_developer_tool
+2025-07-31 20:49:56.159 | INFO     | app.main:<module>:188 - Path: /api/v1/dev/tools/test/batch, Methods: {'POST'}, Name: batch_test_tools
+2025-07-31 20:49:56.159 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/health, Methods: {'GET'}, Name: get_mcp_servers_health
+2025-07-31 20:49:56.159 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status, Methods: {'GET'}, Name: get_mcp_servers_status
+2025-07-31 20:49:56.159 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/status/{server_name}, Methods: {'GET'}, Name: get_mcp_server_status
+2025-07-31 20:49:56.159 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/restart/{server_name}, Methods: {'POST'}, Name: restart_mcp_server
+2025-07-31 20:49:56.159 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/start/{server_name}, Methods: {'POST'}, Name: start_mcp_server
+2025-07-31 20:49:56.159 | INFO     | app.main:<module>:188 - Path: /api/v1/mcp/stop/{server_name}, Methods: {'POST'}, Name: stop_mcp_server
+2025-07-31 20:49:56.159 | INFO     | app.main:<module>:192 - ==============================================================================
+2025-07-31 20:49:56.159 | INFO     | app.services.mcp_manager:start_all_servers:368 - 开始启动所有MCP服务器...
+2025-07-31 20:49:56.160 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: playwright
+2025-07-31 20:49:56.161 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: minimax-mcp-js
+2025-07-31 20:49:56.163 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: amap-maps
+2025-07-31 20:49:56.164 | INFO     | app.services.mcp_manager:start_server:87 - 正在启动MCP服务器: web3-rpc
+2025-07-31 20:50:01.170 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 amap-maps 启动成功 (PID: 49880)
+2025-07-31 20:50:01.171 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 web3-rpc 启动成功 (PID: 49883)
+2025-07-31 20:50:12.682 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 playwright 启动成功 (PID: 49876)
+2025-07-31 20:50:12.683 | INFO     | app.services.mcp_manager:start_server:221 - MCP服务器 minimax-mcp-js 启动成功 (PID: 49878)
+2025-07-31 20:50:12.683 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 playwright 启动成功
+2025-07-31 20:50:12.683 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 minimax-mcp-js 启动成功
+2025-07-31 20:50:12.683 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 amap-maps 启动成功
+2025-07-31 20:50:12.683 | INFO     | app.services.mcp_manager:start_all_servers:381 - ✅ 服务器 web3-rpc 启动成功
