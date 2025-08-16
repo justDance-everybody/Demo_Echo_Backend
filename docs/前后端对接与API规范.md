@@ -19,11 +19,6 @@
 - **API文档**: `http://localhost:3000/docs` (Swagger UI)
 - **健康检查**: `http://localhost:3000/health`
 
-#### 生产环境（公网部署）
-- **API基础路径**: `https://rqoufedpoguc.sealosgzg.site/api/v1`
-- **API文档**: `https://rqoufedpoguc.sealosgzg.site/docs` (Swagger UI)
-- **健康检查**: `https://rqoufedpoguc.sealosgzg.site/health`
-
 ### 服务状态确认
 
 **本地开发环境**:
@@ -46,21 +41,7 @@ ps aux | grep uvicorn
 lsof -i :3000  # 检查3000端口
 ```
 
-后端服务已部署到公网：
-- **API基础路径**: `https://rqoufedpoguc.sealosgzg.site/api/v1`
-- **API文档**: `https://rqoufedpoguc.sealosgzg.site/docs` (Swagger UI)
-- **健康检查**: `https://rqoufedpoguc.sealosgzg.site/health`
 
-### 服务状态确认
-```bash
-# 检查后端服务是否运行
-curl https://rqoufedpoguc.sealosgzg.site/health
-# 期望响应: {"status":"ok","timestamp":1752568483.0425155}
-
-# 检查API文档是否可访问
-curl -I https://rqoufedpoguc.sealosgzg.site/docs
-# 期望响应: HTTP/1.1 200 OK
-```
 
 ## 🔐 认证流程
 
@@ -80,7 +61,6 @@ async function login(username, password) {
   
   // 根据环境选择API基础URL
   const API_BASE_URL = process.env.NODE_ENV === 'production' 
-    ? 'https://rqoufedpoguc.sealosgzg.site'
     : 'http://localhost:3000';
   
   const response = await fetch(`${API_BASE_URL}/api/v1/auth/token`, {
@@ -110,7 +90,6 @@ async function apiCall(endpoint, options = {}) {
   
   // 根据环境选择API基础URL
   const API_BASE_URL = process.env.NODE_ENV === 'production' 
-    ? 'https://rqoufedpoguc.sealosgzg.site'
     : 'http://localhost:3000';
   
   const defaultOptions = {
@@ -419,13 +398,6 @@ REACT_APP_API_PREFIX=/api/v1
 NODE_ENV=development
 ```
 
-**生产环境** (`.env.production`):
-```bash
-# 生产环境配置
-REACT_APP_API_BASE_URL=https://rqoufedpoguc.sealosgzg.site
-REACT_APP_API_PREFIX=/api/v1
-NODE_ENV=production
-```
 
 **通用配置** (`.env`):
 ```bash
@@ -697,31 +669,8 @@ const result = await apiClient.execute(toolId, params, sessionId, userId);
 ### 快速测试API和权限
 
 **本地开发环境测试**:
-```bash
-# 使用公网域名测试API
 
-# 1. 测试普通用户登录（使用环境变量中的账号密码）
-curl -X POST "https://rqoufedpoguc.sealosgzg.site/api/v1/auth/token" \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "username=${TEST_USER_USERNAME:-testuser_5090}&password=${TEST_USER_PASSWORD:-8lpcUY2BOt}"
 
-# 2. 使用返回的token测试基础接口（应该成功）
-curl -X GET "https://rqoufedpoguc.sealosgzg.site/api/v1/tools" \
-  -H "Authorization: Bearer YOUR_TOKEN_HERE"
-
-# 3. 测试开发者接口（普通用户应该返回403）
-curl -X GET "https://rqoufedpoguc.sealosgzg.site/api/v1/dev/tools" \
-  -H "Authorization: Bearer YOUR_TOKEN_HERE"
-
-# 4. 测试开发者用户登录（使用环境变量中的账号密码）
-curl -X POST "https://rqoufedpoguc.sealosgzg.site/api/v1/auth/token" \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "username=${TEST_DEVELOPER_USERNAME:-devuser_5090}&password=${TEST_DEVELOPER_PASSWORD:-mryuWTGdMk}"
-
-# 5. 开发者token测试开发者接口（应该成功）
-curl -X GET "https://rqoufedpoguc.sealosgzg.site/api/v1/dev/tools" \
-  -H "Authorization: Bearer DEV_TOKEN_HERE"
-```
 
 ### 浏览器开发者工具
 1. 打开Network选项卡监控API请求
@@ -766,7 +715,6 @@ async def test_intent_parsing_field_names():
 
 ## 📞 支持与反馈
 
-- **API文档**: https://rqoufedpoguc.sealosgzg.site/docs
 - **后端日志**: 检查 `backend/logs/api.log`
 - **问题反馈**: 请提供具体的错误信息和请求/响应日志
 - **架构说明**: 服务器负责SSL终止和端口映射，后端服务专注于业务逻辑处理
