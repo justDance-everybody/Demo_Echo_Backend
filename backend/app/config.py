@@ -15,9 +15,8 @@ DOTENV_PATH = BACKEND_DIR / ".env"
 
 logger.info(f"尝试加载 .env 文件: {DOTENV_PATH}, 是否存在: {DOTENV_PATH.exists()}")
 
-# 定义 MySQL 连接字符串 (从你的 .env 文件复制)
-EXPECTED_MYSQL_URL = "mysql+pymysql://root:b9clqt26@test-db-mysql.ns-6dvkv8ga.svc:3306/ai_assistant"
-DEFAULT_SQLITE_URL = "sqlite:///test.db"
+# 默认数据库配置 - 生产环境应通过环境变量覆盖
+DEFAULT_SQLITE_URL = "sqlite:///app.db"  # 使用更通用的数据库名称
 
 class Settings(BaseSettings):
     """应用配置"""
@@ -46,8 +45,8 @@ class Settings(BaseSettings):
     
     # LLM配置 (使用通用名称)
     LLM_API_KEY: str = Field(default="", env="LLM_API_KEY")
-    LLM_API_BASE: str = Field(default="https://api.openai.com/v1", env="LLM_API_BASE")
-    LLM_MODEL: str = Field(default="gpt-3.5-turbo", env="LLM_MODEL")
+    LLM_API_BASE: str = Field(default="", env="LLM_API_BASE")  # 移除硬编码的API地址
+    LLM_MODEL: str = Field(default="", env="LLM_MODEL")  # 移除硬编码的模型名称
     LLM_TIMEOUT: int = Field(default=60, env="LLM_TIMEOUT")
     # 新增 LLM 参数
     LLM_TEMPERATURE: float = Field(default=0.7, env="LLM_TEMPERATURE")
@@ -62,10 +61,17 @@ class Settings(BaseSettings):
     LOG_FILE: str = Field(default="logs/api.log", env="LOG_FILE")
     
     # CORS配置
-    CORS_ORIGINS: List[str] = Field(default=["http://localhost:3000","http://localhost:3001","*"], env="CORS_ORIGINS")
+    CORS_ORIGINS_STR: str = Field(default="", env="CORS_ORIGINS")
     
-    # JWT配置
-    JWT_SECRET: str = Field(default="your-secret-key", env="JWT_SECRET")
+    @property
+    def CORS_ORIGINS(self) -> List[str]:
+        """解析CORS_ORIGINS环境变量为列表"""
+        if not self.CORS_ORIGINS_STR:
+            return []
+        return [origin.strip() for origin in self.CORS_ORIGINS_STR.split(',') if origin.strip()]
+    
+    # 安全配置
+    JWT_SECRET: str = Field(default="", env="JWT_SECRET")  # 移除硬编码的密钥
     JWT_ALGORITHM: str = Field(default="HS256", env="JWT_ALGORITHM")
     JWT_EXPIRATION: int = Field(default=60 * 24 * 7, env="JWT_EXPIRATION") # 7天，单位:分钟
     
@@ -83,19 +89,20 @@ class Settings(BaseSettings):
         
     def __init__(self, **data: Any):
         super().__init__(**data)
-        # 强制检查并设置数据库URL
-        if self.DATABASE_URL == DEFAULT_SQLITE_URL or not self.DATABASE_URL:
-            logger.warning(f"DATABASE_URL 未从环境或.env正确加载 (当前值: '{self.DATABASE_URL}'), 强制设置为预期的 MySQL URL")
-            self.DATABASE_URL = EXPECTED_MYSQL_URL
-            # 重新提取数据库名，以防万一
+        # 验证关键配置是否已设置
+        if self.DATABASE_URL == DEFAULT_SQLITE_URL:
+            logger.warning("使用默认SQLite数据库，生产环境请设置DATABASE_URL环境变量")
+        
+        # 从DATABASE_URL提取数据库名（如果需要）
+        if self.DATABASE_URL and self.DATABASE_URL != DEFAULT_SQLITE_URL:
             try:
                 db_name_from_url = self.DATABASE_URL.split('/')[-1]
                 if '?' in db_name_from_url:
                     db_name_from_url = db_name_from_url.split('?')[0]
-                self.DATABASE_NAME = db_name_from_url
+                if db_name_from_url:
+                    self.DATABASE_NAME = db_name_from_url
             except Exception:
-                 logger.warning("无法从强制设置的URL中提取数据库名，将使用默认值")
-                 self.DATABASE_NAME = "ai_assistant"
+                logger.warning("无法从DATABASE_URL中提取数据库名，使用默认值")
                  
         # 打印关键配置信息，帮助调试
         logger.info(f"加载配置文件: ENV={self.ENV}, DEBUG={self.DEBUG}")

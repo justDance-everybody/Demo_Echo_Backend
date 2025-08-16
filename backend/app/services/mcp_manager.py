@@ -78,16 +78,15 @@ class MCPServerManager:
         self.max_consecutive_failures = 3  # 最大连续失败次数
         self.restart_cooldown = 60  # 重启冷却时间（秒）
         
+        # 进程启动锁，防止并发启动同一服务器
+        self._startup_locks: Dict[str, asyncio.Lock] = {}
+        self._global_startup_lock = asyncio.Lock()
+        
         # 加载MCP服务器配置
         self._load_server_configs()
         
-        # 环境变量验证规则
-        self._env_validation_rules = {
-            "amap-maps": {"required": ["AMAP_MAPS_API_KEY"], "optional": []},
-            "minimax-mcp-js": {"required": ["MINIMAX_API_KEY"], "optional": ["MINIMAX_API_HOST", "MINIMAX_MCP_BASE_PATH"]},
-            "web3-rpc": {"required": [], "optional": ["WEB3_RPC_URL", "PRIVATE_KEY"]},
-            "playwright": {"required": [], "optional": []}
-        }
+        # 环境变量验证规则 - 从配置文件动态生成
+        self._env_validation_rules = self._generate_env_validation_rules()
         
         # 任务9：性能监控和告警系统初始化
         self.performance_metrics: Dict[str, deque] = defaultdict(lambda: deque(maxlen=1000))  # 保留最近1000条记录
@@ -125,6 +124,158 @@ class MCPServerManager:
         except Exception as e:
             logger.error(f"加载MCP服务器配置失败: {e}")
             raise
+    
+    def _generate_env_validation_rules(self) -> dict:
+        """
+        从配置文件动态生成环境变量验证规则
+        
+        Returns:
+            dict: 环境变量验证规则字典
+        """
+        validation_rules = {}
+        
+        for server_name, config in self.server_configs.items():
+            # 从配置中提取环境变量要求
+            env_config = config.get('env', {})
+            required_vars = []
+            optional_vars = []
+            
+            # 分析环境变量配置
+            for var_name, var_config in env_config.items():
+                if isinstance(var_config, dict):
+                    # 如果是字典格式，检查是否为必需
+                    if var_config.get('required', False):
+                        required_vars.append(var_name)
+                    else:
+                        optional_vars.append(var_name)
+                else:
+                    # 如果是简单值，默认为可选
+                    optional_vars.append(var_name)
+            
+            # 基于服务器名称的默认规则（向后兼容）
+            if server_name == "amap-maps" and not required_vars:
+                required_vars = ["AMAP_MAPS_API_KEY"]
+            elif server_name == "minimax-mcp-js" and not required_vars:
+                required_vars = ["MINIMAX_API_KEY"]
+                if not optional_vars:
+                    optional_vars = ["MINIMAX_API_HOST", "MINIMAX_MCP_BASE_PATH"]
+            elif server_name == "web3-rpc" and not optional_vars:
+                optional_vars = ["WEB3_RPC_URL", "PRIVATE_KEY"]
+            
+            validation_rules[server_name] = {
+                "required": required_vars,
+                "optional": optional_vars
+            }
+        
+        logger.info(f"生成了 {len(validation_rules)} 个服务器的环境变量验证规则")
+        return validation_rules
+    
+    def _get_success_indicators(self, server_name: str, config: dict) -> list:
+        """
+        从配置动态生成启动成功指示符
+        
+        Args:
+            server_name: 服务器名称
+            config: 服务器配置
+            
+        Returns:
+            list: 成功指示符列表
+        """
+        # 通用成功指示符
+        indicators = [
+            "running on stdio",
+            "mcp server running",
+            "server started",
+            "listening",
+            "registering",
+            "initialized",
+            "ready",
+            "started",
+            "loading",
+            "connecting"
+        ]
+        
+        # 从配置中获取特定的成功指示符
+        if 'success_indicators' in config:
+            custom_indicators = config['success_indicators']
+            if isinstance(custom_indicators, list):
+                indicators.extend(custom_indicators)
+            elif isinstance(custom_indicators, str):
+                indicators.append(custom_indicators)
+        
+        # 基于服务器名称的默认指示符（向后兼容）
+        if server_name == "web3-rpc":
+            indicators.extend([
+                "registering general tools",
+                "registering solana tools",
+                "looking for .env file"
+            ])
+        elif server_name == "amap-maps":
+            indicators.extend([
+                "amap maps mcp server running on stdio",
+                "maps mcp server running"
+            ])
+        
+        return indicators
+    
+    def _generate_mcp_patterns(self) -> list:
+        """
+        从配置文件动态生成MCP服务器识别模式
+        
+        Returns:
+            list: MCP服务器识别模式列表
+        """
+        patterns = set()
+        
+        # 从配置文件中提取模式
+        for server_name, config in self.server_configs.items():
+            # 添加服务器名称本身
+            patterns.add(server_name.lower())
+            
+            # 从命令中提取模式
+            if 'command' in config:
+                command = config['command']
+                if isinstance(command, list) and command:
+                    # 提取可执行文件名
+                    executable = command[0].lower()
+                    patterns.add(executable)
+                    
+                    # 如果是npm/npx命令，提取包名
+                    if executable in ['npm', 'npx'] and len(command) > 1:
+                        if 'exec' in command and len(command) > 2:
+                            package_name = command[2].lower()
+                            patterns.add(package_name)
+                        elif len(command) > 1:
+                            package_name = command[1].lower()
+                            patterns.add(package_name)
+            
+            # 从参数中提取模式
+            if 'args' in config and isinstance(config['args'], list):
+                for arg in config['args']:
+                    if isinstance(arg, str) and 'mcp' in arg.lower():
+                        patterns.add(arg.lower())
+        
+        # 添加通用MCP模式
+        patterns.update([
+            'mcp-server',
+            'mcp_server', 
+            'model-context-protocol',
+            'mcp-amap',  # 向后兼容
+        ])
+        
+        # 向后兼容：添加已知的特定模式
+        patterns.update([
+            'playwright-mcp-server',
+            '@executeautomation/playwright-mcp-server',
+            '@amap/amap-maps-mcp-server',
+            'amap-maps-mcp-server',
+            'minimax-mcp-js',
+            '@minimax/mcp-server',
+            'web3-mcp',
+            'web3-rpc-mcp'
+        ])
+        
+        return list(patterns)
     
     async def _prepare_and_validate_env(self, server_name: str, config: dict) -> Optional[dict]:
         """
@@ -229,7 +380,7 @@ class MCPServerManager:
      
     async def _check_process_uniqueness(self, server_name: str, config: dict) -> Optional[int]:
         """
-        检查进程唯一性，防止重复启动同一个MCP服务
+        检查进程唯一性，防止重复启动同一个MCP服务（增强版本）
         
         Args:
             server_name: 服务器名称
@@ -246,25 +397,76 @@ class MCPServerManager:
             # 构建完整的命令行用于匹配
             full_cmd = [cmd] + args
             
-            for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
-                try:
-                    proc_info = proc.info
-                    if proc_info['cmdline']:
-                        # 检查命令行是否匹配
-                        proc_cmdline = proc_info['cmdline']
-                        
-                        # 对于不同类型的MCP服务器，使用不同的匹配策略
-                        if self._is_matching_mcp_process(server_name, full_cmd, proc_cmdline):
-                            logger.info(f"发现现有MCP进程 {server_name} (PID: {proc_info['pid']})")
-                            return proc_info['pid']
+            # 多次检查确保进程状态稳定（防止进程正在启动或关闭）
+            found_pids = []
+            for check_round in range(3):
+                current_pids = []
+                
+                for proc in psutil.process_iter(['pid', 'name', 'cmdline', 'status', 'create_time']):
+                    try:
+                        proc_info = proc.info
+                        if proc_info['cmdline'] and proc_info['status'] != 'zombie':
+                            # 检查命令行是否匹配
+                            proc_cmdline = proc_info['cmdline']
                             
-                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-                    continue
+                            # 对于不同类型的MCP服务器，使用不同的匹配策略
+                            if self._is_matching_mcp_process(server_name, full_cmd, proc_cmdline):
+                                # 验证进程是否真正在运行且健康
+                                if await self._verify_process_health_quick(proc_info['pid']):
+                                    current_pids.append(proc_info['pid'])
+                                    logger.debug(f"检查轮次 {check_round + 1}: 发现MCP进程 {server_name} (PID: {proc_info['pid']})")
+                                
+                    except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                        continue
+                
+                found_pids.append(current_pids)
+                
+                # 如果不是最后一轮，等待一小段时间
+                if check_round < 2:
+                    await asyncio.sleep(0.1)
+            
+            # 找到在所有检查轮次中都存在的稳定进程
+            stable_pids = set(found_pids[0])
+            for pids in found_pids[1:]:
+                stable_pids &= set(pids)
+            
+            if stable_pids:
+                stable_pid = list(stable_pids)[0]  # 取第一个稳定的PID
+                logger.info(f"发现稳定运行的MCP进程 {server_name} (PID: {stable_pid})")
+                return stable_pid
                     
         except Exception as e:
             logger.warning(f"检查进程唯一性时出错: {e}")
             
         return None
+    
+    async def _verify_process_health_quick(self, pid: int) -> bool:
+        """
+        快速验证进程健康状态
+        
+        Args:
+            pid: 进程ID
+            
+        Returns:
+            bool: 进程是否健康
+        """
+        try:
+            import psutil
+            proc = psutil.Process(pid)
+            
+            # 检查进程状态
+            if proc.status() in ['zombie', 'dead']:
+                return False
+            
+            # 检查进程是否响应（简单检查）
+            proc.cpu_percent()  # 触发CPU使用率计算
+            return True
+            
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            return False
+        except Exception as e:
+            logger.debug(f"快速健康检查出错 (PID: {pid}): {e}")
+            return False
     
     def _is_matching_mcp_process(self, server_name: str, expected_cmd: list, actual_cmd: list) -> bool:
         """
@@ -283,19 +485,52 @@ class MCPServerManager:
             expected_str = ' '.join(expected_cmd).lower()
             actual_str = ' '.join(actual_cmd).lower()
             
-            # 不同MCP服务器的特征匹配
-            server_patterns = {
-                'playwright': ['npx', 'playwright'],
-                'minimax-mcp-js': ['npx', 'minimax-mcp-js'],
-                'amap-maps': ['npx', '@amap/amap-maps-mcp-server'],
-                'web3-rpc': ['node', 'build/index.js']
-            }
+            # 从配置文件动态生成匹配模式
+            if server_name not in self.server_configs:
+                return False
+                
+            config = self.server_configs[server_name]
+            command = config.get('command', '').lower()
+            args = config.get('args', [])
             
-            # 首先检查服务器特定模式
-            if server_name in server_patterns:
-                patterns = server_patterns[server_name]
-                if all(pattern in actual_str for pattern in patterns):
-                    return True
+            # 基本命令匹配
+            if command and command in actual_str:
+                # 检查参数匹配
+                for arg in args:
+                    if isinstance(arg, str) and arg.lower() in actual_str:
+                        return True
+            
+            # 特殊处理：检查包名匹配（用于npm/npx启动的服务）
+            for arg in args:
+                if isinstance(arg, str):
+                    # 提取包名（去掉@符号和版本号）
+                    if '@' in arg and '/' in arg:
+                        # 处理 @scope/package 格式，如 @amap/amap-maps-mcp-server
+                        package_name = arg.split('@')[1] if arg.startswith('@') else arg
+                        if package_name.lower() in actual_str:
+                            return True
+                        
+                        # 特殊处理：npm包可能生成简化的可执行文件名
+                        # 如 @amap/amap-maps-mcp-server 可能生成 mcp-amap
+                        if '/' in package_name:
+                            scope, package = package_name.split('/', 1)
+                            # 检查scope是否在实际命令中
+                            if scope.lower() in actual_str:
+                                return True
+                            # 检查包名的关键部分
+                            package_parts = package.replace('-', ' ').split()
+                            if len(package_parts) >= 2 and all(part in actual_str for part in package_parts[:2] if len(part) > 2):
+                                return True
+                            # 检查简化的可执行文件名模式，如 mcp-amap
+                            if 'mcp' in package and scope in actual_str:
+                                return True
+                    elif arg.lower() in actual_str:
+                        return True
+            
+            # 额外的兼容性检查：检查服务器名称本身
+            server_name_parts = server_name.replace('-', ' ').split()
+            if len(server_name_parts) > 1 and all(part.lower() in actual_str for part in server_name_parts if len(part) > 2):
+                return True
             
             # 通用匹配：检查关键命令组件
             if len(expected_cmd) >= 2:
@@ -305,6 +540,27 @@ class MCPServerManager:
                 
                 if cmd_base in actual_str and main_arg in actual_str:
                     return True
+            
+            # 特殊处理：检查node_modules/.bin/下的符号链接
+            # 如果实际命令包含node_modules/.bin/，尝试匹配包名
+            if 'node_modules/.bin/' in actual_str:
+                for arg in args:
+                    if isinstance(arg, str) and '@' in arg and '/' in arg:
+                        # 从@scope/package-name提取可能的bin名称
+                        if arg.startswith('@'):
+                            scope_package = arg[1:]  # 去掉@
+                            if '/' in scope_package:
+                                scope, package = scope_package.split('/', 1)
+                                # 检查各种可能的bin名称模式
+                                possible_bins = [
+                                    f"mcp-{scope}",  # mcp-amap
+                                    f"{scope}-mcp",  # amap-mcp
+                                    package.split('-')[0] if '-' in package else package,  # 包名的第一部分
+                                    scope  # scope名称
+                                ]
+                                for bin_name in possible_bins:
+                                    if bin_name.lower() in actual_str:
+                                        return True
                     
         except Exception as e:
             logger.debug(f"进程匹配检查出错: {e}")
@@ -313,7 +569,7 @@ class MCPServerManager:
     
     async def start_server(self, server_name: str, force_restart: bool = False) -> bool:
         """
-        启动指定的MCP服务器（增强版本，包含进程唯一性检查）
+        启动指定的MCP服务器（增强版本，包含进程唯一性检查和并发控制）
         
         Args:
             server_name: 服务器名称
@@ -325,13 +581,32 @@ class MCPServerManager:
         if server_name not in self.server_configs:
             logger.error(f"未找到服务器配置: {server_name}")
             return False
-            
-        server_status = self.servers[server_name]
         
-        # 检查是否被标记为失败
-        if server_status.marked_failed:
-            logger.warning(f"服务器 {server_name} 已被标记为失败，跳过启动")
-            return False
+        # 获取或创建服务器专用锁
+        if server_name not in self._startup_locks:
+            self._startup_locks[server_name] = asyncio.Lock()
+        
+        # 使用锁防止并发启动同一服务器
+        async with self._startup_locks[server_name]:
+            logger.debug(f"获取启动锁: {server_name}")
+            
+            # 再次检查进程唯一性（在锁内进行最终检查）
+            config = self.server_configs[server_name]
+            existing_pid = await self._check_process_uniqueness(server_name, config)
+            if existing_pid and not force_restart:
+                logger.info(f"服务器 {server_name} 已在运行 (PID: {existing_pid})，跳过启动")
+                # 更新服务器状态
+                server_status = self.servers[server_name]
+                server_status.running = True
+                server_status.process_info = {"pid": existing_pid}
+                return True
+            
+            server_status = self.servers[server_name]
+            
+            # 检查是否被标记为失败
+            if server_status.marked_failed:
+                logger.warning(f"服务器 {server_name} 已被标记为失败，跳过启动")
+                return False
             
         # 智能冷却期机制：区分正常冷却和故障恢复
         if not force_restart and server_status.last_restart_time:
@@ -349,20 +624,25 @@ class MCPServerManager:
             
         config = self.server_configs[server_name]
         
-        # 进程唯一性检查：防止重复启动
-        existing_pid = await self._check_process_uniqueness(server_name, config)
-        if existing_pid:
-            logger.info(f"MCP服务器 {server_name} 已在运行 (PID: {existing_pid})，跳过启动")
-            # 更新服务器状态
-            server_status.running = True
-            server_status.consecutive_failures = 0
-            server_status.error_message = None
-            server_status.process_info = {
-                "pid": existing_pid,
-                "cmd": f"{config['command']} {' '.join(config.get('args', []))}",
-                "startup_output": "发现现有进程，跳过启动"
-            }
-            return True
+        # 如果是强制重启，需要清理现有进程
+        if force_restart:
+            existing_pid = await self._check_process_uniqueness(server_name, config)
+            if existing_pid:
+                logger.info(f"MCP服务器 {server_name} 已在运行 (PID: {existing_pid})，强制重启模式，清理进程树")
+                try:
+                    # 清理整个进程树，确保没有遗留的子进程
+                    cleanup_success = await self._cleanup_process_tree(existing_pid, server_name)
+                    if not cleanup_success:
+                        logger.error(f"清理进程树失败，无法启动新进程")
+                        return False
+                    
+                    # 等待一小段时间确保进程完全清理
+                    await asyncio.sleep(1)
+                    logger.info(f"进程树已清理，继续启动新进程")
+                    
+                except Exception as e:
+                    logger.error(f"清理进程树时出错: {e}")
+                    return False
         
         try:
             logger.info(f"正在启动MCP服务器: {server_name}")
@@ -430,23 +710,8 @@ class MCPServerManager:
                     stderr_text = stderr_data.decode('utf-8', errors='ignore')
                     
                     # 对于不同MCP服务器的成功启动指示符
-                    success_indicators = [
-                        "running on stdio",
-                        "mcp server running",
-                        "server started",
-                        "listening",
-                        "registering general tools",  # web3-rpc的成功指示符
-                        "registering solana tools",   # web3-rpc的成功指示符
-                        "amap maps mcp server running on stdio",  # amap-maps的完整成功指示符
-                        "maps mcp server running",     # amap-maps的备用指示符
-                        "looking for .env file",       # web3-rpc的启动指示符
-                        "registering",                 # 通用注册指示符
-                        "initialized",                 # 初始化完成指示符
-                        "ready",                       # 就绪指示符
-                        "started",                     # 启动指示符
-                        "loading",                     # 加载指示符
-                        "connecting"                   # 连接指示符
-                    ]
+                    # 从配置动态生成成功指示符
+                    success_indicators = self._get_success_indicators(server_name, config)
                     
                     output_text = stdout_text + stderr_text
                     logger.debug(f"MCP服务器 {server_name} 启动输出: {repr(output_text)}")
@@ -508,11 +773,11 @@ class MCPServerManager:
                         server_status.last_restart_time = datetime.now()
                         server_status.restart_count += 1
                         server_status.error_message = None
-                        server_status.process_info = {
-                            "pid": process.pid,
-                            "cmd": f"{cmd} {' '.join(args)}",
-                            "startup_output": output_text[:500]  # 保存前500字符的启动输出
-                        }
+                        # 增强的进程信息记录
+                        process_info = await self._collect_detailed_process_info(
+                            process.pid, cmd, args, output_text
+                        )
+                        server_status.process_info = process_info
                         
                         logger.info(f"MCP服务器 {server_name} 启动成功 (PID: {process.pid})")
                         if output_text.strip():
@@ -534,10 +799,11 @@ class MCPServerManager:
                     server_status.last_restart_time = datetime.now()
                     server_status.restart_count += 1
                     server_status.error_message = None
-                    server_status.process_info = {
-                        "pid": process.pid,
-                        "cmd": f"{cmd} {' '.join(args)}"
-                    }
+                    # 增强的进程信息记录（异常情况下的简化版本）
+                    process_info = await self._collect_detailed_process_info(
+                        process.pid, cmd, args, "启动输出读取异常"
+                    )
+                    server_status.process_info = process_info
                     
                     logger.info(f"MCP服务器 {server_name} 启动成功 (PID: {process.pid})")
                     return True
@@ -738,8 +1004,41 @@ class MCPServerManager:
             server_status.process_info = None
             server_status.error_message = f"检测到僵尸进程 {pid}，已清理"
             
+            # 同步清理MCP客户端包装器的状态
+            await self._sync_client_wrapper_state(server_name, pid)
+            
         except Exception as e:
             logger.error(f"清理僵尸进程时出错 {server_name} (PID: {pid}): {e}")
+    
+    async def _sync_client_wrapper_state(self, server_name: str, pid: int):
+        """
+        同步MCP客户端包装器的状态
+        
+        当MCP管理器清理进程状态时，同步清理客户端包装器中的缓存状态，
+        防止状态不一致导致的连接复用问题
+        
+        Args:
+            server_name: 服务器名称
+            pid: 进程ID
+        """
+        try:
+            # 导入MCP客户端包装器
+            from app.utils.mcp_client import mcp_client
+            
+            # 清理客户端包装器中的进程记录
+            if hasattr(mcp_client, '_managed_processes') and server_name in mcp_client._managed_processes:
+                cached_pid = mcp_client._managed_processes[server_name].get('pid')
+                if cached_pid == pid:
+                    del mcp_client._managed_processes[server_name]
+                    logger.info(f"已同步清理客户端包装器中的进程记录: {server_name} (PID: {pid})")
+            
+            # 清理客户端包装器中的连接池
+            if hasattr(mcp_client, '_connection_pool') and server_name in mcp_client._connection_pool:
+                await mcp_client._cleanup_connection(server_name)
+                logger.info(f"已同步清理客户端包装器中的连接: {server_name}")
+                
+        except Exception as e:
+            logger.warning(f"同步客户端包装器状态时出错 {server_name} (PID: {pid}): {e}")
     
     async def _check_process_resources(self, server_name: str, pid: int) -> bool:
         """检查进程资源使用情况"""
@@ -821,13 +1120,258 @@ class MCPServerManager:
             logger.error(f"ping进程时出错 {server_name} (PID: {pid}): {e}")
             return False
     
+    async def _collect_detailed_process_info(self, pid: int, cmd: str, args: list, startup_output: str) -> dict:
+        """
+        收集详细的进程信息，用于增强进程跟踪
+        
+        Args:
+            pid: 进程ID
+            cmd: 启动命令
+            args: 命令参数
+            startup_output: 启动输出
+            
+        Returns:
+            dict: 详细的进程信息
+        """
+        process_info = {
+            "pid": pid,
+            "cmd": f"{cmd} {' '.join(args)}",
+            "startup_output": startup_output[:500] if startup_output else "",
+            "start_time": datetime.now().isoformat(),
+            "parent_pid": None,
+            "children_pids": [],
+            "cpu_percent": 0.0,
+            "memory_mb": 0.0,
+            "memory_percent": 0.0,
+            "open_files": 0,
+            "connections": 0,
+            "status": "unknown",
+            "cwd": None,
+            "environ": {},
+            "cmdline": [],
+            "create_time": None,
+            "num_threads": 0
+        }
+        
+        try:
+            # 使用 psutil 收集详细进程信息
+            process = psutil.Process(pid)
+            
+            # 基本信息
+            process_info.update({
+                "parent_pid": process.ppid(),
+                "status": process.status(),
+                "cwd": process.cwd(),
+                "cmdline": process.cmdline(),
+                "create_time": datetime.fromtimestamp(process.create_time()).isoformat(),
+                "num_threads": process.num_threads()
+            })
+            
+            # 资源使用情况
+            try:
+                cpu_percent = process.cpu_percent(interval=0.1)
+                memory_info = process.memory_info()
+                memory_percent = process.memory_percent()
+                
+                process_info.update({
+                    "cpu_percent": cpu_percent,
+                    "memory_mb": memory_info.rss / 1024 / 1024,  # 转换为MB
+                    "memory_percent": memory_percent
+                })
+            except (psutil.AccessDenied, psutil.NoSuchProcess):
+                logger.debug(f"无法获取进程 {pid} 的资源使用信息")
+            
+            # 文件和连接信息
+            try:
+                open_files = len(process.open_files())
+                connections = len(process.connections())
+                
+                process_info.update({
+                    "open_files": open_files,
+                    "connections": connections
+                })
+            except (psutil.AccessDenied, psutil.NoSuchProcess):
+                logger.debug(f"无法获取进程 {pid} 的文件和连接信息")
+            
+            # 环境变量（仅收集关键的MCP相关变量）
+            try:
+                environ = process.environ()
+                mcp_env = {}
+                for key, value in environ.items():
+                    if any(keyword in key.upper() for keyword in ['MCP', 'PATH', 'PYTHON', 'NODE']):
+                        mcp_env[key] = value[:100]  # 限制长度
+                process_info["environ"] = mcp_env
+            except (psutil.AccessDenied, psutil.NoSuchProcess):
+                logger.debug(f"无法获取进程 {pid} 的环境变量")
+            
+            # 子进程信息
+            try:
+                children = process.children(recursive=False)
+                process_info["children_pids"] = [child.pid for child in children]
+            except (psutil.AccessDenied, psutil.NoSuchProcess):
+                logger.debug(f"无法获取进程 {pid} 的子进程信息")
+                
+        except psutil.NoSuchProcess:
+            logger.warning(f"进程 {pid} 不存在，无法收集详细信息")
+            process_info["status"] = "not_found"
+        except psutil.AccessDenied:
+            logger.warning(f"无权限访问进程 {pid}，使用基本信息")
+            process_info["status"] = "access_denied"
+        except Exception as e:
+            logger.error(f"收集进程 {pid} 详细信息时发生异常: {e}")
+            process_info["status"] = "error"
+            process_info["error"] = str(e)
+        
+        return process_info
+    
+    async def update_process_tracking_info(self, server_name: str) -> bool:
+        """
+        更新指定服务器的进程跟踪信息
+        
+        Args:
+            server_name: 服务器名称
+            
+        Returns:
+            bool: 更新是否成功
+        """
+        try:
+            server_status = self.servers.get(server_name)
+            if not server_status or not server_status.process_info:
+                return False
+            
+            pid = server_status.process_info.get("pid")
+            if not pid:
+                return False
+            
+            # 更新进程信息
+            try:
+                process = psutil.Process(pid)
+                
+                # 更新资源使用情况
+                cpu_percent = process.cpu_percent(interval=0.1)
+                memory_info = process.memory_info()
+                memory_percent = process.memory_percent()
+                
+                server_status.process_info.update({
+                    "cpu_percent": cpu_percent,
+                    "memory_mb": memory_info.rss / 1024 / 1024,
+                    "memory_percent": memory_percent,
+                    "status": process.status(),
+                    "num_threads": process.num_threads(),
+                    "last_updated": datetime.now().isoformat()
+                })
+                
+                # 更新子进程信息
+                try:
+                    children = process.children(recursive=False)
+                    server_status.process_info["children_pids"] = [child.pid for child in children]
+                except (psutil.AccessDenied, psutil.NoSuchProcess):
+                    pass
+                
+                return True
+                
+            except psutil.NoSuchProcess:
+                logger.warning(f"进程 {pid} (服务器: {server_name}) 不存在，标记为已停止")
+                server_status.process_info["status"] = "not_found"
+                server_status.running = False
+                return False
+            except Exception as e:
+                logger.error(f"更新进程 {pid} (服务器: {server_name}) 跟踪信息时出错: {e}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"更新服务器 {server_name} 进程跟踪信息时出错: {e}")
+            return False
+    
+    def get_process_tree_info(self, server_name: str) -> dict:
+        """
+        获取指定服务器的完整进程树信息
+        
+        Args:
+            server_name: 服务器名称
+            
+        Returns:
+            dict: 进程树信息
+        """
+        tree_info = {
+            "server_name": server_name,
+            "root_process": None,
+            "process_tree": [],
+            "total_processes": 0,
+            "total_memory_mb": 0.0,
+            "total_cpu_percent": 0.0
+        }
+        
+        try:
+            server_status = self.servers.get(server_name)
+            if not server_status or not server_status.process_info:
+                return tree_info
+            
+            root_pid = server_status.process_info.get("pid")
+            if not root_pid:
+                return tree_info
+            
+            tree_info["root_process"] = server_status.process_info.copy()
+            
+            # 递归收集进程树
+            def collect_process_tree(pid, level=0):
+                try:
+                    process = psutil.Process(pid)
+                    
+                    process_data = {
+                        "pid": pid,
+                        "level": level,
+                        "name": process.name(),
+                        "cmdline": process.cmdline(),
+                        "status": process.status(),
+                        "cpu_percent": process.cpu_percent(interval=0.1),
+                        "memory_mb": process.memory_info().rss / 1024 / 1024,
+                        "create_time": datetime.fromtimestamp(process.create_time()).isoformat(),
+                        "children": []
+                    }
+                    
+                    tree_info["process_tree"].append(process_data)
+                    tree_info["total_processes"] += 1
+                    tree_info["total_memory_mb"] += process_data["memory_mb"]
+                    tree_info["total_cpu_percent"] += process_data["cpu_percent"]
+                    
+                    # 递归处理子进程
+                    children = process.children(recursive=False)
+                    for child in children:
+                        child_data = collect_process_tree(child.pid, level + 1)
+                        if child_data:
+                            process_data["children"].append(child_data["pid"])
+                    
+                    return process_data
+                    
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    return None
+            
+            collect_process_tree(root_pid)
+            
+        except Exception as e:
+            logger.error(f"获取服务器 {server_name} 进程树信息时出错: {e}")
+        
+        return tree_info
+    
     async def handle_server_failure(self, server_name: str):
-        """处理服务器失败"""
+        """处理服务器失败
+        
+        当检测到服务器失败时，立即清理相关的孤儿进程，
+        然后尝试重启服务器
+        """
         server_status = self.servers[server_name]
         server_status.running = False
         server_status.consecutive_failures += 1
         
         logger.warning(f"检测到服务器 {server_name} 失败 (连续失败次数: {server_status.consecutive_failures})")
+        
+        # 立即清理相关的孤儿进程，防止进程泄漏
+        logger.info(f"服务器 {server_name} 失败，立即清理相关孤儿进程")
+        try:
+            await self.cleanup_orphaned_mcp_processes()
+        except Exception as e:
+            logger.error(f"清理孤儿进程时出错: {e}")
         
         # 检查是否达到最大连续失败次数
         if server_status.consecutive_failures >= self.max_consecutive_failures:
@@ -835,37 +1379,54 @@ class MCPServerManager:
             logger.error(f"服务器 {server_name} 连续失败 {self.max_consecutive_failures} 次，已标记为失败，不再尝试重启")
             return
             
-        # 尝试重启
+        # 尝试重启（使用强制重启确保清理干净）
         logger.info(f"尝试重启服务器 {server_name} (第 {server_status.consecutive_failures} 次失败)")
-        success = await self.start_server(server_name)
+        success = await self.start_server(server_name, force_restart=True)
         
         if not success:
             logger.error(f"重启服务器 {server_name} 失败")
+        else:
+            logger.info(f"服务器 {server_name} 重启成功")
     
     async def start_all_servers(self):
-        """启动所有启用的MCP服务器"""
-        logger.info("开始启动所有MCP服务器...")
-        
-        tasks = []
-        for server_name, server_status in self.servers.items():
-            if server_status.enabled and not server_status.marked_failed:
-                task = asyncio.create_task(self.start_server(server_name))
-                tasks.append((server_name, task))
-                
-        # 等待所有启动任务完成
-        for server_name, task in tasks:
+        """启动所有启用的MCP服务器（带全局锁防止重复启动）"""
+        # 使用全局锁防止多个实例同时启动所有服务器
+        async with self._global_startup_lock:
+            logger.info("开始启动所有MCP服务器...")
+            
+            # 首先清理可能存在的孤儿进程
             try:
-                success = await task
-                if success:
-                    logger.info(f"✅ 服务器 {server_name} 启动成功")
-                else:
-                    logger.error(f"❌ 服务器 {server_name} 启动失败")
+                await self.cleanup_orphaned_mcp_processes()
+                logger.info("清理孤儿进程完成")
             except Exception as e:
-                logger.error(f"❌ 服务器 {server_name} 启动异常: {e}")
+                logger.warning(f"清理孤儿进程时出错: {e}")
+            
+            tasks = []
+            for server_name, server_status in self.servers.items():
+                if server_status.enabled and not server_status.marked_failed:
+                    task = asyncio.create_task(self.start_server(server_name))
+                    tasks.append((server_name, task))
+                    
+            # 等待所有启动任务完成
+            for server_name, task in tasks:
+                try:
+                    success = await task
+                    if success:
+                        logger.info(f"✅ 服务器 {server_name} 启动成功")
+                    else:
+                        logger.error(f"❌ 服务器 {server_name} 启动失败")
+                except Exception as e:
+                    logger.error(f"❌ 服务器 {server_name} 启动异常: {e}")
+            
+            logger.info("所有MCP服务器启动完成")
     
     async def monitor_servers(self):
         """监控所有服务器状态"""
         logger.info(f"开始监控MCP服务器，检查间隔: {self.check_interval}秒")
+        
+        # 历史遗留进程清理计数器（每6个监控周期执行一次清理，约每2分钟）
+        cleanup_counter = 0
+        cleanup_interval = 6
         
         while True:
             try:
@@ -884,6 +1445,37 @@ class MCPServerManager:
                         # 服务器未运行，尝试启动
                         if not server_status.marked_failed:
                             await self.start_server(server_name)
+                
+                # 定期清理历史遗留进程和僵尸进程
+                cleanup_counter += 1
+                if cleanup_counter >= cleanup_interval:
+                    cleanup_counter = 0
+                    logger.debug("执行定期进程清理")
+                    
+                    # 清理僵尸进程
+                await self._cleanup_zombie_processes()
+                
+                # 清理历史遗留的MCP进程
+                await self.cleanup_orphaned_mcp_processes()
+                
+                # 进程泄漏监控和自动处理（每5个周期执行一次）
+                if cleanup_counter % 5 == 0:
+                    try:
+                        monitor_result = await self.monitor_process_leaks()
+                        if monitor_result.get('alerts'):
+                            logger.info(f"检测到进程泄漏问题，开始自动处理")
+                            await self.auto_handle_process_leaks(monitor_result)
+                    except Exception as e:
+                        logger.error(f"进程泄漏监控和处理时出错: {e}")
+                
+                # 更新进程跟踪信息（每3个周期执行一次）
+                if cleanup_counter % 3 == 0:
+                    try:
+                        for server_name, server_status in self.servers.items():
+                            if server_status.running and server_status.process_info:
+                                await self.update_process_tracking_info(server_name)
+                    except Exception as e:
+                        logger.error(f"更新进程跟踪信息时出错: {e}")
                             
                 await asyncio.sleep(self.check_interval)
                 
@@ -1111,6 +1703,10 @@ class MCPServerManager:
                     await self._cleanup_zombie_process(server_name, pid)
                     cleaned_count += 1
             
+            # 额外清理系统中的MCP相关僵尸进程
+            system_zombie_count = await self._cleanup_system_zombie_processes()
+            cleaned_count += system_zombie_count
+            
             if cleaned_count > 0:
                 logger.info(f"清理了 {cleaned_count} 个僵尸进程")
             else:
@@ -1118,6 +1714,316 @@ class MCPServerManager:
                 
         except Exception as e:
             logger.error(f"清理僵尸进程时出错: {e}")
+    
+    async def _cleanup_system_zombie_processes(self) -> int:
+        """清理系统中的MCP相关僵尸进程
+        
+        专门用于清理系统中所有MCP相关的僵尸进程，
+        不仅限于当前管理器跟踪的进程
+        
+        Returns:
+            int: 清理的僵尸进程数量
+        """
+        try:
+            zombie_count = 0
+            
+            for proc in psutil.process_iter(['pid', 'cmdline', 'status']):
+                try:
+                    # 检查是否为僵尸进程且与MCP相关
+                    if (proc.info['status'] in [psutil.STATUS_ZOMBIE, psutil.STATUS_DEAD] and 
+                        proc.info['cmdline'] and 
+                        self._is_mcp_related_process(proc.info['cmdline'])):
+                        
+                        pid = proc.info['pid']
+                        logger.debug(f"发现MCP僵尸进程: {pid}")
+                        
+                        try:
+                            # 尝试等待僵尸进程
+                            os.waitpid(pid, os.WNOHANG)
+                            zombie_count += 1
+                            logger.debug(f"清理僵尸进程 {pid} 成功")
+                        except (OSError, ChildProcessError):
+                            # 进程可能已被其他方式清理或不是子进程
+                            pass
+                            
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                    continue
+            
+            if zombie_count > 0:
+                logger.info(f"清理了 {zombie_count} 个系统MCP僵尸进程")
+            else:
+                logger.debug("未发现需要清理的系统MCP僵尸进程")
+            
+            return zombie_count
+            
+        except Exception as e:
+            logger.error(f"清理系统僵尸进程时出错: {e}")
+            return 0
+    
+    async def cleanup_orphaned_mcp_processes(self):
+        """清理历史遗留的MCP进程（增强进程监控机制）
+        
+        检测并清理不在当前管理器跟踪范围内的MCP相关进程，
+        这些进程可能是之前启动但未正确关闭的历史遗留进程。
+        """
+        try:
+            logger.info("开始扫描历史遗留的MCP进程")
+            orphaned_processes = []
+            managed_pids = set()
+            
+            # 收集当前管理的所有PID
+            for server_status in self.servers.values():
+                if server_status.process_info and server_status.process_info.get("pid"):
+                    managed_pids.add(server_status.process_info["pid"])
+            
+            # 扫描所有进程，查找MCP相关进程
+            for proc in psutil.process_iter(['pid', 'cmdline', 'create_time']):
+                try:
+                    pid = proc.info['pid']
+                    cmdline = proc.info['cmdline']
+                    
+                    # 跳过已管理的进程
+                    if pid in managed_pids:
+                        continue
+                    
+                    # 检查是否为MCP相关进程
+                    if self._is_mcp_related_process(cmdline):
+                        create_time = datetime.fromtimestamp(proc.info['create_time'])
+                        orphaned_processes.append({
+                            'pid': pid,
+                            'cmdline': cmdline,
+                            'create_time': create_time,
+                            'age_hours': (datetime.now() - create_time).total_seconds() / 3600
+                        })
+                        
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                    continue
+            
+            if not orphaned_processes:
+                logger.debug("未发现历史遗留的MCP进程")
+                return
+            
+            logger.info(f"发现 {len(orphaned_processes)} 个历史遗留的MCP进程")
+            
+            # 智能分级清理策略
+            cleaned_count = 0
+            
+            # 按年龄分组进行清理
+            very_old_processes = [p for p in orphaned_processes if p['age_hours'] > 6.0]  # 超过6小时
+            old_processes = [p for p in orphaned_processes if 2.0 < p['age_hours'] <= 6.0]  # 2-6小时
+            recent_processes = [p for p in orphaned_processes if 0.5 < p['age_hours'] <= 2.0]  # 30分钟-2小时
+            
+            # 第一优先级：清理超过6小时的进程（无条件清理）
+            for proc_info in very_old_processes:
+                try:
+                    logger.warning(f"清理超时MCP进程 PID:{proc_info['pid']}, "
+                                 f"运行时间:{proc_info['age_hours']:.1f}小时, "
+                                 f"命令:{' '.join(proc_info['cmdline'][:3])}...")
+                    
+                    # 直接使用进程树清理，确保彻底清理
+                    cleanup_success = await self._cleanup_process_tree(proc_info['pid'], f"orphaned-{proc_info['pid']}")
+                    if cleanup_success:
+                        cleaned_count += 1
+                        logger.info(f"成功清理超时进程 {proc_info['pid']}")
+                    
+                except Exception as e:
+                    logger.error(f"清理超时进程 {proc_info['pid']} 时出错: {e}")
+            
+            # 第二优先级：清理2-6小时的进程（检查资源使用）
+            for proc_info in old_processes:
+                try:
+                    process = psutil.Process(proc_info['pid'])
+                    
+                    # 检查进程资源使用情况
+                    cpu_percent = process.cpu_percent(interval=1)
+                    memory_info = process.memory_info()
+                    memory_mb = memory_info.rss / 1024 / 1024
+                    
+                    # 如果进程占用资源过高或长时间无活动，则清理
+                    should_cleanup = (
+                        cpu_percent > 50.0 or  # CPU使用率超过50%
+                        memory_mb > 500 or     # 内存使用超过500MB
+                        proc_info['age_hours'] > 4.0  # 运行超过4小时
+                    )
+                    
+                    if should_cleanup:
+                        logger.info(f"清理高资源占用MCP进程 PID:{proc_info['pid']}, "
+                                  f"CPU:{cpu_percent:.1f}%, 内存:{memory_mb:.1f}MB, "
+                                  f"运行时间:{proc_info['age_hours']:.1f}小时")
+                        
+                        cleanup_success = await self._cleanup_process_tree(proc_info['pid'], f"high-resource-{proc_info['pid']}")
+                        if cleanup_success:
+                            cleaned_count += 1
+                    else:
+                        logger.debug(f"保留正常运行的MCP进程 PID:{proc_info['pid']}, "
+                                   f"CPU:{cpu_percent:.1f}%, 内存:{memory_mb:.1f}MB")
+                        
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    continue
+                except Exception as e:
+                    logger.error(f"检查进程 {proc_info['pid']} 资源使用时出错: {e}")
+            
+            # 第三优先级：谨慎处理较新的进程（仅在异常情况下清理）
+            for proc_info in recent_processes:
+                try:
+                    process = psutil.Process(proc_info['pid'])
+                    
+                    # 检查是否为僵尸进程或异常状态
+                    if process.status() in [psutil.STATUS_ZOMBIE, psutil.STATUS_DEAD]:
+                        logger.info(f"清理僵尸MCP进程 PID:{proc_info['pid']}, "
+                                  f"状态:{process.status()}, 运行时间:{proc_info['age_hours']:.1f}小时")
+                        
+                        cleanup_success = await self._cleanup_process_tree(proc_info['pid'], f"zombie-{proc_info['pid']}")
+                        if cleanup_success:
+                            cleaned_count += 1
+                    else:
+                        logger.debug(f"保留较新的MCP进程 PID:{proc_info['pid']}, "
+                                   f"运行时间:{proc_info['age_hours']:.1f}小时")
+                        
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    continue
+                except Exception as e:
+                    logger.error(f"检查较新进程 {proc_info['pid']} 时出错: {e}")
+            
+            if cleaned_count > 0:
+                logger.info(f"成功清理了 {cleaned_count} 个历史遗留的MCP进程")
+                
+                # 同步清理MCP客户端包装器的状态
+                try:
+                    from app.utils.mcp_client import mcp_client_wrapper
+                    await mcp_client_wrapper.cleanup_dead_processes()
+                    logger.debug("已同步清理MCP客户端包装器的状态")
+                except Exception as sync_error:
+                    logger.warning(f"同步清理客户端包装器状态时出错: {sync_error}")
+            
+        except Exception as e:
+            logger.error(f"清理历史遗留MCP进程时出错: {e}")
+    
+    def _is_mcp_related_process(self, cmdline: list) -> bool:
+        """判断进程是否为MCP相关进程
+        
+        使用精确的进程识别逻辑，避免误识别无关进程
+        
+        Args:
+            cmdline: 进程命令行参数列表
+            
+        Returns:
+            bool: 如果是MCP相关进程返回True
+        """
+        if not cmdline:
+            return False
+        
+        cmdline_str = ' '.join(cmdline).lower()
+        
+        # 从配置文件动态生成MCP服务器识别模式
+        mcp_patterns = self._generate_mcp_patterns()
+        
+        # 检查是否匹配任何已知的MCP模式
+        for pattern in mcp_patterns:
+            if pattern in cmdline_str:
+                return True
+                
+        # 额外检查：npm exec 启动的MCP相关进程
+        if 'npm exec' in cmdline_str and any(mcp_term in cmdline_str for mcp_term in ['mcp', 'playwright', 'amap', 'minimax', 'web3']):
+            return True
+            
+        return False
+    
+    async def _cleanup_process_tree(self, root_pid: int, server_name: str) -> bool:
+        """清理整个进程树
+        
+        递归清理指定进程及其所有子进程，确保没有遗留进程
+        
+        Args:
+            root_pid: 根进程PID
+            server_name: 服务器名称（用于日志）
+            
+        Returns:
+            bool: 清理是否成功
+        """
+        try:
+            # 获取进程树中的所有进程
+            processes_to_kill = []
+            
+            def collect_process_tree(pid):
+                """递归收集进程树中的所有进程"""
+                try:
+                    parent = psutil.Process(pid)
+                    processes_to_kill.append(parent)
+                    
+                    # 递归收集子进程
+                    for child in parent.children(recursive=True):
+                        processes_to_kill.append(child)
+                        
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    pass
+            
+            # 收集所有需要清理的进程
+            collect_process_tree(root_pid)
+            
+            if not processes_to_kill:
+                logger.info(f"服务器 {server_name} 的进程 {root_pid} 已不存在")
+                return True
+            
+            logger.info(f"服务器 {server_name} 需要清理 {len(processes_to_kill)} 个进程")
+            
+            # 第一阶段：优雅终止所有进程
+            for process in processes_to_kill:
+                try:
+                    if process.is_running():
+                        process.terminate()
+                        logger.debug(f"向进程 {process.pid} 发送SIGTERM信号")
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    continue
+            
+            # 等待进程优雅退出
+            await asyncio.sleep(3)
+            
+            # 第二阶段：强制杀死仍在运行的进程
+            remaining_processes = []
+            for process in processes_to_kill:
+                try:
+                    if process.is_running():
+                        remaining_processes.append(process)
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    continue
+            
+            if remaining_processes:
+                logger.warning(f"服务器 {server_name} 有 {len(remaining_processes)} 个进程未优雅退出，强制终止")
+                for process in remaining_processes:
+                    try:
+                        if process.is_running():
+                            process.kill()
+                            logger.debug(f"强制终止进程 {process.pid}")
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        continue
+                
+                # 等待强制终止完成
+                await asyncio.sleep(2)
+            
+            # 验证清理结果
+            still_running = []
+            for process in processes_to_kill:
+                try:
+                    if process.is_running():
+                        still_running.append(process.pid)
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    continue
+            
+            if still_running:
+                logger.error(f"服务器 {server_name} 仍有进程未能清理: {still_running}")
+                return False
+            
+            logger.info(f"服务器 {server_name} 进程树清理完成")
+            
+            # 同步清理MCP客户端包装器的状态
+            await self._sync_client_wrapper_state(server_name, root_pid)
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"清理服务器 {server_name} 进程树时出错: {e}")
+            return False
     
     async def _graceful_shutdown(self, server_name: str = None, timeout: int = 30) -> bool:
         """优雅关闭MCP服务器（任务8：进程生命周期管理）"""
@@ -1134,7 +2040,11 @@ class MCPServerManager:
             return False
     
     async def _shutdown_single_server(self, server_name: str, timeout: int) -> bool:
-        """优雅关闭单个服务器"""
+        """优雅关闭单个服务器
+        
+        使用进程树清理机制，确保彻底清理所有相关进程，
+        包括主进程和所有子进程
+        """
         try:
             if server_name not in self.servers:
                 logger.warning(f"服务器 {server_name} 不存在")
@@ -1153,35 +2063,18 @@ class MCPServerManager:
                 
             logger.info(f"开始优雅关闭服务器 {server_name} (PID: {pid})")
             
-            # 1. 发送SIGTERM信号请求优雅关闭
+            # 使用进程树清理机制，确保彻底清理所有相关进程
             try:
-                process = psutil.Process(pid)
-                process.terminate()
-                logger.debug(f"向进程 {pid} 发送SIGTERM信号")
-                
-                # 2. 等待进程自然退出
-                try:
-                    process.wait(timeout=timeout)
-                    logger.info(f"服务器 {server_name} 优雅关闭成功")
+                cleanup_success = await self._cleanup_process_tree(pid, server_name)
+                if cleanup_success:
+                    logger.info(f"服务器 {server_name} 进程树清理成功")
                     server_status.running = False
                     server_status.process_info = None
                     return True
-                except psutil.TimeoutExpired:
-                    logger.warning(f"服务器 {server_name} 在 {timeout} 秒内未响应SIGTERM")
+                else:
+                    logger.error(f"服务器 {server_name} 进程树清理失败")
+                    return False
                     
-                    # 3. 强制终止
-                    logger.info(f"强制终止服务器 {server_name} (PID: {pid})")
-                    process.kill()
-                    try:
-                        process.wait(timeout=5)
-                        logger.info(f"服务器 {server_name} 强制终止成功")
-                        server_status.running = False
-                        server_status.process_info = None
-                        return True
-                    except psutil.TimeoutExpired:
-                        logger.error(f"无法终止服务器 {server_name} (PID: {pid})")
-                        return False
-                        
             except (psutil.NoSuchProcess, psutil.AccessDenied) as e:
                 logger.warning(f"关闭服务器 {server_name} 时进程访问异常: {e}")
                 server_status.running = False
@@ -1232,6 +2125,45 @@ class MCPServerManager:
             
         except Exception as e:
             logger.error(f"关闭所有服务器时出错: {e}")
+            return False
+    
+    async def stop_server(self, server_name: str, graceful: bool = True, timeout: int = 30) -> bool:
+        """
+        停止指定的MCP服务器
+        
+        Args:
+            server_name: 服务器名称
+            graceful: 是否优雅关闭（默认True）
+            timeout: 关闭超时时间（秒，默认30）
+            
+        Returns:
+            bool: 停止操作是否成功
+        """
+        try:
+            logger.info(f"停止服务器 {server_name} (优雅模式: {graceful}, 超时: {timeout}秒)")
+            
+            # 检查服务器是否存在
+            if server_name not in self.servers:
+                logger.warning(f"服务器 {server_name} 不存在")
+                return False
+            
+            # 执行停止操作
+            if graceful:
+                # 优雅关闭
+                success = await self._graceful_shutdown(server_name, timeout)
+            else:
+                # 强制停止
+                success = await self._shutdown_single_server(server_name, timeout)
+            
+            if success:
+                logger.info(f"服务器 {server_name} 停止成功")
+            else:
+                logger.error(f"服务器 {server_name} 停止失败")
+                
+            return success
+            
+        except Exception as e:
+            logger.error(f"停止服务器 {server_name} 时出错: {e}")
             return False
     
     async def restart_server(self, server_name: str, graceful: bool = True) -> bool:
@@ -1896,6 +2828,274 @@ class MCPServerManager:
                 config_data = json.load(f)
             
             # 验证导入的配置格式
+            if 'servers' not in config_data:
+                logger.error("导入的配置格式无效：缺少servers字段")
+                return False
+            
+            if apply_immediately:
+                # 立即应用配置
+                old_configs = self.server_configs.copy()
+                self.server_configs = config_data['servers']
+                
+                # 记录配置变更
+                self._record_config_change("import_configuration", {
+                    'imported_from': file_path,
+                    'servers_count': len(config_data['servers'])
+                })
+                
+                logger.info(f"配置已从 {file_path} 导入并应用")
+            else:
+                logger.info(f"配置已从 {file_path} 导入但未应用")
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"导入配置失败: {e}")
+            return False
+    
+    # ==================== 进程泄漏监控告警系统 ====================
+    
+    async def monitor_process_leaks(self) -> Dict[str, Any]:
+        """监控进程泄漏情况并生成告警
+        
+        检测系统中的MCP进程数量，当发现异常时生成告警
+        
+        Returns:
+            Dict[str, Any]: 监控结果，包含进程统计和告警信息
+        """
+        try:
+            # 统计当前MCP相关进程
+            all_mcp_processes = []
+            managed_pids = set()
+            
+            # 收集当前管理的进程PID
+            for server_name, server_status in self.servers.items():
+                if server_status.running and server_status.process_info:
+                    pid = server_status.process_info.get('pid')
+                    if pid:
+                        managed_pids.add(pid)
+            
+            # 扫描所有MCP相关进程
+            for proc in psutil.process_iter(['pid', 'cmdline', 'create_time', 'status']):
+                try:
+                    cmdline = proc.info['cmdline']
+                    if cmdline and self._is_mcp_related_process(cmdline):
+                        create_time = datetime.fromtimestamp(proc.info['create_time'])
+                        age_hours = (datetime.now() - create_time).total_seconds() / 3600
+                        
+                        process_info = {
+                            'pid': proc.info['pid'],
+                            'cmdline': cmdline,
+                            'create_time': create_time,
+                            'age_hours': age_hours,
+                            'status': proc.info['status'],
+                            'is_managed': proc.info['pid'] in managed_pids
+                        }
+                        all_mcp_processes.append(process_info)
+                        
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                    continue
+            
+            # 分类统计
+            managed_count = len([p for p in all_mcp_processes if p['is_managed']])
+            orphaned_count = len([p for p in all_mcp_processes if not p['is_managed']])
+            zombie_count = len([p for p in all_mcp_processes if p['status'] in [psutil.STATUS_ZOMBIE, psutil.STATUS_DEAD]])
+            old_processes = len([p for p in all_mcp_processes if p['age_hours'] > 2.0])
+            very_old_processes = len([p for p in all_mcp_processes if p['age_hours'] > 6.0])
+            
+            # 生成监控结果
+            monitor_result = {
+                'timestamp': datetime.now(),
+                'total_mcp_processes': len(all_mcp_processes),
+                'managed_processes': managed_count,
+                'orphaned_processes': orphaned_count,
+                'zombie_processes': zombie_count,
+                'old_processes': old_processes,
+                'very_old_processes': very_old_processes,
+                'alerts': [],
+                'recommendations': []
+            }
+            
+            # 生成告警
+            alerts = []
+            
+            # 告警1：孤儿进程过多
+            if orphaned_count > 5:
+                alerts.append({
+                    'type': 'orphaned_processes_high',
+                    'severity': 'warning' if orphaned_count <= 10 else 'critical',
+                    'message': f'检测到 {orphaned_count} 个孤儿MCP进程，可能存在进程泄漏',
+                    'count': orphaned_count,
+                    'threshold': 5
+                })
+            
+            # 告警2：僵尸进程
+            if zombie_count > 0:
+                alerts.append({
+                    'type': 'zombie_processes',
+                    'severity': 'warning',
+                    'message': f'检测到 {zombie_count} 个僵尸MCP进程，需要清理',
+                    'count': zombie_count
+                })
+            
+            # 告警3：长时间运行的进程过多
+            if very_old_processes > 3:
+                alerts.append({
+                    'type': 'very_old_processes',
+                    'severity': 'warning',
+                    'message': f'检测到 {very_old_processes} 个运行超过6小时的MCP进程',
+                    'count': very_old_processes,
+                    'threshold': 3
+                })
+            
+            # 告警4：总进程数异常
+            expected_process_count = len([s for s in self.servers.values() if s.enabled])
+            if len(all_mcp_processes) > expected_process_count * 3:
+                alerts.append({
+                    'type': 'total_processes_high',
+                    'severity': 'critical',
+                    'message': f'MCP进程总数 ({len(all_mcp_processes)}) 远超预期 ({expected_process_count})，可能存在严重泄漏',
+                    'actual_count': len(all_mcp_processes),
+                    'expected_count': expected_process_count
+                })
+            
+            monitor_result['alerts'] = alerts
+            
+            # 生成建议
+            recommendations = []
+            if orphaned_count > 0:
+                recommendations.append(f'建议立即清理 {orphaned_count} 个孤儿进程')
+            if zombie_count > 0:
+                recommendations.append(f'建议清理 {zombie_count} 个僵尸进程')
+            if very_old_processes > 0:
+                recommendations.append(f'建议检查 {very_old_processes} 个长时间运行的进程')
+            
+            monitor_result['recommendations'] = recommendations
+            
+            # 记录监控结果
+            if alerts:
+                logger.warning(f"进程泄漏监控告警: 发现 {len(alerts)} 个问题")
+                for alert in alerts:
+                    logger.warning(f"  - {alert['severity'].upper()}: {alert['message']}")
+            else:
+                logger.debug(f"进程泄漏监控正常: 总进程数 {len(all_mcp_processes)}, 孤儿进程 {orphaned_count}")
+            
+            return monitor_result
+            
+        except Exception as e:
+            logger.error(f"进程泄漏监控时出错: {e}")
+            return {
+                'timestamp': datetime.now(),
+                'error': str(e),
+                'alerts': [{
+                    'type': 'monitoring_error',
+                    'severity': 'error',
+                    'message': f'进程泄漏监控失败: {e}'
+                }]
+            }
+    
+    async def auto_handle_process_leaks(self, monitor_result: Dict[str, Any]) -> bool:
+        """自动处理检测到的进程泄漏问题
+        
+        根据监控结果自动执行清理操作
+        
+        Args:
+            monitor_result: monitor_process_leaks的返回结果
+            
+        Returns:
+            bool: 处理是否成功
+        """
+        try:
+            alerts = monitor_result.get('alerts', [])
+            if not alerts:
+                return True
+            
+            handled_count = 0
+            
+            for alert in alerts:
+                alert_type = alert['type']
+                
+                if alert_type == 'orphaned_processes_high':
+                    # 自动清理孤儿进程
+                    logger.info(f"自动处理孤儿进程告警: {alert['message']}")
+                    try:
+                        await self.cleanup_orphaned_mcp_processes()
+                        handled_count += 1
+                        logger.info("孤儿进程清理完成")
+                    except Exception as e:
+                        logger.error(f"自动清理孤儿进程失败: {e}")
+                
+                elif alert_type == 'zombie_processes':
+                    # 自动清理僵尸进程
+                    logger.info(f"自动处理僵尸进程告警: {alert['message']}")
+                    try:
+                        await self._cleanup_zombie_processes()
+                        handled_count += 1
+                        logger.info("僵尸进程清理完成")
+                    except Exception as e:
+                        logger.error(f"自动清理僵尸进程失败: {e}")
+                
+                elif alert_type == 'total_processes_high':
+                    # 严重泄漏情况：强制清理所有孤儿进程
+                    logger.warning(f"检测到严重进程泄漏，执行强制清理: {alert['message']}")
+                    try:
+                        await self.cleanup_orphaned_mcp_processes()
+                        # 等待一段时间后重新检查
+                        await asyncio.sleep(5)
+                        
+                        # 如果问题仍然存在，记录严重告警
+                        recheck_result = await self.monitor_process_leaks()
+                        if recheck_result.get('total_mcp_processes', 0) > alert['expected_count'] * 2:
+                            logger.critical("强制清理后进程泄漏问题仍然存在，可能需要人工干预")
+                        else:
+                            handled_count += 1
+                            logger.info("严重进程泄漏问题已解决")
+                            
+                    except Exception as e:
+                        logger.error(f"处理严重进程泄漏失败: {e}")
+            
+            logger.info(f"自动处理进程泄漏完成: 处理了 {handled_count}/{len(alerts)} 个问题")
+            return handled_count > 0
+            
+        except Exception as e:
+            logger.error(f"自动处理进程泄漏时出错: {e}")
+            return False
+    
+    def get_process_leak_summary(self) -> Dict[str, Any]:
+        """获取进程泄漏监控摘要
+        
+        Returns:
+            Dict[str, Any]: 包含历史统计和当前状态的摘要
+        """
+        try:
+            # 这里可以扩展为保存历史监控数据
+            # 目前返回基本的状态信息
+            
+            managed_count = len([s for s in self.servers.values() if s.running])
+            enabled_count = len([s for s in self.servers.values() if s.enabled])
+            failed_count = len([s for s in self.servers.values() if s.marked_failed])
+            
+            return {
+                'timestamp': datetime.now(),
+                'managed_servers': {
+                    'total_enabled': enabled_count,
+                    'currently_running': managed_count,
+                    'marked_failed': failed_count
+                },
+                'monitoring_status': {
+                    'leak_detection_enabled': True,
+                    'auto_cleanup_enabled': True,
+                    'cleanup_interval_minutes': 2
+                },
+                'last_cleanup': getattr(self, '_last_cleanup_time', None)
+            }
+            
+        except Exception as e:
+            logger.error(f"获取进程泄漏摘要时出错: {e}")
+            return {
+                'timestamp': datetime.now(),
+                'error': str(e)
+            }
             if 'servers' not in config_data:
                 logger.error("导入的配置文件格式无效，缺少 servers 字段")
                 return False

@@ -675,16 +675,14 @@ class EchoAIConsole:
                         self.print_ai_response(content)
                 else:
                     error = result.get('error', self.get_text('execution_failed'))
-                    # 特殊处理MCP连接超时错误
+                    # 显示真实错误信息，同时提供MCP连接问题的建议
+                    self.print_error(f"{self.get_text('execution_failed')}: {error}")
                     if 'MCP服务器' in str(error) and ('超时' in str(error) or '连接失败' in str(error)):
-                        self.print_error("⚠️ MCP服务连接问题")
-                        print("💡 建议：")
+                        print("\n💡 MCP连接问题建议：")
                         print("   1. 检查后端服务是否正在运行")
                         print("   2. 检查MCP服务器配置是否正确")
                         print("   3. 等待几秒后重试")
                         print("   4. 联系系统管理员检查MCP服务状态")
-                    else:
-                        self.print_error(f"{self.get_text('execution_failed')}: {error}")
                 
                 return result
             else:

@@ -296,3 +296,59 @@ async def stop_mcp_server(
     except Exception as e:
         logger.error(f"停止MCP服务器 '{server_name}' 时发生异常: {e}")
         raise HTTPException(status_code=500, detail=f"停止MCP服务器失败: {str(e)}")
+
+@router.post("/mcp/cleanup/orphaned",
+            summary="清理历史遗留MCP进程",
+            description="手动触发清理历史遗留的MCP进程。需要管理员权限。")
+async def cleanup_orphaned_mcp_processes(
+    current_user: dict = Depends(get_admin_user)
+) -> Dict[str, Any]:
+    """
+    手动触发清理历史遗留的MCP进程
+    
+    Returns:
+        Dict[str, Any]: 清理操作结果
+    """
+    try:
+        logger.info(f"用户 {current_user.username} 请求清理历史遗留MCP进程")
+        
+        # 执行清理操作
+        await mcp_manager.cleanup_orphaned_mcp_processes()
+        
+        logger.info("历史遗留MCP进程清理完成")
+        return {
+            "success": True,
+            "message": "历史遗留MCP进程清理完成"
+        }
+    
+    except Exception as e:
+        logger.error(f"清理历史遗留MCP进程时发生异常: {e}")
+        raise HTTPException(status_code=500, detail=f"清理历史遗留MCP进程失败: {str(e)}")
+
+@router.post("/mcp/cleanup/zombies",
+            summary="清理僵尸进程",
+            description="手动触发清理僵尸进程。需要管理员权限。")
+async def cleanup_zombie_processes(
+    current_user: dict = Depends(get_admin_user)
+) -> Dict[str, Any]:
+    """
+    手动触发清理僵尸进程
+    
+    Returns:
+        Dict[str, Any]: 清理操作结果
+    """
+    try:
+        logger.info(f"用户 {current_user.username} 请求清理僵尸进程")
+        
+        # 执行清理操作
+        await mcp_manager._cleanup_zombie_processes()
+        
+        logger.info("僵尸进程清理完成")
+        return {
+            "success": True,
+            "message": "僵尸进程清理完成"
+        }
+    
+    except Exception as e:
+        logger.error(f"清理僵尸进程时发生异常: {e}")
+        raise HTTPException(status_code=500, detail=f"清理僵尸进程失败: {str(e)}")

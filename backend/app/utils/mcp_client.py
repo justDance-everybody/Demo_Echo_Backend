@@ -288,7 +288,44 @@ class MCPClientWrapper:
             logger.error(f"MCP客户端配置加载失败: {e}")
             self.server_configs = {}
             self._connection_pool = {}
-            self._connection_lock = {}
+    
+    def _get_server_timeout(self, server_name: str, operation_type: str = 'default') -> float:
+        """
+        根据服务器配置动态获取超时时间
+        
+        Args:
+            server_name: 服务器名称
+            operation_type: 操作类型 ('ping', 'warmup', 'validation', 'default')
+            
+        Returns:
+            float: 超时时间（秒）
+        """
+        # 默认超时时间
+        default_timeouts = {
+            'ping': 10.0,
+            'warmup': 10.0,
+            'validation': 10.0,
+            'default': 10.0
+        }
+        
+        # 检查服务器配置中是否有自定义超时设置
+        if server_name in self.server_configs:
+            config = self.server_configs[server_name]
+            
+            # 检查是否有超时配置
+            if 'timeout' in config:
+                timeout_config = config['timeout']
+                if isinstance(timeout_config, dict):
+                    return timeout_config.get(operation_type, timeout_config.get('default', default_timeouts[operation_type]))
+                elif isinstance(timeout_config, (int, float)):
+                    return float(timeout_config)
+            
+            # 基于服务器描述或名称判断是否为慢服务器
+            description = config.get('description', '').lower()
+            if any(keyword in description for keyword in ['区块链', 'blockchain', 'web3', 'rpc']):
+                return 30.0  # 区块链相关服务器使用更长超时
+        
+        return default_timeouts.get(operation_type, default_timeouts['default'])
     
     async def _get_or_create_client(self, target_server: str) -> 'MCPClient':
         """
@@ -431,21 +468,36 @@ class MCPClientWrapper:
             cmd = server_config["command"]
             args = server_config.get("args", [])
             
-            # 构建进程匹配模式
-            search_patterns = []
+            # 构建进程匹配模式 - 从配置动态生成
+            search_patterns = [target_server, cmd] + args
             
-            # 根据不同的服务器类型构建搜索模式
-            if target_server == "minimax-mcp-js":
-                search_patterns = ["minimax-mcp-js", "minimax"]
-            elif target_server == "amap-maps":
-                search_patterns = ["amap-maps-mcp-server", "amap"]
-            elif target_server == "playwright":
-                search_patterns = ["playwright", "@playwright/mcp"]
-            elif target_server == "web3-rpc":
-                search_patterns = ["web3-mcp", "web3"]
-            else:
-                # 通用模式：使用命令和参数
-                search_patterns = [target_server, cmd] + args
+            # 添加基于配置的额外搜索模式
+            if 'command' in server_config:
+                command_parts = server_config['command']
+                if isinstance(command_parts, list) and len(command_parts) > 0:
+                    # 添加命令的基础名称
+                    base_command = os.path.basename(command_parts[0])
+                    search_patterns.append(base_command)
+                    
+                    # 如果是npm/npx命令，添加包名
+                    if len(command_parts) > 1 and command_parts[0] in ['npm', 'npx']:
+                        if 'exec' in command_parts:
+                            # npm exec @package/name 格式
+                            exec_index = command_parts.index('exec')
+                            if exec_index + 1 < len(command_parts):
+                                package_name = command_parts[exec_index + 1]
+                                search_patterns.append(package_name)
+                                # 添加包的简短名称
+                                if '/' in package_name:
+                                    short_name = package_name.split('/')[-1]
+                                    search_patterns.append(short_name)
+                        else:
+                            # 直接的包名
+                            package_name = command_parts[1]
+                            search_patterns.append(package_name)
+                            if '/' in package_name:
+                                short_name = package_name.split('/')[-1]
+                                search_patterns.append(short_name)
             
             for proc in psutil.process_iter(['pid', 'cmdline']):
                 try:
@@ -578,16 +630,14 @@ class MCPClientWrapper:
             # 2. 简单ping测试（如果支持）
             if hasattr(client, 'ping'):
                 try:
-                    # 为响应较慢的服务器设置更长的超时时间
-                    if target_server in ['web3-rpc', 'blockchain-rpc']:
-                        ping_timeout = 30.0
-                    else:
-                        ping_timeout = 10.0
+                    # 动态获取服务器的ping超时时间
+                    ping_timeout = self._get_server_timeout(target_server, 'ping')
                     
                     await asyncio.wait_for(client.ping(), timeout=ping_timeout)
                 except asyncio.TimeoutError:
                     # 对于慢服务器，ping超时不一定意味着连接不健康
-                    if target_server in ['web3-rpc', 'blockchain-rpc']:
+                    # 基于配置判断是否为慢服务器
+                    if ping_timeout > 15.0:  # 如果配置的超时时间较长，认为是慢服务器
                         logger.warning(f"服务器 {target_server} ping超时，但仍认为连接有效")
                         return {"healthy": True, "reason": "ping超时但连接可用"}
                     return {"healthy": False, "reason": "ping超时"}
@@ -920,11 +970,8 @@ class MCPClientWrapper:
         # 预热连接：执行简单的健康检查
         try:
             if hasattr(client, 'list_tools'):
-                # 根据服务器类型设置不同的超时时间
-                if target_server in ['web3-rpc', 'blockchain-rpc']:
-                    warmup_timeout = 30.0  # 慢服务器使用30秒超时
-                else:
-                    warmup_timeout = 10.0  # 其他服务器使用10秒超时
+                # 动态获取服务器的预热超时时间
+                warmup_timeout = self._get_server_timeout(target_server, 'warmup')
                 
                 # 尝试列出工具作为预热
                 await asyncio.wait_for(client.list_tools(), timeout=warmup_timeout)
@@ -953,9 +1000,8 @@ class MCPClientWrapper:
             
             # 功能验证：尝试获取工具列表来验证连接
             if hasattr(client, 'session') and client.session:
-                # 为不同服务器设置不同的超时时间
-                # web3-rpc等区块链相关服务器需要更长的响应时间
-                timeout = 30.0 if target_server in ['web3-rpc', 'blockchain-rpc'] else 10.0
+                # 动态获取服务器的验证超时时间
+                timeout = self._get_server_timeout(target_server, 'validation')
                 
                 try:
                     await asyncio.wait_for(client.session.list_tools(), timeout=timeout)
