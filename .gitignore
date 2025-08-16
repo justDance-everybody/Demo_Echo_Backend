@@ -98,24 +98,29 @@ venv.bak/
 frontend/node_modules/.cache/
 *.pack
 
-# Sensitive configuration files
-# MCP server configurations with API keys
+# ========================================
+# 敏感配置文件 - 不会同步到代码仓库
+# ========================================
+# 以下文件包含敏感信息（API密钥、数据库密码等），
+# 已配置为不提交到Git仓库，确保安全性
+
+# MCP服务器配置文件（包含API密钥）
 mcp_servers.json
 MCP_Client/mcp_servers.json
 MCPTEST/mcp_servers.json
 
-# Environment files with secrets
+# 环境变量文件（包含数据库密码、API密钥等）
 .env.*
 !.env.example
 !.env.template
 
-# Private keys and certificates
+# 私钥和证书文件
 *.key
 *.pem
 *.p12
 *.pfx
 
-# API keys and secrets
+# API密钥和敏感信息文件
 *api_key*
 *secret*
 *private*
@@ -123,7 +128,7 @@ MCPTEST/mcp_servers.json
 !*template*
 !*sample*
 
-# JWT secrets and tokens
+# JWT密钥和令牌文件
 jwt_secret*
 token*
 !*example*
