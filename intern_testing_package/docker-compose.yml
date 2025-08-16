@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  # 测试数据库
+  mysql:
+    image: mysql:8.0
+    container_name: ai_assistant_test_db
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass123
+      MYSQL_DATABASE: ai_assistant_test
+      MYSQL_USER: testuser
+      MYSQL_PASSWORD: testpass123
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_test_data:/var/lib/mysql
+      - ./scripts/init_test_db.sql:/docker-entrypoint-initdb.d/init.sql
+    command: --default-authentication-plugin=mysql_native_password
+    networks:
+      - test_network
+
+  # Redis缓存（可选）
+  redis:
+    image: redis:7-alpine
+    container_name: ai_assistant_test_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_test_data:/data
+    networks:
+      - test_network
+
+  # 测试用MCP服务器
+  mcp_server:
+    build:
+      context: ./mcp_test_server
+      dockerfile: Dockerfile
+    container_name: ai_assistant_test_mcp
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=test
+      - PORT=8080
+    volumes:
+      - ./mcp_test_server/config:/app/config
+    networks:
+      - test_network
+    depends_on:
+      - mysql
+
+  # 可选：测试用的Mock服务
+  mock_services:
+    image: wiremock/wiremock:latest
+    container_name: ai_assistant_mock_services
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./mock_data:/home/wiremock
+    command: --global-response-templating --verbose
+    networks:
+      - test_network
+
+volumes:
+  mysql_test_data:
+    driver: local
+  redis_test_data:
+    driver: local
+
+networks:
+  test_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

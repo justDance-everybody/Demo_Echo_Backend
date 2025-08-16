@@ -65,39 +65,46 @@ class MCPClient:
         start_time = time.time()
         
         try:
-            # 使用更短的超时时间，并增加详细的步骤追踪
-            print(f"🔧 开始连接步骤 1: stdio_client 连接...")
+            # 为不同服务器设置不同的超时时间
+            if name in ['web3-rpc', 'blockchain-rpc']:
+                step_timeout = 30.0  # 慢服务器使用30秒超时
+                total_timeout_desc = "30秒"
+            else:
+                step_timeout = 10.0  # 其他服务器使用10秒超时
+                total_timeout_desc = "10秒"
+            
+            print(f"🔧 开始连接步骤 1: stdio_client 连接... (超时: {step_timeout}秒)")
             reader, writer = await asyncio.wait_for(
                 self.exit_stack.enter_async_context(
                     stdio_client(StdioServerParameters(command=cmd, args=args, env=env))
                 ),
-                timeout=5.0  # 减少到5秒，快速失败
+                timeout=step_timeout
             )
             step1_time = time.time()
             print(f"✅ 步骤 1 完成，耗时: {step1_time - start_time:.2f}秒")
             
-            print(f"🔧 开始连接步骤 2: ClientSession 创建...")
+            print(f"🔧 开始连接步骤 2: ClientSession 创建... (超时: {step_timeout}秒)")
             self.session = await asyncio.wait_for(
                 self.exit_stack.enter_async_context(
                     ClientSession(reader, writer)
                 ),
-                timeout=5.0
+                timeout=step_timeout
             )
             step2_time = time.time()
             print(f"✅ 步骤 2 完成，耗时: {step2_time - step1_time:.2f}秒")
             
-            print(f"🔧 开始连接步骤 3: 会话初始化...")
-            await asyncio.wait_for(self.session.initialize(), timeout=5.0)
+            print(f"🔧 开始连接步骤 3: 会话初始化... (超时: {step_timeout}秒)")
+            await asyncio.wait_for(self.session.initialize(), timeout=step_timeout)
             step3_time = time.time()
             print(f"✅ 步骤 3 完成，耗时: {step3_time - step2_time:.2f}秒")
             
-            print(f"🔧 开始连接步骤 4: 获取工具列表...")
-            resp = await asyncio.wait_for(self.session.list_tools(), timeout=5.0)
+            print(f"🔧 开始连接步骤 4: 获取工具列表... (超时: {step_timeout}秒)")
+            resp = await asyncio.wait_for(self.session.list_tools(), timeout=step_timeout)
             step4_time = time.time()
             print(f"✅ 步骤 4 完成，耗时: {step4_time - step3_time:.2f}秒")
             print(f"🎉 总连接时间: {step4_time - start_time:.2f}秒")
         except asyncio.TimeoutError:
-            timeout_msg = f"连接到 MCP 服务器 {name} 超时 (5秒)"
+            timeout_msg = f"连接到 MCP 服务器 {name} 超时 ({total_timeout_desc})"
             if existing_process:
                 timeout_msg += f" (尝试复用进程 PID: {existing_process} 失败)"
             print(timeout_msg)
@@ -187,7 +194,19 @@ class MCPClient:
             print(await self.process_query(q))
 
     async def close(self):
-        await self.exit_stack.aclose()
+        """安全关闭MCP客户端连接"""
+        try:
+            await self.exit_stack.aclose()
+        except RuntimeError as e:
+            if "Attempted to exit cancel scope in a different task" in str(e):
+                # 忽略跨任务cancel scope错误，这是正常的清理过程
+                print(f"警告: 跨任务关闭连接 (这是正常的): {e}")
+            else:
+                # 其他RuntimeError需要重新抛出
+                raise
+        except Exception as e:
+            print(f"关闭MCP客户端时出现错误: {e}")
+            # 继续执行，不阻止清理过程
 
 async def main():
     client=MCPClient()

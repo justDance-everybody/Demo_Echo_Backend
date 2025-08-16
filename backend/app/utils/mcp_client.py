@@ -4,9 +4,203 @@ import sys
 import logging
 import json
 import asyncio
+import random
+import subprocess
+import time
+from enum import Enum
 from dotenv import load_dotenv
 from loguru import logger
 from app.config import settings
+
+
+class MCPErrorType(Enum):
+    """MCP错误类型枚举 - 提供精确的错误分类"""
+    
+    # 连接相关错误
+    CONNECTION_FAILED = "CONNECTION_FAILED"
+    CONNECTION_TIMEOUT = "CONNECTION_TIMEOUT"
+    CONNECTION_LOST = "CONNECTION_LOST"
+    CONNECTION_REFUSED = "CONNECTION_REFUSED"
+    
+    # 服务器相关错误
+    SERVER_NOT_FOUND = "SERVER_NOT_FOUND"
+    SERVER_START_FAILED = "SERVER_START_FAILED"
+    SERVER_UNAVAILABLE = "SERVER_UNAVAILABLE"
+    SERVER_CRASHED = "SERVER_CRASHED"
+    
+    # 工具执行错误
+    TOOL_NOT_FOUND = "TOOL_NOT_FOUND"
+    TOOL_EXECUTION_FAILED = "TOOL_EXECUTION_FAILED"
+    TOOL_EXECUTION_TIMEOUT = "TOOL_EXECUTION_TIMEOUT"
+    TOOL_INVALID_PARAMS = "TOOL_INVALID_PARAMS"
+    
+    # 配置相关错误
+    CONFIG_NOT_FOUND = "CONFIG_NOT_FOUND"
+    CONFIG_INVALID = "CONFIG_INVALID"
+    CONFIG_MISSING_REQUIRED = "CONFIG_MISSING_REQUIRED"
+    
+    # 进程相关错误
+    PROCESS_START_FAILED = "PROCESS_START_FAILED"
+    PROCESS_CRASHED = "PROCESS_CRASHED"
+    PROCESS_ZOMBIE = "PROCESS_ZOMBIE"
+    PROCESS_PERMISSION_DENIED = "PROCESS_PERMISSION_DENIED"
+    
+    # 通用错误
+    UNKNOWN_ERROR = "UNKNOWN_ERROR"
+    INTERNAL_ERROR = "INTERNAL_ERROR"
+    VALIDATION_ERROR = "VALIDATION_ERROR"
+    RESOURCE_EXHAUSTED = "RESOURCE_EXHAUSTED"
+
+
+class MCPErrorClassifier:
+    """MCP错误分类器 - 根据错误信息自动分类错误类型"""
+    
+    @staticmethod
+    def classify_error(error_message: str, exception_type: type = None) -> MCPErrorType:
+        """
+        根据错误信息和异常类型自动分类错误
+        
+        Args:
+            error_message: 错误信息
+            exception_type: 异常类型
+            
+        Returns:
+            MCPErrorType: 分类后的错误类型
+        """
+        if not error_message:
+            return MCPErrorType.UNKNOWN_ERROR
+            
+        error_lower = error_message.lower()
+        
+        # 连接相关错误
+        if any(keyword in error_lower for keyword in [
+            "connection refused", "connection reset", "connection aborted",
+            "broken pipe", "transport", "session closed"
+        ]):
+            if "refused" in error_lower:
+                return MCPErrorType.CONNECTION_REFUSED
+            elif "timeout" in error_lower:
+                return MCPErrorType.CONNECTION_TIMEOUT
+            else:
+                return MCPErrorType.CONNECTION_LOST
+        
+        # 超时错误
+        if exception_type == asyncio.TimeoutError or "timeout" in error_lower:
+            if "tool" in error_lower or "execution" in error_lower:
+                return MCPErrorType.TOOL_EXECUTION_TIMEOUT
+            else:
+                return MCPErrorType.CONNECTION_TIMEOUT
+        
+        # 服务器相关错误
+        if any(keyword in error_lower for keyword in [
+            "server not found", "no such server", "unknown server"
+        ]):
+            return MCPErrorType.SERVER_NOT_FOUND
+        
+        if any(keyword in error_lower for keyword in [
+            "server start failed", "failed to start", "startup failed"
+        ]):
+            return MCPErrorType.SERVER_START_FAILED
+        
+        if any(keyword in error_lower for keyword in [
+            "server crashed", "process died", "process terminated"
+        ]):
+            return MCPErrorType.SERVER_CRASHED
+        
+        # 工具相关错误
+        if any(keyword in error_lower for keyword in [
+            "tool not found", "unknown tool", "no such tool"
+        ]):
+            return MCPErrorType.TOOL_NOT_FOUND
+        
+        if any(keyword in error_lower for keyword in [
+            "invalid argument", "invalid parameter", "missing required"
+        ]):
+            return MCPErrorType.TOOL_INVALID_PARAMS
+        
+        # 配置相关错误
+        if any(keyword in error_lower for keyword in [
+            "config not found", "configuration missing", "no config"
+        ]):
+            return MCPErrorType.CONFIG_NOT_FOUND
+        
+        if any(keyword in error_lower for keyword in [
+            "invalid config", "malformed config", "config error"
+        ]):
+            return MCPErrorType.CONFIG_INVALID
+        
+        # 进程相关错误
+        if any(keyword in error_lower for keyword in [
+            "permission denied", "access denied", "forbidden"
+        ]):
+            return MCPErrorType.PROCESS_PERMISSION_DENIED
+        
+        if any(keyword in error_lower for keyword in [
+            "process start failed", "failed to launch", "cannot start"
+        ]):
+            return MCPErrorType.PROCESS_START_FAILED
+        
+        # 资源相关错误
+        if any(keyword in error_lower for keyword in [
+            "out of memory", "resource exhausted", "too many"
+        ]):
+            return MCPErrorType.RESOURCE_EXHAUSTED
+        
+        # 默认分类
+        if "tool" in error_lower:
+            return MCPErrorType.TOOL_EXECUTION_FAILED
+        elif "server" in error_lower:
+            return MCPErrorType.SERVER_UNAVAILABLE
+        else:
+            return MCPErrorType.UNKNOWN_ERROR
+    
+    @staticmethod
+    def get_user_friendly_message(error_type: MCPErrorType, original_message: str = "") -> str:
+        """
+        获取用户友好的错误信息
+        
+        Args:
+            error_type: 错误类型
+            original_message: 原始错误信息
+            
+        Returns:
+            str: 用户友好的错误信息
+        """
+        messages = {
+            MCPErrorType.CONNECTION_FAILED: "无法连接到MCP服务器，请检查服务器状态",
+            MCPErrorType.CONNECTION_TIMEOUT: "连接MCP服务器超时，请稍后重试",
+            MCPErrorType.CONNECTION_LOST: "与MCP服务器的连接已断开",
+            MCPErrorType.CONNECTION_REFUSED: "MCP服务器拒绝连接，请检查服务器配置",
+            
+            MCPErrorType.SERVER_NOT_FOUND: "指定的MCP服务器不存在",
+            MCPErrorType.SERVER_START_FAILED: "MCP服务器启动失败，请检查配置",
+            MCPErrorType.SERVER_UNAVAILABLE: "MCP服务器当前不可用",
+            MCPErrorType.SERVER_CRASHED: "MCP服务器已崩溃，正在尝试重启",
+            
+            MCPErrorType.TOOL_NOT_FOUND: "指定的工具不存在",
+            MCPErrorType.TOOL_EXECUTION_FAILED: "工具执行失败",
+            MCPErrorType.TOOL_EXECUTION_TIMEOUT: "工具执行超时，请稍后重试",
+            MCPErrorType.TOOL_INVALID_PARAMS: "工具参数无效，请检查输入",
+            
+            MCPErrorType.CONFIG_NOT_FOUND: "MCP配置文件不存在",
+            MCPErrorType.CONFIG_INVALID: "MCP配置文件格式错误",
+            MCPErrorType.CONFIG_MISSING_REQUIRED: "MCP配置缺少必需参数",
+            
+            MCPErrorType.PROCESS_START_FAILED: "进程启动失败",
+            MCPErrorType.PROCESS_CRASHED: "进程已崩溃",
+            MCPErrorType.PROCESS_ZOMBIE: "检测到僵尸进程",
+            MCPErrorType.PROCESS_PERMISSION_DENIED: "权限不足，无法启动进程",
+            
+            MCPErrorType.UNKNOWN_ERROR: "发生未知错误",
+            MCPErrorType.INTERNAL_ERROR: "系统内部错误",
+            MCPErrorType.VALIDATION_ERROR: "数据验证失败",
+            MCPErrorType.RESOURCE_EXHAUSTED: "系统资源不足",
+        }
+        
+        base_message = messages.get(error_type, "发生未知错误")
+        if original_message and len(original_message) < 200:  # 只在原始消息不太长时附加
+            return f"{base_message}: {original_message}"
+        return base_message
 
 # 添加MCP客户端相关环境变量 (现在使用 LLM_*)
 try:
@@ -98,74 +292,127 @@ class MCPClientWrapper:
     
     async def _get_or_create_client(self, target_server: str) -> 'MCPClient':
         """
-        获取或创建MCP客户端实例（使用优化的连接池）
+        获取或创建MCP客户端连接（任务7：完善重试和恢复机制）
+        
+        增强功能：
+        - 智能重试策略（指数退避 + 抖动）
+        - 增强连接池健康检查
+        - 智能故障恢复机制
+        - 连接预热和故障转移
         
         Args:
-            target_server: 目标MCP服务器名称
+            target_server: 目标服务器名称
             
         Returns:
             MCPClient: MCP客户端实例
             
         Raises:
-            ValueError: 当目标服务器不存在于配置中时
+            ValueError: 当服务器配置不存在时
             RuntimeError: 当连接失败时
         """
-        # 检查目标服务器是否存在于配置中
-        if target_server not in self.server_configs:
-            raise ValueError(f"目标MCP服务器 '{target_server}' 未在配置中找到")
-
-        # 优化的连接复用逻辑：更严格的连接验证
-        if target_server in self._connection_pool:
-            client = self._connection_pool[target_server]
-            if client and hasattr(client, 'session') and client.session:
-                try:
-                    # 简单的连接健康检查
-                    if hasattr(client.session, '_transport') and client.session._transport:
-                        logger.info(f"复用现有MCP客户端连接: {target_server}")
-                        return client
-                except Exception as health_check_err:
-                    logger.warning(f"连接健康检查失败: {health_check_err}")
-            
-            # 清理无效连接
-            logger.info(f"清理无效连接: {target_server}")
+        # 智能重试配置
+        max_retries = 5  # 增加重试次数
+        base_delay = 1.0  # 基础延迟
+        max_delay = 30.0  # 最大延迟
+        backoff_factor = 2.0  # 退避因子
+        jitter_factor = 0.1  # 抖动因子
+        
+        last_exception = None
+        
+        for attempt in range(max_retries):
             try:
-                if client and hasattr(client, 'close'):
-                    await client.close()
-            except:
-                pass
-            del self._connection_pool[target_server]
-            
-            # 同时清理进程管理记录（如果连接失败，进程可能也有问题）
-            async with self._process_lock:
-                if target_server in self._managed_processes:
-                    managed_info = self._managed_processes[target_server]
-                    logger.warning(f"连接失败，清理进程管理记录 (PID: {managed_info['pid']}): {target_server}")
-                    del self._managed_processes[target_server]
-
-        logger.info(f"为服务器 {target_server} 创建新的MCP客户端连接")
+                # 1. 增强连接池健康检查
+                if target_server in self._connection_pool:
+                    existing_client = self._connection_pool[target_server]
+                    health_check_result = await self._enhanced_connection_health_check(target_server, existing_client)
+                    
+                    if health_check_result["healthy"]:
+                        logger.debug(f"复用健康连接: {target_server}")
+                        return existing_client
+                    else:
+                        logger.warning(f"连接健康检查失败: {target_server}, 原因: {health_check_result['reason']}")
+                        await self._cleanup_connection(target_server)
+                
+                # 2. 获取服务器配置
+                server_config = self.server_configs.get(target_server)
+                if not server_config:
+                    raise ValueError(f"未找到服务器配置: {target_server}")
+                
+                # 3. 智能故障恢复：使用MCPServerManager协调接口
+                recovery_result = await self._intelligent_server_recovery(target_server, attempt)
+                if not recovery_result["success"]:
+                    error_msg = f"无法启动MCP服务器 {target_server}: {recovery_result['message']}"
+                    error_code = recovery_result.get("error", "")
+                    
+                    # 分析错误类型决定是否重试
+                    if "冷却期" in error_msg or "cooldown" in error_msg.lower() or error_code == "COOLDOWN_ACTIVE":
+                        error_type = MCPErrorType.SERVER_UNAVAILABLE
+                    elif "未运行" in error_msg or "not running" in error_msg.lower() or error_code == "SERVER_NOT_RUNNING":
+                        error_type = MCPErrorType.SERVER_NOT_FOUND
+                    elif error_code == "CONNECTION_FAILED":
+                        error_type = MCPErrorType.CONNECTION_FAILED
+                    else:
+                        error_type = MCPErrorClassifier.classify_error(recovery_result.get('error', ''), type(RuntimeError))
+                    
+                    if not self._should_retry_for_error(error_type, attempt, max_retries):
+                        raise RuntimeError(error_msg)
+                    
+                    if attempt < max_retries - 1:
+                        delay = self._calculate_retry_delay(attempt, base_delay, max_delay, backoff_factor, jitter_factor)
+                        logger.warning(f"{error_msg}，第 {attempt + 1} 次重试，延迟 {delay:.2f} 秒...")
+                        await asyncio.sleep(delay)
+                        continue
+                    else:
+                        raise RuntimeError(error_msg)
+                
+                # 4. 检查是否已经返回了可用的客户端连接
+                if recovery_result.get("client"):
+                    client = recovery_result["client"]
+                    logger.info(f"使用智能恢复返回的客户端连接: {target_server}")
+                    
+                    # 连接验证和加入连接池
+                    if await self._validate_new_connection(target_server, client):
+                        self._connection_pool[target_server] = client
+                        logger.info(f"成功使用恢复的连接并加入连接池: {target_server} (尝试 {attempt + 1}/{max_retries})")
+                        return client
+                    else:
+                        logger.warning(f"恢复的连接验证失败: {target_server}，尝试创建新连接")
+                        # 继续尝试创建新连接
+                
+                # 5. 创建客户端连接（带连接预热）
+                client = await self._create_client_connection_with_warmup(target_server, attempt)
+                
+                # 6. 连接验证和加入连接池
+                if await self._validate_new_connection(target_server, client):
+                    self._connection_pool[target_server] = client
+                    logger.info(f"成功连接到MCP服务器并加入连接池: {target_server} (尝试 {attempt + 1}/{max_retries})")
+                    return client
+                else:
+                    logger.warning(f"新连接验证失败: {target_server}")
+                    await self._cleanup_connection(target_server)
+                    raise RuntimeError(f"连接验证失败: {target_server}")
+                
+            except ValueError:
+                # 配置错误不重试
+                raise
+            except Exception as e:
+                last_exception = e
+                error_type = MCPErrorClassifier.classify_error(str(e), type(e))
+                
+                if not self._should_retry_for_error(error_type, attempt, max_retries):
+                    logger.error(f"连接到MCP服务器 '{target_server}' 失败，错误类型不可重试: {error_type}")
+                    raise RuntimeError(f"连接到MCP服务器 '{target_server}' 失败: {e}")
+                
+                if attempt < max_retries - 1:
+                    delay = self._calculate_retry_delay(attempt, base_delay, max_delay, backoff_factor, jitter_factor)
+                    logger.warning(f"连接到MCP服务器 '{target_server}' 失败 (尝试 {attempt + 1}/{max_retries}): {e}，{delay:.2f} 秒后重试...")
+                    await asyncio.sleep(delay)
+                else:
+                    logger.error(f"连接到MCP服务器 '{target_server}' 最终失败: {e}")
+                    raise RuntimeError(f"连接到MCP服务器 '{target_server}' 失败: {e}")
         
-        # 优化的进程检查逻辑：支持多种MCP服务器类型
-        server_config = self.server_configs.get(target_server)
-        if not server_config:
-            raise ValueError(f"未找到服务器配置: {target_server}")
-        
-        # 使用进程管理器检查和启动进程
-        async with self._process_lock:
-            process_pid = await self._ensure_mcp_process(target_server, server_config)
-        
-        # 创建客户端连接
-        try:
-            client = MCPClient()
-            await client.connect(target_server)
-            
-            # 将连接加入连接池
-            self._connection_pool[target_server] = client
-            logger.info(f"成功连接到MCP服务器并加入连接池: {target_server}")
-            return client
-            
-        except Exception as e:
-            logger.error(f"连接到MCP服务器 '{target_server}' 失败: {e}")
-            raise RuntimeError(f"连接到MCP服务器 '{target_server}' 失败: {e}")
+        # 理论上不会到达这里
+        raise RuntimeError(f"连接到MCP服务器 '{target_server}' 失败: 超出最大重试次数，最后错误: {last_exception}")
     
     async def _find_existing_process(self, target_server: str, server_config: dict) -> Optional[int]:
         """
@@ -218,9 +465,519 @@ class MCPClientWrapper:
             
         return None
     
+    async def _ensure_server_via_manager(self, target_server: str, connect_only: bool = False) -> Dict[str, Any]:
+        """
+        通过MCPServerManager确保服务器运行（第二阶段协调接口）
+        
+        这是第二阶段新增的协调方法，替代原来的_ensure_mcp_process
+        
+        Args:
+            target_server: 服务器名称
+            connect_only: 如果为True，仅尝试连接现有服务器，不启动新服务器
+            
+        Returns:
+            Dict[str, Any]: 服务器状态信息
+        """
+        try:
+            # 导入MCPServerManager
+            from app.services.mcp_manager import mcp_manager
+            
+            # 使用协调接口确保服务器运行
+            result = await mcp_manager.ensure_server_running(target_server, connect_only=connect_only)
+            
+            if result["success"] and result["pid"]:
+                # 更新本地进程记录
+                import time
+                self._managed_processes[target_server] = {
+                    "pid": result["pid"],
+                    "start_time": time.time()
+                }
+                logger.info(f"通过管理器确保服务器运行: {target_server} (PID: {result['pid']})")
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"通过管理器确保服务器运行时出错 {target_server}: {e}")
+            
+            # 使用错误分类器进行精确分类
+            error_type = MCPErrorClassifier.classify_error(str(e), type(e))
+            user_message = MCPErrorClassifier.get_user_friendly_message(error_type, str(e))
+            
+            return {
+                "success": False,
+                "running": False,
+                "pid": None,
+                "message": user_message,
+                "error": error_type.value,
+                "error_type": error_type.name,
+                "original_error": str(e)
+            }
+    
+    async def _create_client_connection(self, target_server: str, attempt: int) -> 'MCPClient':
+        """
+        创建客户端连接（带重试逻辑的辅助方法）
+        
+        Args:
+            target_server: 服务器名称
+            attempt: 当前尝试次数
+            
+        Returns:
+            MCPClient: 客户端实例
+        """
+        try:
+            client = MCPClient()
+            
+            # 连接前等待一小段时间，确保服务器完全启动
+            if attempt > 0:
+                await asyncio.sleep(0.5)
+            
+            await client.connect(target_server)
+            return client
+            
+        except Exception as e:
+            logger.warning(f"创建客户端连接失败 {target_server} (尝试 {attempt + 1}): {e}")
+            raise
+    
+    async def _cleanup_connection(self, target_server: str):
+        """
+        清理失效的连接（辅助方法）
+        
+        Args:
+            target_server: 服务器名称
+        """
+        try:
+            if target_server in self._connection_pool:
+                old_client = self._connection_pool[target_server]
+                # 尝试优雅关闭连接
+                if hasattr(old_client, 'close'):
+                    try:
+                        await old_client.close()
+                    except Exception:
+                        pass  # 忽略关闭时的错误
+                del self._connection_pool[target_server]
+                logger.debug(f"已清理失效连接: {target_server}")
+        except Exception as e:
+            logger.warning(f"清理连接时出错 {target_server}: {e}")
+    
+    async def _enhanced_connection_health_check(self, target_server: str, client) -> dict:
+        """
+        增强连接健康检查（任务7）
+        
+        Args:
+            target_server: 目标服务器名称
+            client: 客户端实例
+            
+        Returns:
+            dict: {"healthy": bool, "reason": str}
+        """
+        try:
+            # 1. 基础连接状态检查
+            if not hasattr(client, 'is_connected') or not client.is_connected():
+                return {"healthy": False, "reason": "连接已断开"}
+            
+            # 2. 简单ping测试（如果支持）
+            if hasattr(client, 'ping'):
+                try:
+                    # 为响应较慢的服务器设置更长的超时时间
+                    if target_server in ['web3-rpc', 'blockchain-rpc']:
+                        ping_timeout = 30.0
+                    else:
+                        ping_timeout = 10.0
+                    
+                    await asyncio.wait_for(client.ping(), timeout=ping_timeout)
+                except asyncio.TimeoutError:
+                    # 对于慢服务器，ping超时不一定意味着连接不健康
+                    if target_server in ['web3-rpc', 'blockchain-rpc']:
+                        logger.warning(f"服务器 {target_server} ping超时，但仍认为连接有效")
+                        return {"healthy": True, "reason": "ping超时但连接可用"}
+                    return {"healthy": False, "reason": "ping超时"}
+                except Exception as e:
+                    return {"healthy": False, "reason": f"ping失败: {e}"}
+            
+            # 3. 检查连接创建时间（避免使用过旧的连接）
+            if hasattr(client, '_created_at'):
+                connection_age = time.time() - client._created_at
+                max_age = 3600  # 1小时
+                if connection_age > max_age:
+                    return {"healthy": False, "reason": f"连接过旧 ({connection_age:.0f}秒)"}
+            
+            return {"healthy": True, "reason": "连接健康"}
+            
+        except Exception as e:
+            return {"healthy": False, "reason": f"健康检查异常: {e}"}
+    
+    async def _try_connect_existing_server(self, target_server: str) -> dict:
+        """
+        尝试连接到已运行的服务器实例（修复任务1：连接逻辑优化）
+        
+        修复要点：
+        1. 不仅检查服务器状态，还要实际尝试建立连接
+        2. 区分"服务器未运行"和"连接失败"两种情况
+        3. 对于运行中的服务器，直接尝试连接而不依赖重启
+        
+        Args:
+            target_server: 目标服务器名称
+            
+        Returns:
+            dict: {"success": bool, "message": str, "error": str, "pid": int, "client": MCPClient}
+        """
+        try:
+            from app.services.mcp_manager import mcp_manager
+            
+            # 检查服务器是否已在运行
+            server_status = mcp_manager.get_server_status(target_server)
+            if not server_status or not server_status.running:
+                return {
+                    "success": False,
+                    "message": f"服务器 {target_server} 未运行",
+                    "error": "SERVER_NOT_RUNNING",
+                    "pid": None,
+                    "client": None
+                }
+            
+            # 获取进程信息
+            pid = None
+            if server_status.process_info:
+                pid = server_status.process_info.get("pid")
+            
+            # 验证进程是否真的存在（对于有PID的服务器）
+            if pid:
+                try:
+                    import psutil
+                    process = psutil.Process(pid)
+                    if not process.is_running():
+                        logger.warning(f"服务器 {target_server} 状态不一致，PID {pid} 不存在")
+                        # 清理不一致的状态
+                        server_status.running = False
+                        server_status.process_info = None
+                        return {
+                            "success": False,
+                            "message": f"服务器 {target_server} 进程已退出",
+                            "error": "PROCESS_DEAD",
+                            "pid": None,
+                            "client": None
+                        }
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    logger.warning(f"服务器 {target_server} 状态不一致，PID {pid} 不存在")
+                    # 清理不一致的状态
+                    server_status.running = False
+                    server_status.process_info = None
+                    return {
+                        "success": False,
+                        "message": f"服务器 {target_server} 进程不可访问",
+                        "error": "PROCESS_INACCESSIBLE",
+                        "pid": None,
+                        "client": None
+                    }
+            
+            # 实际尝试建立连接
+            logger.info(f"尝试连接到运行中的服务器: {target_server} (PID: {pid})")
+            try:
+                # 创建客户端连接
+                client = await self._create_client_connection(target_server, attempt=0)
+                
+                # 验证连接是否有效
+                if await self._validate_new_connection(target_server, client):
+                    logger.info(f"成功连接到运行中的服务器: {target_server}")
+                    return {
+                        "success": True,
+                        "message": f"连接到运行中的服务器: {target_server}",
+                        "error": None,
+                        "pid": pid,
+                        "client": client
+                    }
+                else:
+                    logger.warning(f"连接验证失败: {target_server}")
+                    return {
+                        "success": False,
+                        "message": f"连接验证失败: {target_server}",
+                        "error": "CONNECTION_VALIDATION_FAILED",
+                        "pid": pid,
+                        "client": None
+                    }
+                    
+            except Exception as conn_e:
+                logger.warning(f"连接到运行中服务器失败 {target_server}: {conn_e}")
+                return {
+                    "success": False,
+                    "message": f"连接失败: {conn_e}",
+                    "error": "CONNECTION_FAILED",
+                    "pid": pid,
+                    "client": None
+                }
+            
+        except Exception as e:
+            logger.error(f"检查运行中服务器时出错 {target_server}: {e}")
+            return {
+                "success": False,
+                "message": f"检查服务器状态失败: {e}",
+                "error": str(e),
+                "pid": None,
+                "client": None
+            }
+
+    async def _intelligent_server_recovery(self, target_server: str, attempt: int) -> dict:
+        """
+        智能故障恢复机制（修复任务1：优化连接逻辑）
+        
+        修复要点：
+        1. 优先尝试连接现有服务器，避免不必要的重启
+        2. 区分连接失败和服务器未运行的情况
+        3. 只有在连接失败时才考虑重启服务器
+        
+        Args:
+            target_server: 目标服务器名称
+            attempt: 当前尝试次数
+            
+        Returns:
+            dict: {"success": bool, "message": str, "error": str, "client": MCPClient}
+        """
+        try:
+            # 第一次尝试：优先连接现有服务器
+            if attempt == 0:
+                connect_result = await self._try_connect_existing_server(target_server)
+                if connect_result["success"]:
+                    # 连接成功，直接返回
+                    logger.info(f"成功连接到现有服务器: {target_server}")
+                    return connect_result
+                
+                # 分析连接失败的原因
+                error_type = connect_result.get("error", "")
+                if error_type == "SERVER_NOT_RUNNING":
+                    # 服务器未运行，尝试启动（不使用connect_only模式）
+                    logger.debug(f"服务器 {target_server} 未运行，尝试启动")
+                    manager_result = await self._ensure_server_via_manager(target_server, connect_only=False)
+                    # 将manager结果转换为统一格式
+                    return {
+                        "success": manager_result["success"],
+                        "message": manager_result["message"],
+                        "error": manager_result.get("error", ""),
+                        "client": None  # 需要后续创建连接
+                    }
+                else:
+                    # 服务器运行但连接失败，记录详细信息
+                    logger.warning(f"服务器 {target_server} 运行中但连接失败: {connect_result['message']}")
+                    return connect_result
+            
+            elif attempt == 1:
+                # 第二次尝试：清理僵尸进程后重新连接
+                try:
+                    from app.services.mcp_manager import mcp_manager
+                    if hasattr(mcp_manager, '_cleanup_zombie_processes'):
+                        await mcp_manager._cleanup_zombie_processes()
+                        logger.debug(f"已清理僵尸进程，重新尝试连接 {target_server}")
+                except Exception as e:
+                    logger.warning(f"清理僵尸进程失败: {e}")
+                
+                # 再次尝试连接
+                connect_result = await self._try_connect_existing_server(target_server)
+                if connect_result["success"]:
+                    return connect_result
+                
+                # 连接仍然失败，尝试通过manager启动
+                manager_result = await self._ensure_server_via_manager(target_server)
+                return {
+                    "success": manager_result["success"],
+                    "message": manager_result["message"],
+                    "error": manager_result.get("error", ""),
+                    "client": None
+                }
+            
+            elif attempt == 2:
+                # 第三次尝试：重置服务器失败状态
+                try:
+                    from app.services.mcp_manager import mcp_manager
+                    if hasattr(mcp_manager, 'reset_server_failures'):
+                        mcp_manager.reset_server_failures(target_server)
+                        logger.debug(f"已重置服务器 {target_server} 失败状态")
+                except Exception as e:
+                    logger.warning(f"重置服务器失败状态失败: {e}")
+                
+                manager_result = await self._ensure_server_via_manager(target_server)
+                return {
+                    "success": manager_result["success"],
+                    "message": manager_result["message"],
+                    "error": manager_result.get("error", ""),
+                    "client": None
+                }
+            
+            else:
+                # 后续尝试：强制重启服务器
+                try:
+                    from app.services.mcp_manager import mcp_manager
+                    if hasattr(mcp_manager, 'restart_server'):
+                        logger.info(f"强制重启服务器: {target_server} (尝试 {attempt + 1})")
+                        restart_result = await mcp_manager.restart_server(target_server)
+                        if restart_result:
+                            return {
+                                "success": True, 
+                                "message": "服务器重启成功",
+                                "error": None,
+                                "client": None
+                            }
+                        else:
+                            return {
+                                "success": False, 
+                                "message": "服务器重启失败",
+                                "error": "RESTART_FAILED",
+                                "client": None
+                            }
+                    else:
+                        manager_result = await self._ensure_server_via_manager(target_server)
+                        return {
+                            "success": manager_result["success"],
+                            "message": manager_result["message"],
+                            "error": manager_result.get("error", ""),
+                            "client": None
+                        }
+                except Exception as e:
+                    logger.error(f"强制重启服务器失败 {target_server}: {e}")
+                    manager_result = await self._ensure_server_via_manager(target_server)
+                    return {
+                        "success": manager_result["success"],
+                        "message": manager_result["message"],
+                        "error": manager_result.get("error", ""),
+                        "client": None
+                    }
+                    
+        except Exception as e:
+            logger.error(f"智能恢复过程中发生异常 {target_server}: {e}")
+            return {
+                "success": False, 
+                "message": f"智能恢复失败: {e}", 
+                "error": str(e),
+                "client": None
+            }
+    
+    def _calculate_retry_delay(self, attempt: int, base_delay: float, max_delay: float, 
+                              backoff_factor: float, jitter_factor: float) -> float:
+        """
+        计算重试延迟（指数退避 + 抖动）
+        
+        Args:
+            attempt: 当前尝试次数
+            base_delay: 基础延迟
+            max_delay: 最大延迟
+            backoff_factor: 退避因子
+            jitter_factor: 抖动因子
+            
+        Returns:
+            float: 计算出的延迟时间
+        """
+        # 指数退避
+        delay = min(base_delay * (backoff_factor ** attempt), max_delay)
+        
+        # 添加抖动避免雷群效应
+        jitter = delay * jitter_factor * (0.5 - random.random())
+        
+        return max(0.1, delay + jitter)  # 最小延迟0.1秒
+    
+    def _should_retry_for_error(self, error_type: MCPErrorType, attempt: int, max_retries: int) -> bool:
+        """
+        根据错误类型决定是否应该重试
+        
+        Args:
+            error_type: 错误类型
+            attempt: 当前尝试次数
+            max_retries: 最大重试次数
+            
+        Returns:
+            bool: 是否应该重试
+        """
+        if attempt >= max_retries - 1:
+            return False
+            
+        # 不可重试的错误类型
+        non_retryable_errors = {
+            MCPErrorType.CONFIG_INVALID,
+            MCPErrorType.CONFIG_NOT_FOUND,
+            MCPErrorType.PROCESS_PERMISSION_DENIED,
+            MCPErrorType.VALIDATION_ERROR,
+            MCPErrorType.TOOL_NOT_FOUND,
+            MCPErrorType.TOOL_INVALID_PARAMS
+        }
+        
+        return error_type not in non_retryable_errors
+    
+    async def _create_client_connection_with_warmup(self, target_server: str, attempt: int):
+        """
+        创建客户端连接并进行预热（任务7）
+        
+        Args:
+            target_server: 目标服务器名称
+            attempt: 当前尝试次数
+            
+        Returns:
+            MCPClient: 客户端实例
+        """
+        # 创建基础连接
+        client = await self._create_client_connection(target_server, attempt)
+        
+        # 连接预热：记录创建时间
+        if hasattr(client, '__dict__'):
+            client._created_at = time.time()
+        
+        # 预热连接：执行简单的健康检查
+        try:
+            if hasattr(client, 'list_tools'):
+                # 根据服务器类型设置不同的超时时间
+                if target_server in ['web3-rpc', 'blockchain-rpc']:
+                    warmup_timeout = 30.0  # 慢服务器使用30秒超时
+                else:
+                    warmup_timeout = 10.0  # 其他服务器使用10秒超时
+                
+                # 尝试列出工具作为预热
+                await asyncio.wait_for(client.list_tools(), timeout=warmup_timeout)
+                logger.debug(f"连接预热成功: {target_server}")
+        except Exception as e:
+            logger.warning(f"连接预热失败，但继续使用: {target_server}, 错误: {e}")
+        
+        return client
+    
+    async def _validate_new_connection(self, target_server: str, client) -> bool:
+        """
+        验证新连接的有效性
+        
+        Args:
+            target_server: 目标服务器名称
+            client: 客户端实例
+            
+        Returns:
+            bool: 连接是否有效
+        """
+        try:
+            # 基础连接状态检查
+            if hasattr(client, 'session') and client.session is None:
+                logger.warning(f"连接验证失败: {target_server} - session为空")
+                return False
+            
+            # 功能验证：尝试获取工具列表来验证连接
+            if hasattr(client, 'session') and client.session:
+                # 为不同服务器设置不同的超时时间
+                # web3-rpc等区块链相关服务器需要更长的响应时间
+                timeout = 30.0 if target_server in ['web3-rpc', 'blockchain-rpc'] else 10.0
+                
+                try:
+                    await asyncio.wait_for(client.session.list_tools(), timeout=timeout)
+                    logger.debug(f"连接验证成功: {target_server}")
+                except asyncio.TimeoutError:
+                    logger.warning(f"工具列表获取超时({timeout}s): {target_server}，但基础连接正常，继续使用")
+                    # 对于超时但基础连接正常的情况，我们仍然认为连接有效
+                    # 这是为了兼容响应较慢的服务器
+                    pass
+            
+            return True
+            
+        except Exception as e:
+            logger.warning(f"连接验证失败: {target_server}, 错误: {e}")
+            return False
+    
     async def _ensure_mcp_process(self, target_server: str, server_config: dict) -> int:
         """
-        确保MCP进程运行（统一的进程管理入口）
+        确保MCP进程运行（兼容性方法，已弃用）
+        
+        注意：此方法已在第二阶段重构中弃用，保留仅为向后兼容
+        新代码应使用_ensure_server_via_manager方法
         
         Args:
             target_server: 服务器名称
@@ -228,50 +985,18 @@ class MCPClientWrapper:
             
         Returns:
             int: 运行中的进程PID
-        """
-        import time
-        
-        # 1. 检查我们管理的进程是否还在运行
-        if target_server in self._managed_processes:
-            managed_info = self._managed_processes[target_server]
-            pid = managed_info["pid"]
             
-            try:
-                import psutil
-                if psutil.pid_exists(pid):
-                    proc = psutil.Process(pid)
-                    if proc.is_running():
-                        logger.info(f"复用已管理的MCP进程 (PID: {pid}): {target_server}")
-                        return pid
-                    else:
-                        logger.warning(f"已管理的进程不再运行，清理记录: {target_server}")
-                        del self._managed_processes[target_server]
-                else:
-                    logger.warning(f"已管理的进程PID不存在，清理记录: {target_server}")
-                    del self._managed_processes[target_server]
-            except Exception as e:
-                logger.warning(f"检查已管理进程时出错: {e}，清理记录")
-                del self._managed_processes[target_server]
+        Raises:
+            RuntimeError: 当找不到运行中的MCP进程时
+        """
+        logger.warning(f"使用已弃用的_ensure_mcp_process方法: {target_server}")
         
-        # 2. 查找系统中现有的进程
-        existing_pid = await self._find_existing_process(target_server, server_config)
-        if existing_pid:
-            # 将现有进程纳入管理
-            self._managed_processes[target_server] = {
-                "pid": existing_pid,
-                "start_time": time.time()
-            }
-            logger.info(f"发现并纳入管理现有MCP进程 (PID: {existing_pid}): {target_server}")
-            return existing_pid
-        
-        # 3. 启动新进程
-        new_pid = await self._start_mcp_process(target_server, server_config)
-        self._managed_processes[target_server] = {
-            "pid": new_pid,
-            "start_time": time.time()
-        }
-        logger.info(f"启动并管理新的MCP进程 (PID: {new_pid}): {target_server}")
-        return new_pid
+        # 委托给新的协调接口
+        result = await self._ensure_server_via_manager(target_server)
+        if result["success"] and result["pid"]:
+            return result["pid"]
+        else:
+            raise RuntimeError(f"无法确保MCP进程运行: {result['message']}")
     
     async def cleanup_dead_processes(self):
         """
@@ -332,61 +1057,9 @@ class MCPClientWrapper:
         
         return result
     
-    async def _start_mcp_process(self, target_server: str, server_config: dict) -> int:
-        """
-        启动新的MCP服务器进程
-        
-        Args:
-            target_server: 服务器名称
-            server_config: 服务器配置
-            
-        Returns:
-            int: 新进程的PID
-            
-        Raises:
-            RuntimeError: 当进程启动失败时
-        """
-        import subprocess
-        import time
-        
-        cmd = server_config["command"]
-        args = server_config.get("args", [])
-        env_vars = server_config.get("env", {})
-        
-        # 准备环境变量
-        process_env = os.environ.copy()
-        process_env.update(env_vars)
-        
-        logger.info(f"启动MCP服务器进程: {cmd} {' '.join(args)}")
-        
-        try:
-            # 启动进程
-            process = subprocess.Popen(
-                [cmd] + args,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                stdin=subprocess.PIPE,
-                env=process_env,
-                preexec_fn=os.setsid if hasattr(os, 'setsid') else None  # 创建新的进程组
-            )
-            
-            # 等待进程启动
-            time.sleep(3)  # 给进程更多启动时间
-            
-            if process.poll() is None:  # 进程仍在运行
-                logger.info(f"成功启动MCP服务器进程 (PID: {process.pid}): {target_server}")
-                return process.pid
-            else:
-                # 进程已退出，读取错误信息
-                stdout, stderr = process.communicate()
-                error_msg = stderr.decode('utf-8') if stderr else stdout.decode('utf-8')
-                logger.error(f"MCP服务器进程启动失败，退出码: {process.returncode}")
-                logger.error(f"错误输出: {error_msg}")
-                raise RuntimeError(f"MCP服务器进程启动失败: {error_msg}")
-                
-        except Exception as e:
-            logger.error(f"启动MCP服务器进程失败: {e}")
-            raise RuntimeError(f"启动MCP服务器进程失败: {e}")
+    # 移除 _start_mcp_process 方法
+    # 职责分离重构：进程启动现在完全由MCPServerManager负责
+    # 客户端包装器只负责连接到已存在的MCP服务器进程
 
     async def get_tool_info(self, intent_type: str, query: str) -> Dict[str, Any]:
         """
@@ -569,36 +1242,49 @@ class MCPClientWrapper:
             }
             logger.info(f"MCP客户端执行工具成功: tool={tool_id}")
             
-        except asyncio.TimeoutError:
+        except asyncio.TimeoutError as e:
             logger.error(f"MCP客户端执行工具超时: tool={tool_id} (120秒)")
+            
+            # 使用错误分类器进行精确分类
+            error_type = MCPErrorClassifier.classify_error("tool execution timeout", asyncio.TimeoutError)
+            user_message = MCPErrorClassifier.get_user_friendly_message(error_type, f"工具 {tool_id} 执行超时 (120秒)")
+            
             result = {
                 "tool_id": tool_id,
                 "success": False,
                 "error": {
-                    "code": "MCP_EXECUTION_TIMEOUT",
-                    "message": f"工具 {tool_id} 执行超时 (120秒)，请稍后重试"
+                    "code": error_type.value,
+                    "type": error_type.name,
+                    "message": user_message,
+                    "original_error": str(e)
                 }
             }
         except Exception as e:
             logger.error(f"MCP客户端执行工具失败: tool={tool_id}, error={e}")
             
-            # 优化的错误处理：只在特定错误类型时清理连接
-            error_str = str(e).lower()
-            should_cleanup_connection = any([
-                "connection" in error_str,
-                "transport" in error_str,
-                "broken pipe" in error_str,
-                "connection reset" in error_str,
-                "session closed" in error_str
-            ])
+            # 使用错误分类器进行精确分类
+            error_type = MCPErrorClassifier.classify_error(str(e), type(e))
+            user_message = MCPErrorClassifier.get_user_friendly_message(error_type, str(e))
+            
+            # 智能连接清理：根据错误类型决定是否清理连接
+            connection_related_errors = {
+                MCPErrorType.CONNECTION_FAILED,
+                MCPErrorType.CONNECTION_LOST,
+                MCPErrorType.CONNECTION_REFUSED,
+                MCPErrorType.CONNECTION_TIMEOUT,
+                MCPErrorType.SERVER_CRASHED,
+                MCPErrorType.PROCESS_CRASHED
+            }
+            
+            should_cleanup_connection = error_type in connection_related_errors
             
             if should_cleanup_connection and target_server in self._connection_pool:
                 try:
                     await self._connection_pool[target_server].close()
-                except:
-                    pass
+                except Exception as cleanup_error:
+                    logger.debug(f"清理连接时出错: {cleanup_error}")
                 del self._connection_pool[target_server]
-                logger.info(f"由于连接错误，已从连接池中移除连接: {target_server}")
+                logger.info(f"由于{error_type.name}错误，已从连接池中移除连接: {target_server}")
                 
                 # 同时清理进程管理记录
                 async with self._process_lock:
@@ -607,14 +1293,22 @@ class MCPClientWrapper:
                         logger.warning(f"工具执行失败，清理进程管理记录 (PID: {managed_info['pid']}): {target_server}")
                         del self._managed_processes[target_server]
             else:
-                logger.debug(f"保留连接池中的连接，错误可能是临时的: {target_server}")
+                logger.debug(f"保留连接池中的连接，错误类型为{error_type.name}，可能是临时的: {target_server}")
             
             result = {
                 "tool_id": tool_id,
                 "success": False,
                 "error": {
-                    "code": "MCP_EXECUTION_FAILED",
-                    "message": str(e)
+                    "code": error_type.value,
+                    "type": error_type.name,
+                    "message": user_message,
+                    "original_error": str(e),
+                    "should_retry": error_type not in {
+                        MCPErrorType.TOOL_NOT_FOUND,
+                        MCPErrorType.TOOL_INVALID_PARAMS,
+                        MCPErrorType.CONFIG_INVALID,
+                        MCPErrorType.PROCESS_PERMISSION_DENIED
+                    }
                 }
             }
         
@@ -631,6 +1325,130 @@ class MCPClientWrapper:
             bool: 服务器是否存在
         """
         return server_name in self.server_configs
+    
+    async def check_connection_pool_health(self) -> Dict[str, Any]:
+        """
+        检查连接池健康状态（第二阶段新增功能）
+        
+        Returns:
+            Dict[str, Any]: 连接池健康状态报告
+        """
+        import time
+        
+        health_report = {
+            "total_connections": len(self._connection_pool),
+            "healthy_connections": 0,
+            "unhealthy_connections": 0,
+            "connection_details": {},
+            "timestamp": time.time()
+        }
+        
+        unhealthy_servers = []
+        
+        for server_name, client in self._connection_pool.items():
+            try:
+                # 检查连接是否健康
+                is_healthy = False
+                if hasattr(client, 'is_connected'):
+                    is_healthy = client.is_connected()
+                elif hasattr(client, 'session') and client.session:
+                    is_healthy = bool(client.session._transport)
+                else:
+                    # 如果没有明确的健康检查方法，假设连接有效
+                    is_healthy = True
+                
+                if is_healthy:
+                    health_report["healthy_connections"] += 1
+                    health_report["connection_details"][server_name] = {
+                        "status": "healthy",
+                        "error": None
+                    }
+                else:
+                    health_report["unhealthy_connections"] += 1
+                    health_report["connection_details"][server_name] = {
+                        "status": "unhealthy",
+                        "error": "Connection not active"
+                    }
+                    unhealthy_servers.append(server_name)
+                    
+            except Exception as e:
+                health_report["unhealthy_connections"] += 1
+                health_report["connection_details"][server_name] = {
+                    "status": "error",
+                    "error": str(e)
+                }
+                unhealthy_servers.append(server_name)
+        
+        # 清理不健康的连接
+        for server_name in unhealthy_servers:
+            logger.warning(f"清理不健康的连接: {server_name}")
+            await self._cleanup_connection(server_name)
+        
+        logger.info(f"连接池健康检查完成: {health_report['healthy_connections']}/{health_report['total_connections']} 连接健康")
+        return health_report
+    
+    async def refresh_connection_pool(self) -> Dict[str, Any]:
+        """
+        刷新连接池（第二阶段新增功能）
+        
+        清理所有连接并重新建立，用于故障恢复
+        
+        Returns:
+            Dict[str, Any]: 刷新结果
+        """
+        import time
+        
+        logger.info("开始刷新连接池...")
+        
+        # 记录当前连接的服务器
+        connected_servers = list(self._connection_pool.keys())
+        
+        # 关闭所有现有连接
+        await self.close_all_connections()
+        
+        # 清理进程记录
+        self._managed_processes.clear()
+        
+        refresh_result = {
+            "total_servers": len(connected_servers),
+            "successful_reconnections": 0,
+            "failed_reconnections": 0,
+            "reconnection_details": {},
+            "timestamp": time.time()
+        }
+        
+        # 尝试重新连接到之前连接的服务器
+        for server_name in connected_servers:
+            try:
+                # 使用MCPServerManager检查服务器健康状态
+                from app.services.mcp_manager import mcp_manager
+                if mcp_manager.is_server_healthy(server_name):
+                    # 尝试重新连接
+                    await self._get_or_create_client(server_name)
+                    refresh_result["successful_reconnections"] += 1
+                    refresh_result["reconnection_details"][server_name] = {
+                        "status": "success",
+                        "error": None
+                    }
+                    logger.info(f"成功重新连接到服务器: {server_name}")
+                else:
+                    refresh_result["failed_reconnections"] += 1
+                    refresh_result["reconnection_details"][server_name] = {
+                        "status": "failed",
+                        "error": "Server not healthy"
+                    }
+                    logger.warning(f"服务器不健康，跳过重连: {server_name}")
+                    
+            except Exception as e:
+                refresh_result["failed_reconnections"] += 1
+                refresh_result["reconnection_details"][server_name] = {
+                    "status": "error",
+                    "error": str(e)
+                }
+                logger.error(f"重新连接到服务器失败 {server_name}: {e}")
+        
+        logger.info(f"连接池刷新完成: {refresh_result['successful_reconnections']}/{refresh_result['total_servers']} 连接成功")
+        return refresh_result
     
     async def close_all_connections(self):
         """关闭所有连接池中的连接"""

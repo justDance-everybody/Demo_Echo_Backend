@@ -1,0 +1,564 @@
+{
+  "info": {
+    "name": "实习生后端API测试集合",
+    "description": "完整的后端API测试集合，包含所有核心功能的测试用例",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "session_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "系统检查",
+      "item": [
+        {
+          "name": "健康检查",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "API文档",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/docs",
+              "host": ["{{base_url}}"],
+              "path": ["docs"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "用户认证",
+      "item": [
+        {
+          "name": "用户注册",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.id) {",
+                  "        pm.collectionVariables.set('user_id', response.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testuser_{{$timestamp}}\",\n  \"email\": \"test_{{$timestamp}}@example.com\",\n  \"password\": \"testpass123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "register"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "用户登录",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.access_token) {",
+                  "        pm.collectionVariables.set('access_token', response.access_token);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "username",
+                  "value": "testuser",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "testpass123",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/token",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "token"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "获取当前用户信息",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "me"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "意图解析",
+      "item": [
+        {
+          "name": "解析天气查询意图",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.session_id) {",
+                  "        pm.collectionVariables.set('session_id', response.session_id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"input\": \"查询北京的天气\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/intent/interpret",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "intent", "interpret"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "解析计算意图",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"input\": \"计算 2 + 3 * 4\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/intent/interpret",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "intent", "interpret"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "确认执行意图",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"session_id\": \"{{session_id}}\",\n  \"confirmed\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/intent/confirm",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "intent", "confirm"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "工具管理",
+      "item": [
+        {
+          "name": "获取工具列表",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tools",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tools"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "执行计算器工具",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tool_id\": \"calculator_tool\",\n  \"parameters\": {\n    \"expression\": \"2 + 3 * 4\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/execute",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "execute"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "执行天气工具",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tool_id\": \"weather_tool\",\n  \"parameters\": {\n    \"city\": \"北京\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/execute",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "execute"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "开发者功能",
+      "item": [
+        {
+          "name": "获取开发者工具列表",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dev/tools",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "dev", "tools"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "上传Dify工具",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"测试Dify工具\",\n  \"description\": \"这是一个测试用的Dify工具\",\n  \"type\": \"dify\",\n  \"config\": {\n    \"api_endpoint\": \"https://api.dify.ai/v1/workflows/run\",\n    \"api_key\": \"test-dify-key\",\n    \"workflow_id\": \"test-workflow-123\"\n  },\n  \"request_schema\": {\n    \"type\": \"object\",\n    \"properties\": {\n      \"input\": {\"type\": \"string\"}\n    }\n  },\n  \"response_schema\": {\n    \"type\": \"object\",\n    \"properties\": {\n      \"output\": {\"type\": \"string\"}\n    }\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/dev/tools",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "dev", "tools"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "上传Coze工具",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"测试Coze工具\",\n  \"description\": \"这是一个测试用的Coze工具\",\n  \"type\": \"coze\",\n  \"config\": {\n    \"api_endpoint\": \"https://api.coze.com/v1/chat\",\n    \"api_key\": \"test-coze-key\",\n    \"bot_id\": \"test-bot-456\"\n  },\n  \"request_schema\": {\n    \"type\": \"object\",\n    \"properties\": {\n      \"message\": {\"type\": \"string\"}\n    }\n  },\n  \"response_schema\": {\n    \"type\": \"object\",\n    \"properties\": {\n      \"reply\": {\"type\": \"string\"}\n    }\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/dev/tools",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "dev", "tools"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "测试开发者工具",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tool_id\": \"dev_tool_001\",\n  \"test_data\": {\n    \"input\": \"测试输入数据\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/dev/tools/test",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "dev", "tools", "test"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "MCP服务器管理",
+      "item": [
+        {
+          "name": "获取MCP服务器状态",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/mcp/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mcp", "status"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "重启MCP服务器",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"server_name\": \"weather_server\",\n  \"action\": \"restart\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/mcp/manage",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "mcp", "manage"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "压力测试",
+      "item": [
+        {
+          "name": "并发意图解析测试",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"input\": \"压力测试 - {{$randomInt}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/intent/interpret",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "intent", "interpret"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "批量工具执行测试",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tool_id\": \"calculator_tool\",\n  \"parameters\": {\n    \"expression\": \"{{$randomInt}} + {{$randomInt}}\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/execute",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "execute"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
