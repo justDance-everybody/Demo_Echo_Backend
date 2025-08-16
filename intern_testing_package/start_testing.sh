@@ -75,10 +75,35 @@ docker-compose exec -T mysql mysql -u testuser -ptestpass123 test_ai_assistant <
 echo "🔧 配置后端环境..."
 cd backend
 
-# 检查.env文件
+# 创建测试环境的.env文件
 if [ ! -f ".env" ]; then
-    echo "❌ 错误: 后端.env文件不存在"
-    exit 1
+    echo "📝 创建测试环境配置文件..."
+    cp .env.example .env
+    
+    # 配置测试环境的数据库连接
+    sed -i 's|DATABASE_URL=.*|DATABASE_URL=mysql+pymysql://testuser:testpass123@localhost:3307/test_ai_assistant|g' .env
+    sed -i 's|DB_HOST=.*|DB_HOST=localhost|g' .env
+    sed -i 's|DB_PORT=.*|DB_PORT=3307|g' .env
+    sed -i 's|DB_USER=.*|DB_USER=testuser|g' .env
+    sed -i 's|DB_PASSWORD=.*|DB_PASSWORD=testpass123|g' .env
+    sed -i 's|DB_NAME=.*|DB_NAME=test_ai_assistant|g' .env
+    
+    # 设置测试环境标识
+    sed -i 's|ENV=.*|ENV=testing|g' .env
+    
+    # 设置CORS允许本地访问
+    sed -i 's|CORS_ORIGINS=.*|CORS_ORIGINS=http://localhost:3000,http://localhost:3001,*|g' .env
+    
+    # 设置默认的JWT密钥（仅用于测试）
+    sed -i 's|JWT_SECRET=.*|JWT_SECRET=test_jwt_secret_key_for_intern_testing_only_32chars|g' .env
+    
+    # 设置测试用的LLM配置（使用模拟值）
+    sed -i 's|LLM_API_KEY=.*|LLM_API_KEY=test_api_key_for_testing|g' .env
+    sed -i 's|OPENAI_API_KEY=.*|OPENAI_API_KEY=test_openai_key_for_testing|g' .env
+    
+    echo "✅ 测试环境配置文件创建完成"
+else
+    echo "✅ 使用现有的.env配置文件"
 fi
 
 echo "🚀 启动后端服务..."
