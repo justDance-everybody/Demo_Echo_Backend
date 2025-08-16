@@ -101,6 +101,9 @@ if [ ! -f ".env" ]; then
     sed -i 's|LLM_API_KEY=.*|LLM_API_KEY=test_api_key_for_testing|g' .env
     sed -i 's|OPENAI_API_KEY=.*|OPENAI_API_KEY=test_openai_key_for_testing|g' .env
     
+    # 设置MCP客户端路径（关键配置）
+    sed -i 's|MCP_SERVERS_PATH=.*|MCP_SERVERS_PATH=../MCP_Client/config/mcp_servers.json|g' .env
+    
     echo "✅ 测试环境配置文件创建完成"
 else
     echo "✅ 使用现有的.env配置文件"

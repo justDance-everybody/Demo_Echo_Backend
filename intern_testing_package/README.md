@@ -95,10 +95,16 @@ python test_runner.py --module intent
 - 开发者工具管理 (`GET/POST/PUT/DELETE /api/v1/dev/tools`)
 - 工具包上传和解析
 
-#### MCP服务器测试
+#### MCP服务器集成测试
+- **MCP客户端**: 测试包已包含完整的MCP_Client目录，支持与多种MCP服务器通信
+- **支持的MCP服务器**:
+  - Playwright浏览器自动化
+  - MiniMax语音大语言模型
+  - 高德地图API服务
+  - Web3区块链服务
 - MCP服务器状态 (`GET /api/v1/mcp/status`)
-- MCP工具调用
-- 服务器连接稳定性
+- MCP工具调用和协议通信测试
+- 多服务器管理和连接稳定性
 
 #### 系统监控测试
 - 健康检查 (`GET /health`)
