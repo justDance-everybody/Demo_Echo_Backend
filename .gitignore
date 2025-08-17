@@ -128,3 +128,6 @@ jwt_secret*
 token*
 !*example*
 !*template*
+
+# Alembic migrations
+backend/alembic/versions/*
