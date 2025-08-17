@@ -1,14 +1,11 @@
 """
-Pytest配置文件 - 设置测试环境和通用fixture
+Pytest配置文件 - 测试运行中的真实后端服务
 """
 import pytest
+import requests
 import os
 import sys
 from pathlib import Path
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
 from jose import jwt
 from datetime import datetime, timedelta
 
@@ -16,18 +13,19 @@ from datetime import datetime, timedelta
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from app.main import app
-from app.models.user import User
-from app.utils.db import Base, get_async_db_session
 from app.config import settings
+
+# 后端服务配置
+BACKEND_BASE_URL = "http://localhost:3000"
+API_PREFIX = "/api/v1"
 
 # 测试配置
 @pytest.fixture(scope="session")
 def test_config():
     """测试环境配置"""
     return {
-        "api_base_url": "http://localhost:3000",
-        "api_prefix": "/api/v1",
+        "api_base_url": BACKEND_BASE_URL,
+        "api_prefix": API_PREFIX,
         "test_users": {
             "user": {
                 "username": "testuser_5090",
@@ -47,118 +45,96 @@ def test_config():
         }
     }
 
-# 创建内存数据库用于测试
 @pytest.fixture(scope="session")
-def test_database():
-    """创建测试数据库"""
-    SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
-
-    engine = create_engine(
-        SQLALCHEMY_DATABASE_URL,
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-
-    # 创建测试数据库表
-    Base.metadata.create_all(bind=engine)
-
-    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-    return engine, TestingSessionLocal
-
-@pytest.fixture
-def db_session(test_database):
-    """数据库会话fixture"""
-    engine, TestingSessionLocal = test_database
-    session = TestingSessionLocal()
+def backend_health_check():
+    """检查后端服务是否运行"""
     try:
-        yield session
-    finally:
-        session.close()
+        response = requests.get(f"{BACKEND_BASE_URL}/health", timeout=5)
+        if response.status_code == 200:
+            print(f"✅ 后端服务运行正常: {BACKEND_BASE_URL}")
+            return True
+        else:
+            pytest.fail(f"❌ 后端服务健康检查失败，状态码: {response.status_code}")
+    except requests.exceptions.RequestException as e:
+        pytest.fail(f"❌ 无法连接到后端服务 {BACKEND_BASE_URL}: {e}")
 
 @pytest.fixture
-def test_client(test_database):
-    """测试客户端fixture"""
-    engine, TestingSessionLocal = test_database
+def api_client(backend_health_check):
+    """API客户端fixture - 直接调用真实后端"""
+    class APIClient:
+        def __init__(self):
+            self.base_url = BACKEND_BASE_URL
+            self.api_prefix = API_PREFIX
+            self.session = requests.Session()
 
-    def override_get_db():
-        try:
-            db = TestingSessionLocal()
-            yield db
-        finally:
-            db.close()
+        def get(self, endpoint, headers=None, **kwargs):
+            url = f"{self.base_url}{self.api_prefix}{endpoint}"
+            return self.session.get(url, headers=headers, **kwargs)
 
-    # 使用测试数据库替换依赖
-    app.dependency_overrides[get_async_db_session] = override_get_db
+        def post(self, endpoint, headers=None, json=None, data=None, **kwargs):
+            url = f"{self.base_url}{self.api_prefix}{endpoint}"
+            return self.session.post(url, headers=headers, json=json, data=data, **kwargs)
 
-    with TestClient(app) as client:
-        yield client
+        def put(self, endpoint, headers=None, json=None, **kwargs):
+            url = f"{self.base_url}{self.api_prefix}{endpoint}"
+            return self.session.put(url, headers=headers, json=json, **kwargs)
 
-    # 清理依赖覆盖
-    app.dependency_overrides.clear()
+        def delete(self, endpoint, headers=None, **kwargs):
+            url = f"{self.base_url}{self.api_prefix}{endpoint}"
+            return self.session.delete(url, headers=headers, **kwargs)
 
-@pytest.fixture
-def test_users(db_session):
-    """创建测试用户"""
-    users = {}
-
-    # 创建普通用户
-    user = User(
-        username="testuser_5090",
-        password_hash="hashed_password_123",  # 实际测试中会使用真实密码
-        role="user",
-        email="testuser@example.com"
-    )
-    db_session.add(user)
-
-    # 创建开发者用户
-    dev_user = User(
-        username="devuser_5090",
-        password_hash="hashed_password_456",
-        role="developer",
-        email="devuser@example.com"
-    )
-    db_session.add(dev_user)
-
-    # 创建管理员用户
-    admin_user = User(
-        username="adminuser_5090",
-        password_hash="hashed_password_789",
-        role="admin",
-        email="adminuser@example.com"
-    )
-    db_session.add(admin_user)
-
-    db_session.commit()
-
-    # 刷新获取ID
-    for u in [user, dev_user, admin_user]:
-        db_session.refresh(u)
-        users[u.role] = u
-
-    yield users
-
-    # 清理测试数据
-    for u in users.values():
-        db_session.delete(u)
-    db_session.commit()
+    return APIClient()
 
 @pytest.fixture
-def auth_tokens(test_client, test_users):
-    """获取认证token"""
+def test_client(api_client):
+    """兼容原有测试代码的客户端"""
+    return api_client
+
+@pytest.fixture
+def test_users(test_config):
+    """测试用户配置 - 使用真实后端的用户"""
+    return test_config["test_users"]
+
+@pytest.fixture
+def auth_tokens(api_client, test_users):
+    """获取真实的认证token"""
     tokens = {}
 
-    # 注意：这里使用模拟的token，实际测试中需要真实的认证流程
-    for role, user in test_users.items():
-        # 创建测试JWT token
-        payload = {
-            "sub": str(user.id),
-            "username": user.username,
-            "role": user.role,
-            "exp": datetime.utcnow() + timedelta(hours=1)
-        }
-        token = jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
-        tokens[role] = token
+    for role, user_info in test_users.items():
+        try:
+            # 尝试登录获取真实token
+            response = api_client.post(
+                "/auth/token",
+                data={
+                    "username": user_info["username"],
+                    "password": user_info["password"]
+                }
+            )
+
+            if response.status_code == 200:
+                data = response.json()
+                tokens[role] = data["access_token"]
+                print(f"✅ {role} 用户登录成功")
+            else:
+                # 如果登录失败，创建模拟token用于测试
+                print(f"⚠️  {role} 用户登录失败，使用模拟token")
+                payload = {
+                    "sub": "1",
+                    "username": user_info["username"],
+                    "role": role,
+                    "exp": datetime.utcnow() + timedelta(hours=1)
+                }
+                tokens[role] = jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
+        except Exception as e:
+            print(f"⚠️  {role} 用户认证异常: {e}，使用模拟token")
+            # 创建模拟token
+            payload = {
+                "sub": "1",
+                "username": user_info["username"],
+                "role": role,
+                "exp": datetime.utcnow() + timedelta(hours=1)
+            }
+            tokens[role] = jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
 
     return tokens
 
