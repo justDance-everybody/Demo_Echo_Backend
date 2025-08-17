@@ -191,12 +191,12 @@ class ExecuteService:
                     logger.info(f"服务层：MCP 工具执行成功: tool_id={tool_id}")
                     if session_id and session:
                         try:
-                            session.status = 'done'
+                            session.status = 'completed'
                             db.add(session)
                             success_log = Log(session_id=session_id, step='execute_end', status='success', message=tts_message)
                             db.add(success_log)
                             await db.commit()
-                            logger.info(f"Updated session {session_id} status to done and logged success.")
+                            logger.info(f"Updated session {session_id} status to completed and logged success.")
                         except Exception as db_err:
                             logger.error(f"Database error during execute_end success log/status update for session {session_id}: {db_err}", exc_info=True)
                             await db.rollback()

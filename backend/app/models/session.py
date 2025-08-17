@@ -18,7 +18,9 @@ class Session(Base):
             'interpreting',  # 解析意图中
             'waiting_confirm',  # 等待用户确认
             'executing',  # 执行中
-            'done',  # 已完成
+            'confirmed',  # 已确认
+            'completed',  # 已完成
+            'cancelled',  # 已取消
             'error',  # 出错
             name='session_status'
         ),

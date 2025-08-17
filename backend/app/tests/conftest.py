@@ -58,7 +58,7 @@ def backend_health_check():
     except requests.exceptions.RequestException as e:
         pytest.fail(f"❌ 无法连接到后端服务 {BACKEND_BASE_URL}: {e}")
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def api_client(backend_health_check):
     """API客户端fixture - 直接调用真实后端"""
     class APIClient:
@@ -85,24 +85,79 @@ def api_client(backend_health_check):
 
     return APIClient()
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def test_client(api_client):
     """兼容原有测试代码的客户端"""
     return api_client
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def test_users(test_config):
     """测试用户配置 - 使用真实后端的用户"""
     return test_config["test_users"]
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def auth_tokens(api_client, test_users):
-    """获取真实的认证token"""
-    tokens = {}
+    """确保用户存在并获取真实的认证token"""
+    import pymysql
+    from app.utils.security import get_password_hash
 
+    # 首先确保用户在数据库中存在且角色正确
+    connection = pymysql.connect(
+        host='localhost',
+        user='root',
+        password='password',
+        database='echo_db',
+        charset='utf8mb4'
+    )
+
+    try:
+        with connection.cursor() as cursor:
+            for role, user_info in test_users.items():
+                username = user_info["username"]
+                password = user_info["password"]
+                email = f"{username}@test.com"
+                hashed_password = get_password_hash(password)
+
+                # 先检查用户是否存在
+                cursor.execute("SELECT id, role FROM users WHERE username = %s", (username,))
+                existing_user = cursor.fetchone()
+
+                if existing_user:
+                    user_id, current_role = existing_user
+                    if current_role != role:
+                        # 更新角色
+                        cursor.execute("UPDATE users SET role = %s WHERE username = %s", (role, username))
+                        connection.commit()
+                        print(f"✅ {role} 用户已存在，角色已更新: {username}")
+                    else:
+                        print(f"ℹ️  {role} 用户已存在，角色正确: {username}")
+                else:
+                    # 创建新用户
+                    cursor.execute("""
+                        INSERT INTO users (username, password_hash, email, role, is_active, is_superuser, created_at)
+                        VALUES (%s, %s, %s, %s, 1, 0, NOW())
+                    """, (username, hashed_password, email, role))
+                    connection.commit()
+                    print(f"✅ {role} 用户创建成功: {username}")
+
+            # 验证创建的用户
+            cursor.execute("SELECT username, role FROM users WHERE username IN %s",
+                         (tuple(user_info["username"] for user_info in test_users.values()),))
+            users = cursor.fetchall()
+            print("📋 当前测试用户状态:")
+            for username, role in users:
+                print(f"   - {username}: {role}")
+
+    except Exception as e:
+        print(f"⚠️  用户创建过程异常: {e}")
+        connection.rollback()
+    finally:
+        connection.close()
+
+    # 现在尝试登录获取token
+    tokens = {}
     for role, user_info in test_users.items():
         try:
-            # 尝试登录获取真实token
             response = api_client.post(
                 "/auth/token",
                 data={
@@ -114,27 +169,12 @@ def auth_tokens(api_client, test_users):
             if response.status_code == 200:
                 data = response.json()
                 tokens[role] = data["access_token"]
-                print(f"✅ {role} 用户登录成功")
+                print(f"✅ {role} 用户登录成功，角色: {data.get('role', 'unknown')}")
             else:
-                # 如果登录失败，创建模拟token用于测试
-                print(f"⚠️  {role} 用户登录失败，使用模拟token")
-                payload = {
-                    "sub": "1",
-                    "username": user_info["username"],
-                    "role": role,
-                    "exp": datetime.utcnow() + timedelta(hours=1)
-                }
-                tokens[role] = jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
+                print(f"⚠️  {role} 用户登录失败 (状态码: {response.status_code})")
+                print(f"   响应内容: {response.text}")
         except Exception as e:
-            print(f"⚠️  {role} 用户认证异常: {e}，使用模拟token")
-            # 创建模拟token
-            payload = {
-                "sub": "1",
-                "username": user_info["username"],
-                "role": role,
-                "exp": datetime.utcnow() + timedelta(hours=1)
-            }
-            tokens[role] = jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
+            print(f"⚠️  {role} 用户认证异常: {e}")
 
     return tokens
 

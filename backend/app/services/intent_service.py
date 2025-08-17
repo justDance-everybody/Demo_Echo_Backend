@@ -510,7 +510,7 @@ class IntentService:
                 logger.info(f"[Session: {session_id}] 汇总结果: content_parts={content_parts}, final_content={final_content}")
                 
                 # 更新会话状态为完成
-                session.status = 'done'
+                session.status = 'completed'
                 db.add(session)
                 
                 # 记录成功日志，包含详细结果
