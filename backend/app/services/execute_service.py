@@ -55,13 +55,13 @@ class ExecuteService:
                 # 首先检查会话是否存在，不存在则尝试创建
                 result = await db.execute(select(Session).where(Session.session_id == session_id))
                 session = result.scalars().first()
-                
+
                 # 如果会话不存在且提供了user_id，则创建新会话
                 if not session and user_id is not None:
                     logger.info(f"Session {session_id} not found, creating new session with user_id {user_id}")
                     session = Session(session_id=session_id, user_id=user_id, status='interpreting')
                     db.add(session)
-                    
+
                 # 更新会话状态
                 if session:
                     session.status = 'executing'
@@ -106,7 +106,7 @@ class ExecuteService:
                     },
                     session_id=session_id,
                 )
-            
+
             # 验证工具配置的完整性
             if not tool.tool_id or not tool.tool_id.strip():
                 error_msg = "工具ID为空或无效"
@@ -126,7 +126,7 @@ class ExecuteService:
             if tool.type == "mcp":
                 # 执行 MCP 工具
                 logger.info(f"服务层：检测到 MCP 类型工具: tool_id={tool_id}")
-                
+
                 # 验证MCP工具的server_name
                 if not tool.server_name or tool.server_name.strip() in ['', 'None', 'null']:
                     error_msg = f"MCP工具 '{tool_id}' 的服务器名称无效: '{tool.server_name}'"
@@ -141,17 +141,27 @@ class ExecuteService:
                         },
                         session_id=session_id,
                     )
-                
+
                 # 暂时跳过MCP服务器管理检查，直接使用MCP客户端连接
                 # 这样可以避免重复启动进程的问题
                 logger.info(f"直接使用MCP客户端执行工具: {tool_id} (服务器: {tool.server_name})")
-                
+
                 # 执行MCP工具
                 target_server = tool.server_name
                 mcp_result = await mcp_client.execute_tool(
                     tool_id=tool_id, params=params, target_server=target_server
                 )
-                
+
+                # 暂时注释掉连接清理，避免影响测试流程
+                # try:
+                #     if hasattr(mcp_client, '_connection_pool') and target_server in mcp_client._connection_pool:
+                #         await mcp_client._connection_pool[target_server].close()
+                #         del mcp_client._connection_pool[target_server]
+                #         logger.info(f"✅ 工具执行完毕，已清理MCP连接: {target_server}")
+                # except Exception as cleanup_error:
+                #     logger.warning(f"⚠️ 清理MCP连接时出错: {cleanup_error}")
+                #     # 不影响主流程，继续执行
+
                 if mcp_result.get("success"):
                     raw_result = mcp_result.get("result", {}).get("message", "")
                     # 调用 LLM 总结
@@ -179,7 +189,7 @@ class ExecuteService:
                             exc_info=True,
                         )
                         tts_message = f"已成功执行工具 {tool_id}。"
-                
+
                     response_data = {"tts_message": tts_message}
                     response = ExecuteResponse(
                         tool_id=tool_id,
@@ -200,7 +210,7 @@ class ExecuteService:
                         except Exception as db_err:
                             logger.error(f"Database error during execute_end success log/status update for session {session_id}: {db_err}", exc_info=True)
                             await db.rollback()
-                
+
                 else:
                     # 执行失败 (由MCP客户端包装器返回失败信息)
                     error_info = mcp_result.get(
@@ -275,7 +285,7 @@ class ExecuteService:
 
                 # 获取全局超时配置，优先使用app_config中的timeout，否则使用默认值
                 global_timeout = float(app_config.get("timeout", 120)) if app_config else 120.0
-                
+
                 # 准备调用外部 HTTP API
                 async with httpx.AsyncClient(timeout=global_timeout) as client:  # 使用动态超时
                     try:
@@ -505,7 +515,7 @@ class ExecuteService:
                                     },
                                     session_id=session_id,
                                 )
-                            
+
                             # 获取配置的HTTP方法，默认为POST
                             http_method = app_config.get("method", "POST").upper()
                             # 获取配置的内容类型，默认为application/json
@@ -514,7 +524,7 @@ class ExecuteService:
                             timeout = float(app_config.get("timeout", 120))
                             # 获取配置的请求头
                             headers = app_config.get("headers", {})
-                            
+
                             # 如果提供了API密钥，添加到请求头中
                             if api_key:
                                 # 根据配置的auth_type决定如何使用API密钥
@@ -530,11 +540,11 @@ class ExecuteService:
                                     # 假设api_key格式为username:password
                                     basic_auth = base64.b64encode(api_key.encode()).decode()
                                     headers["Authorization"] = f"Basic {basic_auth}"
-                            
+
                             # 设置Content-Type
                             if content_type and "Content-Type" not in headers:
                                 headers["Content-Type"] = content_type
-                            
+
                             # 准备请求有效载荷
                             # 这里假设params就是要发送的数据
                             payload = params
@@ -542,7 +552,7 @@ class ExecuteService:
                             payload_key = app_config.get("payload_key")
                             if payload_key:
                                 payload = {payload_key: params}
-                            
+
                             # 处理URL中的参数占位符
                             try:
                                 # 使用format_map在URL中替换{param_name}占位符
@@ -558,17 +568,17 @@ class ExecuteService:
                                 logger.warning(
                                     f"URL格式化时发生错误: {e}，将使用原始URL"
                                 )
-                            
+
                             logger.info(
                                 f"准备调用通用 HTTP API: Method={http_method}, URL={http_url}"
                             )
-                            
+
                             try:
                                 # 根据HTTP方法发送请求
                                 if http_method == "GET":
                                     # 对于GET请求，将params作为URL参数
                                     response = await client.get(
-                                        http_url, 
+                                        http_url,
                                         headers=headers,
                                         params=payload if app_config.get("send_params_in_querystring", False) else None,
                                         timeout=timeout
@@ -577,35 +587,35 @@ class ExecuteService:
                                     # 对于POST请求，根据内容类型决定如何发送数据
                                     if content_type == "application/x-www-form-urlencoded":
                                         response = await client.post(
-                                            http_url, 
+                                            http_url,
                                             headers=headers,
                                             data=payload,
                                             timeout=timeout
                                         )
                                     else:  # 默认为JSON
                                         response = await client.post(
-                                            http_url, 
+                                            http_url,
                                             headers=headers,
                                             json=payload,
                                             timeout=timeout
                                         )
                                 elif http_method == "PUT":
                                     response = await client.put(
-                                        http_url, 
+                                        http_url,
                                         headers=headers,
                                         json=payload,
                                         timeout=timeout
                                     )
                                 elif http_method == "PATCH":
                                     response = await client.patch(
-                                        http_url, 
+                                        http_url,
                                         headers=headers,
                                         json=payload,
                                         timeout=timeout
                                     )
                                 elif http_method == "DELETE":
                                     response = await client.delete(
-                                        http_url, 
+                                        http_url,
                                         headers=headers,
                                         json=payload if app_config.get("send_body_with_delete", False) else None,
                                         timeout=timeout
@@ -621,16 +631,16 @@ class ExecuteService:
                                         },
                                         session_id=session_id,
                                     )
-                                
+
                                 response.raise_for_status()  # 检查HTTP错误
-                                
+
                                 # 解析响应
                                 try:
                                     api_result = response.json()
                                 except Exception:
                                     # 如果无法解析为JSON，则使用文本内容
                                     api_result = {"text": response.text}
-                                
+
                                 # 从响应中提取需要的结果
                                 result_path = app_config.get("result_path")
                                 if result_path:
@@ -650,7 +660,7 @@ class ExecuteService:
                                         raw_result = str(api_result)
                                 else:
                                     raw_result = str(api_result)
-                                
+
                                 # --- [调用 LLM 总结] ---
                                 try:
                                     logger.debug(
@@ -684,7 +694,7 @@ class ExecuteService:
                                         exc_info=True,
                                     )
                                     tts_message = str(raw_result)  # 出错时回退到原始结果
-                                
+
                                 logger.info(f"通用 HTTP API 调用成功: tool_id={tool_id}")
                                 # 返回结果
                                 response_data = {
@@ -698,14 +708,14 @@ class ExecuteService:
                                     error=None,
                                     session_id=session_id,
                                 )
-                                
+
                             except httpx.HTTPStatusError as e:
                                 # 这些错误会在上面的总catch中被处理
                                 raise
                             except httpx.RequestError as e:
                                 # 这些错误会在上面的总catch中被处理
                                 raise
-                                
+
                         else:
                             # 不支持的平台类型
                             logger.error(f"服务层：不支持的 HTTP 平台: {platform}")

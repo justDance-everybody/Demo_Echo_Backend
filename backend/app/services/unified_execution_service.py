@@ -58,7 +58,7 @@ class SessionManager:
             session = Session(
                 session_id=session_id,
                 user_id=user_id,
-                status="parsing",
+                status="interpreting",
                 created_at=datetime.utcnow()
             )
             self.db.add(session)
@@ -373,6 +373,7 @@ class UnifiedExecutionService:
 
                 # 4. 调用intent_service执行确认的工具
                 try:
+                    logger.info(f"🔧 [DEBUG] 开始执行确认的工具，会话ID: {session_id}, 超时: {self.execution_timeout}秒")
                     result = await asyncio.wait_for(
                         self.intent_service.execute_confirmed_tools(
                             session_id=session_id,
@@ -381,6 +382,7 @@ class UnifiedExecutionService:
                         ),
                         timeout=self.execution_timeout
                     )
+                    logger.info(f"✅ [DEBUG] 工具执行完成，结果: success={result.get('success')}")
 
                     # 5. 更新会话状态为完成
                     await session_manager.update_session_status(session_id, "completed")

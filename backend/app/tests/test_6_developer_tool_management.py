@@ -15,7 +15,7 @@ class TestDeveloperToolManagement:
         token = auth_tokens["developer"]
         headers = {"Authorization": f"Bearer {token}"}
 
-        response = test_client.get("/api/v1/dev/tools", headers=headers)
+        response = test_client.get("/dev/tools", headers=headers)
 
         # 验收标准: 返回状态码 200
         assert response.status_code == 200, f"获取开发者工具列表失败，状态码: {response.status_code}"
@@ -27,11 +27,14 @@ class TestDeveloperToolManagement:
 
     def test_6_3_create_new_tool(self, test_client, auth_tokens):
         """6.3 创建新工具"""
+        import uuid
         token = auth_tokens["developer"]
         headers = {"Authorization": f"Bearer {token}"}
 
+        # 使用UUID确保工具ID唯一
+        unique_id = str(uuid.uuid4())[:8]
         tool_data = {
-            "tool_id": "test_tool_001",
+            "tool_id": f"test_tool_{unique_id}",
             "name": "测试工具",
             "description": "用于集成测试的工具",
             "type": "http",
@@ -51,7 +54,7 @@ class TestDeveloperToolManagement:
         }
 
         response = test_client.post(
-            "/api/v1/dev/tools",
+            "/dev/tools",
             headers=headers,
             json=tool_data
         )
@@ -63,7 +66,7 @@ class TestDeveloperToolManagement:
 
         # 验收标准: 响应包含创建的工具信息
         assert "tool_id" in data, "响应中缺少tool_id字段"
-        assert data["tool_id"] == "test_tool_001", f"tool_id不匹配，期望: test_tool_001, 实际: {data.get('tool_id')}"
+        assert data["tool_id"] == tool_data["tool_id"], f"tool_id不匹配，期望: {tool_data['tool_id']}, 实际: {data.get('tool_id')}"
         assert "name" in data, "响应中缺少name字段"
         assert "description" in data, "响应中缺少description字段"
 
