@@ -142,9 +142,8 @@ class ExecuteService:
                         session_id=session_id,
                     )
 
-                # 暂时跳过MCP服务器管理检查，直接使用MCP客户端连接
-                # 这样可以避免重复启动进程的问题
-                logger.info(f"直接使用MCP客户端执行工具: {tool_id} (服务器: {tool.server_name})")
+                # 执行MCP工具
+                logger.info(f"执行MCP工具: {tool_id} (服务器: {tool.server_name})")
 
                 # 执行MCP工具
                 target_server = tool.server_name
@@ -152,15 +151,15 @@ class ExecuteService:
                     tool_id=tool_id, params=params, target_server=target_server
                 )
 
-                # 暂时注释掉连接清理，避免影响测试流程
-                # try:
-                #     if hasattr(mcp_client, '_connection_pool') and target_server in mcp_client._connection_pool:
-                #         await mcp_client._connection_pool[target_server].close()
-                #         del mcp_client._connection_pool[target_server]
-                #         logger.info(f"✅ 工具执行完毕，已清理MCP连接: {target_server}")
-                # except Exception as cleanup_error:
-                #     logger.warning(f"⚠️ 清理MCP连接时出错: {cleanup_error}")
-                #     # 不影响主流程，继续执行
+                # 执行完毕后立即清理连接，避免进程堆积
+                try:
+                    if hasattr(mcp_client, '_connection_pool') and target_server in mcp_client._connection_pool:
+                        await mcp_client._connection_pool[target_server].close()
+                        del mcp_client._connection_pool[target_server]
+                        logger.info(f"✅ 工具执行完毕，已清理MCP连接: {target_server}")
+                except Exception as cleanup_error:
+                    logger.warning(f"⚠️ 清理MCP连接时出错: {cleanup_error}")
+                    # 不影响主流程，继续执行
 
                 if mcp_result.get("success"):
                     raw_result = mcp_result.get("result", {}).get("message", "")
@@ -201,12 +200,12 @@ class ExecuteService:
                     logger.info(f"服务层：MCP 工具执行成功: tool_id={tool_id}")
                     if session_id and session:
                         try:
-                            session.status = 'completed'
+                            session.status = 'done'
                             db.add(session)
                             success_log = Log(session_id=session_id, step='execute_end', status='success', message=tts_message)
                             db.add(success_log)
                             await db.commit()
-                            logger.info(f"Updated session {session_id} status to completed and logged success.")
+                            logger.info(f"Updated session {session_id} status to done and logged success.")
                         except Exception as db_err:
                             logger.error(f"Database error during execute_end success log/status update for session {session_id}: {db_err}", exc_info=True)
                             await db.rollback()
