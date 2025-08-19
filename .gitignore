@@ -105,6 +105,7 @@ MCP_Client/mcp_servers.json
 MCPTEST/mcp_servers.json
 
 # Environment files with secrets
+**/.env
 .env.*
 !.env.example
 !.env.template
