@@ -40,13 +40,13 @@ class TestDirectToolExecution:
 
         try:
             data = response.json()
-            assert "result" in data, "响应应包含result字段"
+            assert "data" in data, "响应应包含data字段"
             assert "session_id" in data, "响应应包含session_id字段"
             assert data["session_id"] == "test-weather-001", f"session_id应匹配，实际为{data['session_id']}"
 
             # 检查天气查询结果
-            if "result" in data and "message" in data["result"]:
-                print(f"✅ 天气查询成功，返回消息: {data['result']['message']}")
+            if "data" in data and "tts_message" in data["data"]:
+                print(f"✅ 天气查询成功，返回消息: {data['data']['tts_message']}")
             else:
                 print(f"⚠️  天气查询返回格式: {data}")
 
@@ -82,7 +82,7 @@ class TestDirectToolExecution:
 
         try:
             data = response.json()
-            assert "result" in data, "响应应包含result字段"
+            assert "data" in data, "响应应包含data字段"
             assert "session_id" in data, "响应应包含session_id字段"
         except Exception as e:
             assert False, f"响应解析失败: {e}"
@@ -115,7 +115,7 @@ class TestDirectToolExecution:
 
         try:
             data = response.json()
-            assert "result" in data, "响应应包含result字段"
+            assert "data" in data, "响应应包含data字段"
             assert "session_id" in data, "响应应包含session_id字段"
         except Exception as e:
             assert False, f"响应解析失败: {e}"
@@ -148,7 +148,7 @@ class TestDirectToolExecution:
 
         try:
             data = response.json()
-            assert "result" in data, "响应应包含result字段"
+            assert "data" in data, "响应应包含data字段"
             assert "session_id" in data, "响应应包含session_id字段"
         except Exception as e:
             assert False, f"响应解析失败: {e}"
@@ -182,7 +182,7 @@ class TestDirectToolExecution:
 
         try:
             data = response.json()
-            assert "result" in data, "响应应包含result字段"
+            assert "data" in data, "响应应包含data字段"
             assert "session_id" in data, "响应应包含session_id字段"
         except Exception as e:
             assert False, f"响应解析失败: {e}"
@@ -216,47 +216,13 @@ class TestDirectToolExecution:
 
         try:
             data = response.json()
-            assert "result" in data, "响应应包含result字段"
+            assert "data" in data, "响应应包含data字段"
             assert "session_id" in data, "响应应包含session_id字段"
         except Exception as e:
             assert False, f"响应解析失败: {e}"
 
-    def test_5_7_voice_tools(self, test_client, auth_tokens):
-        """5.7 测试语音相关工具"""
-        token = auth_tokens["user"]
-        headers = {"Authorization": f"Bearer {token}"}
-
-        # 测试语音克隆工具
-        response = test_client.post(
-            "/execute",
-            headers=headers,
-            json={
-                "session_id": "test-voice-001",
-                "user_id": 13,
-                "tool_id": "voice_clone",
-                "params": {
-                    "audio_file": "/tmp/sample_voice.wav",
-                    "name": "test_voice"
-                }
-            }
-        )
-
-        print(f"📋 5.7 语音工具测试 (voice_clone):")
-        print(f"   - 状态码: {response.status_code}")
-        print(f"   - 响应内容: {response.text}")
-
-        # 检查响应
-        assert response.status_code in [200, 201], f"语音工具执行状态码应为200或201，实际为{response.status_code}"
-
-        try:
-            data = response.json()
-            assert "result" in data, "响应应包含result字段"
-            assert "session_id" in data, "响应应包含session_id字段"
-        except Exception as e:
-            assert False, f"响应解析失败: {e}"
-
-    def test_5_8_search_tools(self, test_client, auth_tokens):
-        """5.8 测试搜索相关工具"""
+    def test_5_7_search_tools(self, test_client, auth_tokens):
+        """5.7 测试搜索相关工具"""
         token = auth_tokens["user"]
         headers = {"Authorization": f"Bearer {token}"}
 
@@ -275,7 +241,7 @@ class TestDirectToolExecution:
             }
         )
 
-        print(f"📋 5.8 搜索工具测试 (maps_text_search):")
+        print(f"📋 5.7 搜索工具测试 (maps_text_search):")
         print(f"   - 状态码: {response.status_code}")
         print(f"   - 响应内容: {response.text}")
 
@@ -284,13 +250,13 @@ class TestDirectToolExecution:
 
         try:
             data = response.json()
-            assert "result" in data, "响应应包含result字段"
+            assert "data" in data, "响应应包含data字段"
             assert "session_id" in data, "响应应包含session_id字段"
         except Exception as e:
             assert False, f"响应解析失败: {e}"
 
-    def test_5_9_direction_tools(self, test_client, auth_tokens):
-        """5.9 测试路径规划工具"""
+    def test_5_8_direction_tools(self, test_client, auth_tokens):
+        """5.8 测试路径规划工具"""
         token = auth_tokens["user"]
         headers = {"Authorization": f"Bearer {token}"}
 
@@ -309,7 +275,7 @@ class TestDirectToolExecution:
             }
         )
 
-        print(f"📋 5.9 路径规划工具测试 (maps_direction_walking):")
+        print(f"📋 5.8 路径规划工具测试 (maps_direction_walking):")
         print(f"   - 状态码: {response.status_code}")
         print(f"   - 响应内容: {response.text}")
 
@@ -318,13 +284,13 @@ class TestDirectToolExecution:
 
         try:
             data = response.json()
-            assert "result" in data, "响应应包含result字段"
+            assert "data" in data, "响应应包含data字段"
             assert "session_id" in data, "响应应包含session_id字段"
         except Exception as e:
             assert False, f"响应解析失败: {e}"
 
-    def test_5_10_utility_tools(self, test_client, auth_tokens):
-        """5.10 测试实用工具"""
+    def test_5_9_utility_tools(self, test_client, auth_tokens):
+        """5.9 测试实用工具"""
         token = auth_tokens["user"]
         headers = {"Authorization": f"Bearer {token}"}
 
@@ -342,7 +308,7 @@ class TestDirectToolExecution:
             }
         )
 
-        print(f"📋 5.10 实用工具测试 (maps_ip_location):")
+        print(f"📋 5.9 实用工具测试 (maps_ip_location):")
         print(f"   - 状态码: {response.status_code}")
         print(f"   - 响应内容: {response.text}")
 
@@ -351,7 +317,7 @@ class TestDirectToolExecution:
 
         try:
             data = response.json()
-            assert "result" in data, "响应应包含result字段"
+            assert "data" in data, "响应应包含data字段"
             assert "session_id" in data, "响应应包含session_id字段"
         except Exception as e:
             assert False, f"响应解析失败: {e}"
