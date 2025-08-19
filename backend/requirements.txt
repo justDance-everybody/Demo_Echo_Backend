@@ -20,7 +20,7 @@ pytest-asyncio==0.26.0
 alembic==1.15.2
 aiomysql==0.2.0
 tqdm==4.67.1
-mcp==1.0.0
+mcp==1.13.0
 psutil==7.0.0
 aiosqlite==0.21.0
 requests==2.32.3

@@ -142,7 +142,8 @@ class ExecuteService:
                         session_id=session_id,
                     )
 
-                # 执行MCP工具
+                # 暂时跳过MCP服务器管理检查，直接使用MCP客户端连接
+                # 这样可以避免重复启动进程的问题
                 logger.info(f"执行MCP工具: {tool_id} (服务器: {tool.server_name})")
 
                 # 执行MCP工具
@@ -150,16 +151,6 @@ class ExecuteService:
                 mcp_result = await mcp_client.execute_tool(
                     tool_id=tool_id, params=params, target_server=target_server
                 )
-
-                # 执行完毕后立即清理连接，避免进程堆积
-                try:
-                    if hasattr(mcp_client, '_connection_pool') and target_server in mcp_client._connection_pool:
-                        await mcp_client._connection_pool[target_server].close()
-                        del mcp_client._connection_pool[target_server]
-                        logger.info(f"✅ 工具执行完毕，已清理MCP连接: {target_server}")
-                except Exception as cleanup_error:
-                    logger.warning(f"⚠️ 清理MCP连接时出错: {cleanup_error}")
-                    # 不影响主流程，继续执行
 
                 if mcp_result.get("success"):
                     raw_result = mcp_result.get("result", {}).get("message", "")

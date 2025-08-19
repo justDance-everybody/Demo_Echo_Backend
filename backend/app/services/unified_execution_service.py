@@ -135,7 +135,7 @@ class UnifiedExecutionService:
     def __init__(self):
         self.execute_service = ExecuteService()
         self.intent_service = IntentService()
-        self.execution_timeout = 120  # 120秒超时
+        self.execution_timeout = 20  # 20秒超时，快速触发fallback
 
     @asynccontextmanager
     async def get_session_manager(self, db: AsyncSession):
