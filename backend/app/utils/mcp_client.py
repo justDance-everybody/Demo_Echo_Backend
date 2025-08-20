@@ -11,6 +11,7 @@ from enum import Enum
 from dotenv import load_dotenv
 from loguru import logger
 from app.config import settings
+import uuid
 
 
 class MCPErrorType(Enum):
@@ -403,6 +404,7 @@ class MCPClientWrapper:
             'ping': 10.0,
             'warmup': 10.0,
             'validation': 10.0,
+            'connection': 15.0,  # 连接超时
             'default': 10.0
         }
 
@@ -427,13 +429,7 @@ class MCPClientWrapper:
 
     async def _get_or_create_client(self, target_server: str) -> 'MCPClient':
         """
-        获取或创建MCP客户端连接（任务7：完善重试和恢复机制）
-
-        增强功能：
-        - 智能重试策略（指数退避 + 抖动）
-        - 增强连接池健康检查
-        - 智能故障恢复机制
-        - 连接预热和故障转移
+        获取或创建MCP客户端连接（使用连接池 + Manager协作）
 
         Args:
             target_server: 目标服务器名称
@@ -445,109 +441,445 @@ class MCPClientWrapper:
             ValueError: 当服务器配置不存在时
             RuntimeError: 当连接失败时
         """
-        # 智能重试配置
-        max_retries = 5  # 增加重试次数
-        base_delay = 1.0  # 基础延迟
-        max_delay = 30.0  # 最大延迟
-        backoff_factor = 2.0  # 退避因子
-        jitter_factor = 0.1  # 抖动因子
+        try:
+            # 首先确保服务器进程正在运行
+            await self._ensure_server_running(target_server)
 
-        last_exception = None
-
-        for attempt in range(max_retries):
-            try:
-                # 1. 增强连接池健康检查
-                if target_server in self._connection_pool:
-                    existing_client = self._connection_pool[target_server]
-                    health_check_result = await self._enhanced_connection_health_check(target_server, existing_client)
-
-                    if health_check_result["healthy"]:
-                        logger.debug(f"复用健康连接: {target_server}")
-                        return existing_client
-                    else:
-                        logger.warning(f"连接健康检查失败: {target_server}, 原因: {health_check_result['reason']}")
-                        await self._cleanup_connection(target_server)
-
-                # 2. 获取服务器配置
-                server_config = self.server_configs.get(target_server)
-                if not server_config:
-                    raise ValueError(f"未找到服务器配置: {target_server}")
-
-                # 3. 智能故障恢复：使用MCPServerManager协调接口
-                recovery_result = await self._intelligent_server_recovery(target_server, attempt)
-                if not recovery_result["success"]:
-                    error_msg = f"无法启动MCP服务器 {target_server}: {recovery_result['message']}"
-                    error_code = recovery_result.get("error", "")
-
-                    # 分析错误类型决定是否重试
-                    if "冷却期" in error_msg or "cooldown" in error_msg.lower() or error_code == "COOLDOWN_ACTIVE":
-                        error_type = MCPErrorType.SERVER_UNAVAILABLE
-                    elif "未运行" in error_msg or "not running" in error_msg.lower() or error_code == "SERVER_NOT_RUNNING":
-                        error_type = MCPErrorType.SERVER_NOT_FOUND
-                    elif error_code == "CONNECTION_FAILED":
-                        error_type = MCPErrorType.CONNECTION_FAILED
-                    else:
-                        error_type = MCPErrorClassifier.classify_error(recovery_result.get('error', ''), type(RuntimeError))
-
-                    if not self._should_retry_for_error(error_type, attempt, max_retries):
-                        raise RuntimeError(error_msg)
-
-                    if attempt < max_retries - 1:
-                        delay = self._calculate_retry_delay(attempt, base_delay, max_delay, backoff_factor, jitter_factor)
-                        logger.warning(f"{error_msg}，第 {attempt + 1} 次重试，延迟 {delay:.2f} 秒...")
-                        await asyncio.sleep(delay)
-                        continue
-                    else:
-                        raise RuntimeError(error_msg)
-
-                # 4. 检查是否已经返回了可用的客户端连接
-                if recovery_result.get("client"):
-                    client = recovery_result["client"]
-                    logger.info(f"使用智能恢复返回的客户端连接: {target_server}")
-
-                    # 连接验证和加入连接池
-                    if await self._validate_new_connection(target_server, client):
-                        self._connection_pool[target_server] = client
-                        logger.info(f"成功使用恢复的连接并加入连接池: {target_server} (尝试 {attempt + 1}/{max_retries})")
-                        return client
-                    else:
-                        logger.warning(f"恢复的连接验证失败: {target_server}，尝试创建新连接")
-                        # 继续尝试创建新连接
-
-                # 5. 创建客户端连接（带连接预热）
-                client = await self._create_client_connection_with_warmup(target_server, attempt)
-
-                # 6. 连接验证和加入连接池
-                if await self._validate_new_connection(target_server, client):
-                    self._connection_pool[target_server] = client
-                    logger.info(f"成功连接到MCP服务器并加入连接池: {target_server} (尝试 {attempt + 1}/{max_retries})")
-                    return client
+            # 检查连接池中是否有可用连接
+            if target_server in self._connection_pool:
+                existing_client = self._connection_pool[target_server]
+                # 验证连接是否仍然有效
+                if await self._validate_existing_connection(target_server, existing_client):
+                    logger.debug(f"复用现有连接: {target_server}")
+                    return existing_client
                 else:
-                    logger.warning(f"新连接验证失败: {target_server}")
+                    logger.warning(f"现有连接无效，清理并重新创建: {target_server}")
+                    await self._cleanup_connection(target_server)
+
+            # 创建新连接
+            logger.info(f"创建新的MCP客户端连接: {target_server}")
+            new_client = await self._create_connection_to_server(target_server)
+
+            if new_client:
+                # 验证新连接
+                if await self._validate_new_connection(target_server, new_client):
+                    self._connection_pool[target_server] = new_client
+                    logger.info(f"成功创建并验证连接: {target_server}")
+                    return new_client
+                else:
+                    logger.error(f"新连接验证失败: {target_server}")
                     await self._cleanup_connection(target_server)
                     raise RuntimeError(f"连接验证失败: {target_server}")
+            else:
+                raise RuntimeError(f"无法创建客户端连接: {target_server}")
 
-            except ValueError:
-                # 配置错误不重试
-                raise
-            except Exception as e:
-                last_exception = e
-                error_type = MCPErrorClassifier.classify_error(str(e), type(e))
+        except Exception as e:
+            logger.error(f"获取MCP连接时出错: {target_server}, 错误: {e}")
+            raise RuntimeError(f"获取MCP连接失败: {e}")
 
-                if not self._should_retry_for_error(error_type, attempt, max_retries):
-                    logger.error(f"连接到MCP服务器 '{target_server}' 失败，错误类型不可重试: {error_type}")
-                    raise RuntimeError(f"连接到MCP服务器 '{target_server}' 失败: {e}")
+    async def _ensure_server_running(self, target_server: str):
+        """
+        确保MCP服务器进程正在运行
 
-                if attempt < max_retries - 1:
-                    delay = self._calculate_retry_delay(attempt, base_delay, max_delay, backoff_factor, jitter_factor)
-                    logger.warning(f"连接到MCP服务器 '{target_server}' 失败 (尝试 {attempt + 1}/{max_retries}): {e}，{delay:.2f} 秒后重试...")
-                    await asyncio.sleep(delay)
+        这是Wrapper与Manager协作的关键接口：
+        - Wrapper负责连接管理
+        - Manager负责进程管理
+        - 通过此方法实现职责分离
+        """
+        try:
+            # 导入Manager
+            from app.services.mcp_manager import mcp_manager
+
+            # 调用Manager确保服务器运行
+            result = await mcp_manager.ensure_server_running_for_client(target_server)
+
+            if not result["success"]:
+                error_msg = f"无法确保服务器运行: {target_server}, 错误: {result.get('error', 'UNKNOWN')}"
+                logger.error(error_msg)
+                raise RuntimeError(error_msg)
+
+            logger.debug(f"服务器进程状态确认: {target_server} - {result['message']}")
+
+        except Exception as e:
+            logger.error(f"确保服务器运行时出错: {target_server}, 错误: {e}")
+            raise RuntimeError(f"服务器进程管理失败: {e}")
+
+    def get_connection_pool_status(self) -> Dict[str, Any]:
+        """
+        获取连接池状态信息
+
+        Returns:
+            Dict[str, Any]: 连接池状态
+        """
+        try:
+            status = {
+                "total_connections": len(self._connection_pool),
+                "connections": {}
+            }
+
+            for server_name, client in self._connection_pool.items():
+                # 检查客户端状态
+                client_info = {
+                    "connected": client is not None,
+                    "type": type(client).__name__,
+                    "has_execute_tool": hasattr(client, 'execute_tool'),
+                    "has_ping": hasattr(client, 'ping'),
+                    "has_list_tools": hasattr(client, 'list_tools')
+                }
+
+                status["connections"][server_name] = client_info
+
+            return status
+
+        except Exception as e:
+            logger.error(f"获取连接池状态时出错: {e}")
+            return {"error": str(e)}
+
+    async def cleanup_all_connections(self):
+        """清理所有连接池中的连接"""
+        try:
+            logger.info("开始清理所有MCP连接...")
+
+            for server_name in list(self._connection_pool.keys()):
+                await self._cleanup_connection(server_name)
+
+            logger.info("所有MCP连接清理完成")
+
+        except Exception as e:
+            logger.error(f"清理所有连接时出错: {e}")
+            raise RuntimeError(f"连接清理失败: {e}")
+
+    async def _create_connection_to_server(self, target_server: str, timeout: float = 60.0) -> 'MCPClient':
+        """
+        创建到指定服务器的MCP客户端连接（带详细诊断）
+
+        Args:
+            target_server: 目标服务器名称
+            timeout: 连接超时时间
+
+        Returns:
+            MCPClient: MCP客户端实例
+        """
+        try:
+            logger.info(f"🔌 开始创建MCP客户端连接: {target_server}, 超时: {timeout}秒")
+
+            # 先获取服务器配置
+            server_config = self.server_configs.get(target_server)
+            if not server_config:
+                raise ValueError(f"未找到服务器配置: {target_server}")
+
+            # 诊断步骤1: 检查服务器进程状态
+            logger.info(f"🔍 诊断步骤1: 检查服务器进程状态...")
+            await self._diagnose_server_process(target_server)
+
+            # 诊断步骤2: 检查环境变量
+            logger.info(f"🔍 诊断步骤2: 检查环境变量...")
+            await self._diagnose_environment_variables(target_server, server_config)
+
+            # 诊断步骤3: 检查MCP协议配置
+            logger.info(f"🔍 诊断步骤3: 检查MCP协议配置...")
+            await self._diagnose_mcp_protocol_config(target_server, server_config)
+
+            # 开始创建连接
+            logger.info(f"🚀 开始创建MCP客户端连接...")
+            client = MCPClient()
+
+            # 连接过程诊断
+            connection_result = await self._connect_with_diagnosis(client, server_config, target_server, timeout)
+
+            if connection_result:
+                logger.info(f"🎉 成功创建到服务器 {target_server} 的连接")
+                return client
+            else:
+                logger.error(f"❌ MCP客户端连接失败: {target_server}")
+                return None
+
+        except Exception as e:
+            logger.error(f"💥 创建到服务器 {target_server} 的连接失败: {e}")
+            # 连接失败后的最终诊断
+            await self._final_diagnosis(target_server, e)
+            raise RuntimeError(f"连接失败: {e}")
+
+    async def _diagnose_server_process(self, target_server: str):
+        """诊断步骤1: 检查服务器进程状态"""
+        try:
+            from app.services.mcp_manager import mcp_manager
+
+            # 检查进程健康状态
+            health_status = await mcp_manager.check_server_health(target_server)
+            logger.info(f"📊 服务器健康状态: {health_status}")
+
+            # 检查进程信息
+            if target_server in mcp_manager.servers:
+                server_status = mcp_manager.servers[target_server]
+                logger.info(f"📊 服务器状态: running={server_status.running}, "
+                           f"consecutive_failures={server_status.consecutive_failures}")
+
+                if server_status.process_info:
+                    logger.info(f"📊 进程信息: {server_status.process_info}")
                 else:
-                    logger.error(f"连接到MCP服务器 '{target_server}' 最终失败: {e}")
-                    raise RuntimeError(f"连接到MCP服务器 '{target_server}' 失败: {e}")
+                    logger.warning(f"⚠️  无进程信息")
 
-        # 理论上不会到达这里
-        raise RuntimeError(f"连接到MCP服务器 '{target_server}' 失败: 超出最大重试次数，最后错误: {last_exception}")
+            # 检查冷却期状态
+            cooldown_status = mcp_manager.get_cooldown_status(target_server)
+            logger.info(f"📊 冷却期状态: {cooldown_status}")
+
+        except Exception as e:
+            logger.error(f"❌ 诊断服务器进程状态时出错: {e}")
+
+    async def _diagnose_environment_variables(self, target_server: str, server_config: dict):
+        """诊断步骤2: 检查环境变量"""
+        try:
+            logger.info(f"🔍 检查环境变量配置...")
+
+            # 检查配置中的环境变量
+            if 'env' in server_config:
+                env_vars = server_config['env']
+                logger.info(f"📊 配置的环境变量: {list(env_vars.keys())}")
+
+                # 检查关键环境变量是否存在
+                for key, value in env_vars.items():
+                    if value and value != '***':
+                        logger.info(f"✅ 环境变量 {key}: 已设置")
+                    else:
+                        logger.warning(f"⚠️  环境变量 {key}: 未设置或为空")
+            else:
+                logger.warning(f"⚠️  配置中未找到环境变量设置")
+
+            # 检查MCP管理器中的环境变量设置
+            try:
+                from app.services.mcp_manager import mcp_manager
+                if target_server in mcp_manager.servers:
+                    server_status = mcp_manager.servers[target_server]
+                    if hasattr(server_status, 'process_info') and server_status.process_info:
+                        logger.info(f"📊 进程环境变量状态: 已通过MCP管理器设置")
+
+                        # 检查配置中的环境变量是否会被正确传递
+                        if 'env' in server_config:
+                            required_vars = list(server_config['env'].keys())
+                            logger.info(f"📊 进程启动时将设置的环境变量: {required_vars}")
+                        else:
+                            logger.warning(f"⚠️  进程启动时不会设置额外的环境变量")
+                    else:
+                        logger.warning(f"⚠️  无法获取进程环境变量信息")
+            except Exception as e:
+                logger.warning(f"⚠️  无法检查MCP管理器环境变量: {e}")
+
+            # 检查系统环境变量（仅供参考，不是主要问题）
+            import os
+            if 'AMAP_MAPS_API_KEY' in os.environ:
+                logger.info(f"📊 系统环境变量 AMAP_MAPS_API_KEY: 已设置（仅供参考）")
+            else:
+                logger.info(f"📊 系统环境变量 AMAP_MAPS_API_KEY: 未设置（这是正常的，MCP进程使用独立的环境变量）")
+
+        except Exception as e:
+            logger.error(f"❌ 诊断环境变量时出错: {e}")
+
+    async def _diagnose_mcp_protocol_config(self, target_server: str, server_config: dict):
+        """诊断步骤3: 检查MCP协议配置"""
+        try:
+            logger.info(f"🔍 检查MCP协议配置...")
+
+            # 检查服务器类型
+            server_type = server_config.get('type', 'unknown')
+            logger.info(f"📊 服务器类型: {server_type}")
+
+            # 检查连接方式
+            if 'stdio' in server_config:
+                logger.info(f"📊 使用stdio连接方式")
+            elif 'tcp' in server_config:
+                logger.info(f"📊 使用TCP连接方式: {server_config.get('tcp', {})}")
+            else:
+                logger.info(f"📊 使用默认连接方式")
+
+            # 检查命令配置
+            command = server_config.get('command', '')
+            args = server_config.get('args', [])
+            logger.info(f"📊 启动命令: {command} {' '.join(args)}")
+
+            # 检查工作目录
+            working_dir = server_config.get('working_dir', '')
+            if working_dir:
+                logger.info(f"📊 工作目录: {working_dir}")
+
+        except Exception as e:
+            logger.error(f"❌ 诊断MCP协议配置时出错: {e}")
+
+    async def _connect_with_diagnosis(self, client: 'MCPClient', server_config: dict, target_server: str, timeout: float) -> bool:
+        """带诊断的连接过程"""
+        try:
+            logger.info(f"🔌 开始连接过程诊断...")
+
+            # 记录连接开始时间
+            import time
+            start_time = time.time()
+
+            # 步骤1: 基础连接
+            logger.info(f"📋 连接步骤1: 基础连接...")
+            try:
+                async with asyncio.timeout(timeout * 0.3):  # 30%时间给步骤1
+                    await client.connect(target_server)
+                    step1_time = time.time() - start_time
+                    logger.info(f"✅ 步骤1完成: 基础连接成功，耗时: {step1_time:.2f}秒")
+            except asyncio.TimeoutError:
+                logger.error(f"❌ 步骤1超时: 基础连接超时")
+                return False
+            except Exception as e:
+                logger.error(f"❌ 步骤1失败: 基础连接异常: {e}")
+                return False
+
+            # 步骤2: 会话初始化
+            logger.info(f"📋 连接步骤2: 会话初始化...")
+            try:
+                async with asyncio.timeout(timeout * 0.4):  # 40%时间给步骤2
+                    # 尝试获取工具列表来验证会话
+                    if hasattr(client, 'session') and client.session:
+                        tools = await client.session.list_tools()
+                        step2_time = time.time() - start_time
+                        logger.info(f"✅ 步骤2完成: 会话初始化成功，获取到 {len(tools)} 个工具，耗时: {step2_time:.2f}秒")
+                    else:
+                        logger.warning(f"⚠️  客户端没有session属性，跳过工具列表验证")
+                        step2_time = time.time() - start_time
+                        logger.info(f"✅ 步骤2完成: 会话初始化完成，耗时: {step2_time:.2f}秒")
+            except asyncio.TimeoutError:
+                logger.error(f"❌ 步骤2超时: 会话初始化超时")
+                return False
+            except Exception as e:
+                logger.error(f"❌ 步骤2失败: 会话初始化异常: {e}")
+                return False
+
+            # 步骤3: 连接验证
+            logger.info(f"📋 连接步骤3: 连接验证...")
+            try:
+                async with asyncio.timeout(timeout * 0.3):  # 30%时间给步骤3
+                    # 验证连接是否有效
+                    if await self._validate_new_connection(target_server, client):
+                        step3_time = time.time() - start_time
+                        logger.info(f"✅ 步骤3完成: 连接验证成功，耗时: {step3_time:.2f}秒")
+                    else:
+                        logger.error(f"❌ 步骤3失败: 连接验证失败")
+                        return False
+            except asyncio.TimeoutError:
+                logger.error(f"❌ 步骤3超时: 连接验证超时")
+                return False
+            except Exception as e:
+                logger.error(f"❌ 步骤3失败: 连接验证异常: {e}")
+                return False
+
+            total_time = time.time() - start_time
+            logger.info(f"🎉 所有连接步骤完成，总耗时: {total_time:.2f}秒")
+            return True
+
+        except Exception as e:
+            logger.error(f"💥 连接过程诊断时发生异常: {e}")
+            return False
+
+    async def _final_diagnosis(self, target_server: str, error: Exception):
+        """连接失败后的最终诊断"""
+        try:
+            logger.info(f"🔍 执行最终诊断...")
+
+            # 检查服务器是否还在运行
+            from app.services.mcp_manager import mcp_manager
+            if target_server in mcp_manager.servers:
+                server_status = mcp_manager.servers[target_server]
+                logger.info(f"📊 最终状态检查: running={server_status.running}, "
+                           f"error_message={server_status.error_message}")
+
+            # 记录错误类型和建议
+            error_type = type(error).__name__
+            logger.info(f"📊 错误类型: {error_type}")
+
+            if "timeout" in str(error).lower():
+                logger.warning(f"💡 建议: 检查网络连接、增加超时时间、或检查服务器响应速度")
+            elif "connection" in str(error).lower():
+                logger.warning(f"💡 建议: 检查服务器进程状态、端口配置、或防火墙设置")
+            elif "protocol" in str(error).lower():
+                logger.warning(f"💡 建议: 检查MCP协议版本兼容性、或服务器配置")
+            else:
+                logger.warning(f"💡 建议: 检查服务器日志、环境变量、或配置参数")
+
+        except Exception as e:
+            logger.error(f"❌ 最终诊断时出错: {e}")
+
+    async def _validate_existing_connection(self, target_server: str, client: Any) -> bool:
+        """验证现有连接是否有效"""
+        try:
+            if client is None:
+                return False
+
+            # 检查客户端是否有必要的方法
+            if not hasattr(client, 'session') or not client.session:
+                return False
+
+            # 尝试获取工具列表来验证连接
+            try:
+                if hasattr(client.session, 'list_tools'):
+                    tools = await asyncio.wait_for(
+                        client.session.list_tools(),
+                        timeout=5.0
+                    )
+                    return tools is not None and len(tools) > 0
+                else:
+                    # 如果没有list_tools方法，假设连接有效
+                    return True
+            except Exception:
+                return False
+
+        except Exception as e:
+            logger.error(f"验证现有连接时出错: {target_server}, 错误: {e}")
+            return False
+
+    async def _validate_new_connection(self, target_server: str, client: Any) -> bool:
+        """验证新创建的连接是否有效"""
+        try:
+            if client is None:
+                return False
+
+            # 检查客户端是否有必要的方法
+            if not hasattr(client, 'session') or not client.session:
+                return False
+
+            # 尝试获取工具列表来验证连接
+            try:
+                if hasattr(client.session, 'list_tools'):
+                    tools = await asyncio.wait_for(
+                        client.session.list_tools(),
+                        timeout=5.0
+                    )
+                    return tools is not None and len(tools) > 0
+                else:
+                    # 如果没有list_tools方法，假设连接有效
+                    return True
+            except Exception:
+                return False
+
+        except Exception as e:
+            logger.error(f"验证新连接时出错: {target_server}, 错误: {e}")
+            return False
+
+    async def _cleanup_connection(self, target_server: str):
+        """清理指定服务器的连接"""
+        try:
+            if target_server in self._connection_pool:
+                client = self._connection_pool[target_server]
+
+                # 尝试关闭客户端连接
+                try:
+                    if hasattr(client, 'close'):
+                        await client.close()
+                    elif hasattr(client, 'disconnect'):
+                        await client.disconnect()
+                    elif hasattr(client, '__aexit__'):
+                        await client.__aexit__(None, None, None)
+                except Exception as close_error:
+                    logger.warning(f"关闭客户端连接时出错: {target_server}, 错误: {close_error}")
+
+                # 从连接池中移除
+                del self._connection_pool[target_server]
+                logger.info(f"已清理连接: {target_server}")
+        except Exception as e:
+            logger.error(f"清理连接时出错: {target_server}, 错误: {e}")
 
     async def _find_existing_process(self, target_server: str, server_config: dict) -> Optional[int]:
         """
@@ -709,8 +1041,16 @@ class MCPClientWrapper:
             timeout: 连接超时时间
         """
         try:
-            # 直接调用连接，不使用asyncio.wait_for包装
-            await client.connect(target_server)
+            # 使用超时包装连接过程，防止无限等待
+            logger.info(f"开始连接到MCP服务器 {target_server}，超时设置: {timeout}秒")
+            await asyncio.wait_for(
+                client.connect(target_server),
+                timeout=timeout
+            )
+            logger.info(f"成功连接到MCP服务器 {target_server}")
+        except asyncio.TimeoutError:
+            logger.error(f"连接到MCP服务器 {target_server} 超时 ({timeout}秒)")
+            raise RuntimeError(f"连接超时: {timeout}秒")
         except Exception as e:
             # 如果连接失败，记录详细错误信息
             logger.error(f"连接到MCP服务器 {target_server} 失败: {e}")
@@ -880,8 +1220,14 @@ class MCPClientWrapper:
             # 实际尝试建立连接
             logger.info(f"尝试连接到运行中的服务器: {target_server} (PID: {pid})")
             try:
-                # 创建客户端连接
-                client = await self._create_client_connection(target_server, attempt=0)
+                # 创建客户端连接，添加超时控制
+                connection_timeout = self._get_server_timeout(target_server, 'connection')
+                logger.info(f"连接超时设置: {connection_timeout}秒")
+
+                client = await asyncio.wait_for(
+                    self._create_client_connection(target_server, attempt=0),
+                    timeout=connection_timeout
+                )
 
                 # 验证连接是否有效
                 if await self._validate_new_connection(target_server, client):
@@ -903,6 +1249,15 @@ class MCPClientWrapper:
                         "client": None
                     }
 
+            except asyncio.TimeoutError:
+                logger.error(f"连接到运行中服务器超时 {target_server}: {connection_timeout}秒")
+                return {
+                    "success": False,
+                    "message": f"连接超时: {connection_timeout}秒",
+                    "error": "CONNECTION_TIMEOUT",
+                    "pid": pid,
+                    "client": None
+                }
             except Exception as conn_e:
                 logger.warning(f"连接到运行中服务器失败 {target_server}: {conn_e}")
                 return {
@@ -1367,11 +1722,9 @@ class MCPClientWrapper:
             }
 
     # @stable(tested=2025-04-30, test_script=backend/test_api.py)
-    async def execute_tool(
-        self, tool_id: str, params: Dict[str, Any], target_server: Optional[str] = None
-    ) -> Dict[str, Any]:
+    async def execute_tool(self, tool_id: str, params: Dict[str, Any], target_server: Optional[str] = None) -> Dict[str, Any]:
         """
-        执行MCP工具
+        执行工具 (通过MCP客户端代理)
 
         Args:
             tool_id: 工具ID
@@ -1381,156 +1734,201 @@ class MCPClientWrapper:
         Returns:
             执行结果
         """
+        # 生成MCP客户端追踪ID
+        mcp_id = str(uuid.uuid4())[:8]
+        start_time = time.time()
+
+        logger.info(f"[{mcp_id}] 🚀 MCP_CLIENT: 开始执行工具: {tool_id}")
+        logger.info(f"[{mcp_id}] 📋 执行参数: target_server={target_server}, params={params}")
+
+        # 确定目标服务器
         if not target_server:
-            target_server = 'amap-maps'  # 默认使用amap-maps
-
-        try:
-            from app.services.mcp_manager import mcp_manager
-
-            # 检查MCP服务器是否运行
-            server_status = mcp_manager.get_server_status(target_server)
-            if not server_status or not server_status.running:
+            if not self.server_configs:
+                logger.error(f"[{mcp_id}] ❌ 没有可用的MCP服务器配置")
                 return {
                     "tool_id": tool_id,
                     "success": False,
-                    "error": {"message": f"MCP服务器 {target_server} 未运行"}
+                    "error": {
+                        "code": "MCP_NO_SERVERS_CONFIGURED",
+                        "message": "没有可用的MCP服务器配置"
+                    }
+                }
+            target_server = next(iter(self.server_configs))
+            logger.debug(f"[{mcp_id}] 🔄 未指定目标服务器，将使用默认服务器: {target_server}")
+
+        # 使用连接池获取或创建客户端实例
+        try:
+            logger.info(f"[{mcp_id}] 🔄 步骤1: 获取或创建MCP客户端连接...")
+            client_start = time.time()
+
+            # 检查目标服务器状态
+            logger.info(f"[{mcp_id}] 📋 检查目标服务器状态: {target_server}")
+
+            client = await self._get_or_create_client(target_server)
+
+            client_time = time.time() - client_start
+            logger.info(f"[{mcp_id}] ✅ MCP客户端连接获取完成，耗时: {client_time:.4f}s")
+
+            # 检查连接后，session 是否真的存在
+            if not client or not client.session:
+                logger.error(f"[{mcp_id}] ❌ 无法执行工具 {tool_id}：未能建立到MCP服务器 '{target_server}' 的连接。")
+                logger.error(f"[{mcp_id}] 📋 连接详情: client={client}, session={getattr(client, 'session', None) if client else None}")
+                return {
+                    "tool_id": tool_id,
+                    "success": False,
+                    "error": {
+                        "code": "MCP_CONNECTION_FAILED",
+                        "message": f"未能连接到MCP服务器 '{target_server}'"
+                    }
                 }
 
-            logger.info(f"通过MCP管理器执行工具: {tool_id} (服务器: {target_server})")
-
-            # 使用原生MCP协议通过已存在的进程执行工具
-            # 这里需要直接与MCP服务器进程通信，而不是创建新的连接
-            result = await self._call_tool_via_manager(target_server, tool_id, params)
-
-            return result
-
-        except Exception as e:
-            logger.error(f"执行MCP工具时发生异常 {tool_id}: {e}")
-            return {
-                "tool_id": tool_id,
-                "success": False,
-                "error": {"message": f"执行异常: {e}"}
-            }
-
-    async def _call_tool_via_manager(self, target_server: str, tool_id: str, params: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        通过MCP管理器直接调用工具
-
-        Args:
-            target_server: 目标服务器名称
-            tool_id: 工具ID
-            params: 工具参数
-
-        Returns:
-            Dict[str, Any]: 执行结果
-        """
-        try:
-            import subprocess
-            import json
-            import tempfile
-
-            # 获取服务器配置
-            server_config = self.server_configs.get(target_server, {})
-            env = server_config.get('env', {})
-
-            # 创建一个简化的工具调用脚本，直接使用现有的MCP协议
-            script_content = f'''
-import asyncio
-import json
-import sys
-import os
-from mcp import ClientSession
-from mcp.client.stdio import stdio_client
-from mcp import StdioServerParameters
-
-async def call_tool():
-    try:
-        # 设置环境变量
-        env = {json.dumps(env)}
-        for key, value in env.items():
-            os.environ[key] = str(value)
-
-        # 直接连接到已存在的服务器进程
-        # 这里使用一个新的连接，但不启动新进程
-        cmd = "echo"  # 使用echo命令占位，实际不会启动新进程
-        args = ["MCP server already running"]
-
-        # 连接到MCP服务器并执行工具
-        # 这里应该使用正确的MCP协议连接到服务器
-        # 暂时返回一个通用的成功响应，避免硬编码天气信息
-        print(json.dumps({{
-            "success": True,
-            "result": {{"message": f"工具 {tool_id} 执行成功"}}
-        }}, ensure_ascii=False))
-
-    except Exception as e:
-        print(json.dumps({{
-            "success": False,
-            "error": {{"message": str(e)}}
-        }}, ensure_ascii=False))
-
-if __name__ == "__main__":
-    asyncio.run(call_tool())
-'''
-
-            # 写入临时脚本
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
-                script_path = f.name
-                f.write(script_content)
-
+            # 验证连接健康状态
+            logger.info(f"[{mcp_id}] 🔄 验证MCP连接健康状态...")
             try:
-                # 执行脚本
-                import sys
-                result = subprocess.run(
-                    [sys.executable, script_path],
-                    capture_output=True,
-                    text=True,
-                    timeout=30,
-                    env={**os.environ, **env}
-                )
-
-                if result.returncode == 0:
-                    # 解析输出
-                    output_lines = result.stdout.strip().split('\n')
-                    for line in output_lines:
-                        if line.startswith('{'):
-                            try:
-                                data = json.loads(line)
-                                return {
-                                    "tool_id": tool_id,
-                                    "success": data.get("success", False),
-                                    "result": data.get("result", {}),
-                                    "error": data.get("error", {})
-                                }
-                            except json.JSONDecodeError:
-                                continue
-
-                    return {
-                        "tool_id": tool_id,
-                        "success": False,
-                        "error": {"message": "无法解析工具执行结果"}
-                    }
+                # 简单的连接健康检查
+                if hasattr(client.session, 'list_tools'):
+                    tools = await asyncio.wait_for(
+                        client.session.list_tools(),
+                        timeout=5.0
+                    )
+                    logger.info(f"[{mcp_id}] ✅ 连接健康检查通过，可用工具数量: {len(tools) if tools else 0}")
                 else:
-                    return {
-                        "tool_id": tool_id,
-                        "success": False,
-                        "error": {"message": f"工具执行失败: {result.stderr}"}
-                    }
+                    logger.warning(f"[{mcp_id}] ⚠️  无法进行连接健康检查，session缺少list_tools方法")
+            except Exception as health_check_error:
+                logger.warning(f"[{mcp_id}] ⚠️  连接健康检查失败: {health_check_error}")
 
-            finally:
-                # 清理临时文件
-                try:
-                    os.unlink(script_path)
-                except:
-                    pass
+            # 直接调用 call_tool
+            logger.info(f"[{mcp_id}] 🔄 步骤2: 准备通过MCP客户端 ('{target_server}') 执行工具: tool={tool_id}")
+            logger.info(f"[{mcp_id}] 📋 工具参数: {params}")
 
-        except Exception as e:
-            logger.error(f"通过管理器调用工具时出错: {e}")
-            return {
+            # 直接调用 MCPClient 的 session 的 call_tool 方法，添加120秒超时
+            logger.info(f"[{mcp_id}] 🚀 开始调用MCP工具，超时设置: 120秒...")
+            tool_call_start = time.time()
+
+            tool_result = await asyncio.wait_for(
+                client.session.call_tool(tool_id, params),
+                timeout=120.0
+            )
+
+            tool_call_time = time.time() - tool_call_start
+            logger.info(f"[{mcp_id}] ✅ MCP工具调用完成，耗时: {tool_call_time:.4f}s")
+
+            # 提取结果内容
+            logger.info(f"[{mcp_id}] 🔄 步骤3: 处理MCP工具返回结果...")
+            result_process_start = time.time()
+
+            if hasattr(tool_result, 'content'):
+                if hasattr(tool_result.content, 'text'):
+                    response_content = tool_result.content.text
+                elif isinstance(tool_result.content, list) and len(tool_result.content) > 0:
+                    # 处理内容列表
+                    content_parts = []
+                    for item in tool_result.content:
+                        if hasattr(item, 'text'):
+                            content_parts.append(item.text)
+                        else:
+                            content_parts.append(str(item))
+                    response_content = '\n'.join(content_parts)
+                else:
+                    response_content = str(tool_result.content)
+            else:
+                response_content = str(tool_result)
+
+            result_process_time = time.time() - result_process_start
+            logger.info(f"[{mcp_id}] ✅ 结果处理完成，耗时: {result_process_time:.4f}s")
+            logger.info(f"[{mcp_id}] 📋 响应内容长度: {len(response_content)} 字符")
+
+            result = {
+                "tool_id": tool_id,
+                "success": True,
+                "result": {
+                    "message": response_content
+                }
+            }
+
+            total_time = time.time() - start_time
+            logger.info(f"[{mcp_id}] 🎯 MCP_CLIENT: 工具执行成功完成，总耗时: {total_time:.4f}s")
+            logger.info(f"[{mcp_id}] 📊 成功响应: success={result['success']}")
+
+        except asyncio.TimeoutError as e:
+            tool_call_time = time.time() - tool_call_start if 'tool_call_start' in locals() else 0
+            total_time = time.time() - start_time
+
+            logger.error(f"[{mcp_id}] ⏰ TIMEOUT: MCP客户端执行工具超时: tool={tool_id} (120秒)")
+            logger.error(f"[{mcp_id}] 📊 超时详情: 工具调用耗时={tool_call_time:.4f}s, 总耗时={total_time:.4f}s")
+
+            # 使用错误分类器进行精确分类
+            error_type = MCPErrorClassifier.classify_error("tool execution timeout", asyncio.TimeoutError)
+            user_message = MCPErrorClassifier.get_user_friendly_message(error_type, f"工具 {tool_id} 执行超时 (120秒)")
+
+            result = {
                 "tool_id": tool_id,
                 "success": False,
-                "error": {"message": f"管理器调用失败: {e}"}
+                "error": {
+                    "code": error_type.value,
+                    "type": error_type.name,
+                    "message": user_message,
+                    "original_error": str(e)
+                }
             }
+        except Exception as e:
+            tool_call_time = time.time() - tool_call_start if 'tool_call_start' in locals() else 0
+            total_time = time.time() - start_time
+
+            logger.error(f"[{mcp_id}] 💥 MCP客户端执行工具失败: tool={tool_id}, error={e}")
+            logger.error(f"[{mcp_id}] 📊 错误详情: 工具调用耗时={tool_call_time:.4f}s, 总耗时={total_time:.4f}s", exc_info=True)
+
+            # 使用错误分类器进行精确分类
+            error_type = MCPErrorClassifier.classify_error(str(e), type(e))
+            user_message = MCPErrorClassifier.get_user_friendly_message(error_type, str(e))
+
+            # 智能连接清理：根据错误类型决定是否清理连接
+            connection_related_errors = {
+                MCPErrorType.CONNECTION_FAILED,
+                MCPErrorType.CONNECTION_LOST,
+                MCPErrorType.CONNECTION_REFUSED,
+                MCPErrorType.CONNECTION_TIMEOUT,
+                MCPErrorType.SERVER_CRASHED,
+                MCPErrorType.PROCESS_CRASHED
+            }
+
+            should_cleanup_connection = error_type in connection_related_errors
+
+            if should_cleanup_connection and target_server in self._connection_pool:
+                try:
+                    await self._connection_pool[target_server].close()
+                except Exception as cleanup_error:
+                    logger.debug(f"清理连接时出错: {cleanup_error}")
+                del self._connection_pool[target_server]
+                logger.info(f"由于{error_type.name}错误，已从连接池中移除连接: {target_server}")
+
+                # 同时清理进程管理记录
+                async with self._process_lock:
+                    if target_server in self._managed_processes:
+                        managed_info = self._managed_processes[target_server]
+                        logger.warning(f"工具执行失败，清理进程管理记录 (PID: {managed_info['pid']}): {target_server}")
+                        del self._managed_processes[target_server]
+            else:
+                logger.debug(f"保留连接池中的连接，错误类型为{error_type.name}，可能是临时的: {target_server}")
+
+            result = {
+                "tool_id": tool_id,
+                "success": False,
+                "error": {
+                    "code": error_type.value,
+                    "type": error_type.name,
+                    "message": user_message,
+                    "original_error": str(e),
+                    "should_retry": error_type not in {
+                        MCPErrorType.TOOL_NOT_FOUND,
+                        MCPErrorType.TOOL_INVALID_PARAMS,
+                        MCPErrorType.CONFIG_INVALID,
+                        MCPErrorType.PROCESS_PERMISSION_DENIED
+                    }
+                }
+            }
+
+        return result
 
     def check_server_exists(self, server_name: str) -> bool:
         """
@@ -1677,6 +2075,171 @@ if __name__ == "__main__":
             except Exception as e:
                 logger.warning(f"关闭MCP服务器连接时出错 {server_name}: {e}")
         self._connection_pool.clear()
+
+    async def diagnose_connection(self, target_server: str) -> dict:
+        """
+        MCP连接诊断工具，帮助调试连接问题
+
+        Args:
+            target_server: 目标服务器名称
+
+        Returns:
+            dict: 诊断结果
+        """
+        diagnosis_id = str(uuid.uuid4())[:8]
+        start_time = time.time()
+
+        logger.info(f"[{diagnosis_id}] 🔍 MCP连接诊断开始: {target_server}")
+
+        diagnosis_result = {
+            "server_name": target_server,
+            "timestamp": time.time(),
+            "diagnosis_id": diagnosis_id,
+            "steps": [],
+            "summary": "",
+            "recommendations": []
+        }
+
+        try:
+            # 步骤1: 检查服务器配置
+            logger.info(f"[{diagnosis_id}] 🔄 步骤1: 检查服务器配置...")
+            if target_server in self.server_configs:
+                config = self.server_configs[target_server]
+                step_result = {
+                    "step": "config_check",
+                    "status": "success",
+                    "details": f"找到服务器配置: {config.get('description', 'N/A')}"
+                }
+                logger.info(f"[{diagnosis_id}] ✅ 服务器配置检查通过")
+            else:
+                step_result = {
+                    "step": "config_check",
+                    "status": "failed",
+                    "details": "未找到服务器配置"
+                }
+                diagnosis_result["recommendations"].append("检查MCP服务器配置文件")
+                logger.error(f"[{diagnosis_id}] ❌ 未找到服务器配置: {target_server}")
+
+            diagnosis_result["steps"].append(step_result)
+
+            # 步骤2: 检查进程状态
+            logger.info(f"[{diagnosis_id}] 🔄 步骤2: 检查进程状态...")
+            try:
+                from app.services.mcp_manager import mcp_manager
+                server_status = mcp_manager.get_server_status(target_server)
+
+                if server_status and server_status.running:
+                    step_result = {
+                        "step": "process_check",
+                        "status": "success",
+                        "details": f"进程运行中，PID: {server_status.process_info.get('pid', 'N/A') if server_status.process_info else 'N/A'}"
+                    }
+                    logger.info(f"[{diagnosis_id}] ✅ 进程状态检查通过")
+                else:
+                    step_result = {
+                        "step": "process_check",
+                        "status": "failed",
+                        "details": "进程未运行或状态异常"
+                    }
+                    diagnosis_result["recommendations"].append("重启MCP服务器")
+                    logger.warning(f"[{diagnosis_id}] ⚠️  进程状态异常")
+            except Exception as e:
+                step_result = {
+                    "step": "process_check",
+                    "status": "error",
+                    "details": f"检查进程状态时出错: {str(e)}"
+                }
+                logger.error(f"[{diagnosis_id}] 💥 进程状态检查失败: {e}")
+
+            diagnosis_result["steps"].append(step_result)
+
+            # 步骤3: 尝试建立连接
+            logger.info(f"[{diagnosis_id}] 🔄 步骤3: 尝试建立连接...")
+            try:
+                connection_timeout = self._get_server_timeout(target_server, 'connection')
+                logger.info(f"[{diagnosis_id}] 📋 连接超时设置: {connection_timeout}秒")
+
+                client = await asyncio.wait_for(
+                    self._create_client_connection(target_server, attempt=0),
+                    timeout=connection_timeout
+                )
+
+                if client and hasattr(client, 'session') and client.session:
+                    step_result = {
+                        "step": "connection_test",
+                        "status": "success",
+                        "details": f"连接成功，session存在"
+                    }
+                    logger.info(f"[{diagnosis_id}] ✅ 连接测试通过")
+
+                    # 测试工具列表
+                    try:
+                        tools = await asyncio.wait_for(
+                            client.session.list_tools(),
+                            timeout=5.0
+                        )
+                        step_result["details"] += f"，可用工具数量: {len(tools) if tools else 0}"
+                    except Exception as tool_error:
+                        step_result["details"] += f"，工具列表获取失败: {str(tool_error)}"
+
+                else:
+                    step_result = {
+                        "step": "connection_test",
+                        "status": "failed",
+                        "details": "连接失败或session无效"
+                    }
+                    diagnosis_result["recommendations"].append("检查MCP服务器是否正常响应")
+                    logger.error(f"[{diagnosis_id}] ❌ 连接测试失败")
+
+            except asyncio.TimeoutError:
+                step_result = {
+                    "step": "connection_test",
+                    "status": "timeout",
+                    "details": f"连接超时 ({connection_timeout}秒)"
+                }
+                diagnosis_result["recommendations"].append("增加连接超时时间或检查网络")
+                logger.error(f"[{diagnosis_id}] ⏰ 连接测试超时")
+            except Exception as e:
+                step_result = {
+                    "step": "connection_test",
+                    "status": "error",
+                    "details": f"连接测试出错: {str(e)}"
+                }
+                diagnosis_result["recommendations"].append("检查MCP服务器配置和网络")
+                logger.error(f"[{diagnosis_id}] 💥 连接测试出错: {e}")
+
+            diagnosis_result["steps"].append(step_result)
+
+            # 生成诊断总结
+            successful_steps = sum(1 for step in diagnosis_result["steps"] if step["status"] == "success")
+            total_steps = len(diagnosis_result["steps"])
+
+            if successful_steps == total_steps:
+                diagnosis_result["summary"] = "所有检查通过，连接正常"
+            elif successful_steps > 0:
+                diagnosis_result["summary"] = f"部分检查通过 ({successful_steps}/{total_steps})，存在潜在问题"
+            else:
+                diagnosis_result["summary"] = "所有检查失败，连接异常"
+
+            total_time = time.time() - start_time
+            logger.info(f"[{diagnosis_id}] 🎯 MCP连接诊断完成，总耗时: {total_time:.4f}s")
+            logger.info(f"[{diagnosis_id}] 📊 诊断结果: {diagnosis_result['summary']}")
+
+            return diagnosis_result
+
+        except Exception as e:
+            total_time = time.time() - start_time
+            logger.error(f"[{diagnosis_id}] 💥 MCP连接诊断过程中发生错误，总耗时: {total_time:.4f}s", exc_info=True)
+
+            diagnosis_result["steps"].append({
+                "step": "diagnosis_error",
+                "status": "error",
+                "details": f"诊断过程出错: {str(e)}"
+            })
+            diagnosis_result["summary"] = "诊断过程出错"
+            diagnosis_result["recommendations"].append("检查系统日志获取更多信息")
+
+            return diagnosis_result
 
 # 创建全局MCP客户端实例
 mcp_client = MCPClientWrapper()
