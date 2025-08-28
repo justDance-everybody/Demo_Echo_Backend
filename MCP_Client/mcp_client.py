@@ -28,10 +28,15 @@ class MCPClient:
         self.server_configs: Dict[str, Dict] = {}
         self.session: Optional[ClientSession] = None
         self.tools: List = []
+        # 加载配置文件
         path = os.getenv("MCP_SERVERS_PATH", "config/mcp_servers.json")
         with open(path, encoding='utf-8') as f:
-            self.server_configs = json.load(f).get("mcpServers", {})
-        print(f"已加载 {len(self.server_configs)} 个 MCP 服务器配置。")
+            config_data = json.load(f)
+            self.server_configs = config_data.get("mcpServers", {})
+            # 从配置文件读取连接超时设置
+            connection_config = config_data.get("connection", {})
+            self.connection_timeout = float(connection_config.get("timeout", 30.0))
+        print(f"已加载 {len(self.server_configs)} 个 MCP 服务器配置，连接超时: {self.connection_timeout}秒")
 
     async def connect(self, name: str):
         cfg = self.server_configs.get(name)
@@ -71,7 +76,7 @@ class MCPClient:
                 self.exit_stack.enter_async_context(
                     stdio_client(StdioServerParameters(command=cmd, args=args, env=env))
                 ),
-                timeout=5.0  # 减少到5秒，快速失败
+                timeout=self.connection_timeout
             )
             step1_time = time.time()
             print(f"✅ 步骤 1 完成，耗时: {step1_time - start_time:.2f}秒")
@@ -81,23 +86,23 @@ class MCPClient:
                 self.exit_stack.enter_async_context(
                     ClientSession(reader, writer)
                 ),
-                timeout=5.0
+                timeout=self.connection_timeout
             )
             step2_time = time.time()
             print(f"✅ 步骤 2 完成，耗时: {step2_time - step1_time:.2f}秒")
             
             print(f"🔧 开始连接步骤 3: 会话初始化...")
-            await asyncio.wait_for(self.session.initialize(), timeout=5.0)
+            await asyncio.wait_for(self.session.initialize(), timeout=self.connection_timeout)
             step3_time = time.time()
             print(f"✅ 步骤 3 完成，耗时: {step3_time - step2_time:.2f}秒")
             
             print(f"🔧 开始连接步骤 4: 获取工具列表...")
-            resp = await asyncio.wait_for(self.session.list_tools(), timeout=5.0)
+            resp = await asyncio.wait_for(self.session.list_tools(), timeout=self.connection_timeout)
             step4_time = time.time()
             print(f"✅ 步骤 4 完成，耗时: {step4_time - step3_time:.2f}秒")
             print(f"🎉 总连接时间: {step4_time - start_time:.2f}秒")
         except asyncio.TimeoutError:
-            timeout_msg = f"连接到 MCP 服务器 {name} 超时 (5秒)"
+            timeout_msg = f"连接到 MCP 服务器 {name} 超时 ({self.connection_timeout}秒)"
             if existing_process:
                 timeout_msg += f" (尝试复用进程 PID: {existing_process} 失败)"
             print(timeout_msg)
