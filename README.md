@@ -399,11 +399,7 @@ devuser_5090@echo-ai> 转账0.001个SOL到指定地址
 /debug                   # 切换调试模式
 /quit 或 /exit          # 退出程序
 
-# 测试账号
-普通用户: testuser_5090 / 8lpcUY2BOt
-开发者:   devuser_5090 / mryuWTGdMk  
-管理员:   adminuser_5090 / SAKMRtxCjT
-```
+
 
 #### 调试模式
 
