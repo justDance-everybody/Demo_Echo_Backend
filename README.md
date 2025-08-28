@@ -24,40 +24,26 @@ Echo是一个基于Python(FastAPI)后端和React前端的智能语音AI-Agent开
 ## 项目结构
 ```
 project/
-├── backend/               # 后端服务
-│   ├── alembic/           # 数据库迁移
-│   ├── app/               # 应用主目录
-│   │   ├── clients/       # 第三方客户端封装
-│   │   ├── controllers/   # 控制器
-│   │   ├── models/        # 数据库模型
-│   │   ├── routers/       # API路由
-│   │   ├── schemas/       # 数据验证模型
-│   │   ├── services/      # 业务逻辑
-│   │   ├── utils/         # 工具函数
-│   │   ├── config.py      # 配置管理
-│   │   └── main.py        # 应用入口
-│   ├── logs/              # 日志文件
-│   ├── scripts/           # 辅助脚本
-│   ├── tests/             # 测试代码
-│   ├── .env.example       # 环境变量示例
-│   └── requirements.txt   # 依赖包列表
-├── frontend/              # 前端项目
-│   ├── public/            # 静态资源
-│   ├── src/               # 源代码
-│   │   ├── components/    # UI组件
-│   │   ├── contexts/      # React上下文
-│   │   ├── hooks/         # 自定义钩子
-│   │   ├── pages/         # 页面组件
-│   │   ├── services/      # API服务
-│   │   ├── styles/        # 样式文件
-│   │   └── utils/         # 工具函数
-│   └── package.json       # 依赖配置
-├── MCP_Client/            # MCP客户端（Python）
-│   ├── config/            # MCP配置
-│   └── src/               # MCP客户端源码
-├── docs/                  # 项目文档
-├── logs/                  # 项目日志
-└── .env.example           # 环境变量示例
+├── .env                   # 统一环境变量配置 (被 .gitignore 忽略)
+├── .env.example           # 环境变量配置模板
+├── README.md              # 项目总览和详细说明
+├── backend/               # 后端服务目录
+│   ├── app/
+│   │   ├── config.py      # 配置加载 (从根目录 .env 读取)
+│   │   ├── main.py        # FastAPI 应用入口
+│   │   └── ...            # 其他模块 (routers, services, models, utils)
+│   ├── alembic/           # 数据库迁移工具
+│   ├── requirements.txt   # Python依赖
+│   └── start-backend.sh   # 后端启动脚本
+├── MCP_Client/            # MCP客户端目录
+│   ├── config/
+│   │   └── mcp_servers.json # MCP服务器配置 (被 .gitignore 忽略)
+│   ├── mcp_client.py      # MCP客户端核心逻辑
+│   ├── standalone_tool_call.py # 独立工具调用脚本
+│   └── ...                # 其他MCP相关文件
+├── MCP_server/            # MCP服务器实现
+└── docs/                  # 文档目录
+    └── 后端开发文档.md
 ```
 
 ## 安装与配置
@@ -88,32 +74,7 @@ venv\Scripts\activate  # Windows
 pip install -r requirements.txt
 ```
 
-4. 配置环境变量（统一配置）
-```bash
-# 在项目根目录复制环境变量模板
-cp .env.example .env
-
-# 编辑根目录的.env文件，设置您的实际配置
-vim .env
-```
-
-**重要**：所有环境变量配置已统一到项目根目录的`.env`文件中，包括：
-
-**必填配置**：
-- `DATABASE_URL` - MySQL数据库连接字符串
-- `LLM_API_KEY` - LLM服务API密钥（支持OpenAI兼容接口）
-- `LLM_API_BASE` - LLM服务端点URL
-- `LLM_MODEL` - 使用的模型名称
-
-**可选配置**：
-- JWT认证配置（会自动生成安全密钥）
-- MCP客户端配置
-- 测试账号配置
-- 第三方服务配置（OpenAI、Solana等）
-
-详细配置说明请参考：[后端开发文档](docs/后端开发文档.md)
-
-## 🔧 **详细配置指南**
+## 🔧 **环境配置指南**
 
 ### 📄 **环境变量配置 (.env)**
 
@@ -163,12 +124,12 @@ JWT_ALGORITHM="HS256"
 JWT_EXPIRATION=10080
 
 # 测试账号配置 (可选，用于测试)
-TEST_DEVELOPER_USERNAME="devuser_5090"
-TEST_DEVELOPER_PASSWORD="mryuWTGdMk"
-TEST_USER_USERNAME="testuser_5090"
-TEST_USER_PASSWORD="8lpcUY2BOt"
-TEST_ADMIN_USERNAME="adminuser_5090"
-TEST_ADMIN_PASSWORD="SAKMRtxCjT"
+TEST_DEVELOPER_USERNAME=""
+TEST_DEVELOPER_PASSWORD=""
+TEST_USER_USERNAME=""
+TEST_USER_PASSWORD=""
+TEST_ADMIN_USERNAME=""
+TEST_ADMIN_PASSWORD=""
 ```
 
 ### 🌐 **MCP服务器配置 (mcp_servers.json)**
@@ -228,27 +189,10 @@ vim MCP_Client/config/mcp_servers.json
 - **高德地图API**: [https://console.amap.com](https://console.amap.com) 注册申请
 - **MiniMax API**: [https://www.minimaxi.com](https://www.minimaxi.com) 申请开发者账号
 
-5. 数据库迁移
+4. 数据库迁移
 ```bash
 cd backend
 alembic upgrade head
-```
-
-### 前端安装与配置
-1. 进入前端目录
-```bash
-cd project/frontend
-```
-
-2. 安装依赖
-```bash
-npm install
-```
-
-3. 配置环境变量
-```bash
-cp .env.example .env
-# 编辑.env文件，设置API路径等
 ```
 
 ### MCP_Client 配置
@@ -284,41 +228,7 @@ pip install git+https://github.com/modelcontextprotocol/python-sdk.git
 
 #### MCP服务器配置
 
-创建`MCP_Client/config/mcp_servers.json`文件，添加MCP服务器配置：
-
-```json
-{
-  "mcpServers": {
-    "minimax-mcp-js": {
-      "name": "MiniMax API",
-      "description": "提供MiniMax语音大语言模型接口",
-      "command": "npx",
-      "args": ["minimax-mcp-js"],
-      "env": {
-        "MINIMAX_API_KEY": "your_minimax_api_key_here"
-      },
-      "enabled": true
-    },
-    "amap-maps": {
-      "name": "高德地图API", 
-      "description": "提供高德地图服务和位置信息",
-      "command": "npx",
-      "args": ["-y", "@amap/amap-maps-mcp-server"],
-      "env": {
-        "AMAP_MAPS_API_KEY": "your_amap_api_key_here"
-      },
-      "enabled": true
-    }
-  },
-  "connection": {
-    "timeout": 30,
-    "retry": {
-      "attempts": 3,
-      "delay": 2
-    }
-  }
-}
-```
+创建`MCP_Client/config/mcp_servers.json`文件（参考前面的详细配置示例）。
 
 **注意**：`mcp_servers.json`文件包含敏感的API密钥，已被添加到`.gitignore`中，需要手动创建和配置。
 
@@ -397,7 +307,24 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 3000
 uvicorn app.main:app --host 0.0.0.0 --port 3000
 ```
 
-### 方法三：验证服务状态
+### 方法三：启动前端服务（可选）
+
+```bash
+# 开发模式（Mock数据，无需后端）
+./start-frontend.sh start dev
+
+# 生产模式（自动检测后端进程）
+./start-frontend.sh start prod
+
+# 查看状态和日志
+./start-frontend.sh status
+./start-frontend.sh logs
+
+# 停止服务
+./start-frontend.sh stop
+```
+
+### 方法四：验证服务状态
 
 ```bash
 # 检查后端健康状态
@@ -492,58 +419,7 @@ devuser_5090@echo-ai> /debug
 ℹ️ 现在将显示详细的HTTP请求/响应日志和MCP工具执行过程
 ```
 
-## 启动服务
 
-### 启动后端服务
-```bash
-cd backend
-# 开发模式（自动重载）
-uvicorn app.main:app --reload --host 0.0.0.0 --port 3000
-
-# 生产模式
-uvicorn app.main:app --host 0.0.0.0 --port 3000
-```
-
-### 使用PM2启动（生产环境推荐）
-```bash
-# 安装PM2 (需要Node.js)
-npm install -g pm2
-
-# 使用项目根目录的启动脚本
-cd project
-pm2 start ecosystem.config.js
-# 或使用start-pm2.sh脚本
-./start-pm2.sh
-```
-
-### 启动前端服务
-
-```bash
-# 开发模式（Mock数据，无需后端）
-./start-frontend.sh start dev
-
-# 生产模式（自动检测后端进程）
-./start-frontend.sh start prod
-
-# 查看状态和日志
-./start-frontend.sh status
-./start-frontend.sh logs
-
-# 停止服务
-./start-frontend.sh stop
-
-# 查看帮助
-./start-frontend.sh help
-```
-
-**核心特性：** 智能后端检测、自动端口分配、多模式启动、实时监控
-
-### 直接启动MCP_Client（可选）
-```bash
-cd MCP_Client
-# 启动并连接到指定MCP服务器
-python src/mcp/client/main.py <path_to_server_script>
-```
 
 ## 核心API接口
 
@@ -611,7 +487,6 @@ HTTP工具允许系统调用外部HTTP API来执行操作。目前支持以下�
 详细的开发指南请参考：
 - [后端开发文档](docs/后端开发文档.md) - 后端开发者专用
 - [前后端对接与API规范](docs/前后端对接与API规范.md) - 前端开发者必读
-- [前端开发文档](docs/前端开发文档.md) - 前端开发指南
 
 ## 🔍 **测试与调试**
 
@@ -752,7 +627,6 @@ netstat -tlnp | grep :3000
 
 - [前后端对接与API规范](docs/前后端对接与API规范.md) - API接口详细说明和调用示例
 - [后端开发文档](docs/后端开发文档.md) - 后端架构、服务和开发指南
-- [前端开发文档](docs/前端开发文档.md) - 前端组件和开发规范
 
 ---
 
