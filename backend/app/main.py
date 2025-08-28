@@ -10,6 +10,7 @@ from fastapi.templating import Jinja2Templates
 from loguru import logger
 from starlette.middleware.base import BaseHTTPMiddleware
 from app.routers import intent, execute, tools, auth, dev_tools, dev_apps, mcp_status
+from app.controllers import debug_controller
 from app.config import settings
 from app.utils.db import init_db
 from app.services.mcp_manager import mcp_manager
@@ -173,6 +174,7 @@ app.include_router(tools.router, prefix=settings.API_PREFIX, tags=["tools"])
 app.include_router(auth.router, prefix=settings.API_PREFIX, tags=["auth"])
 app.include_router(dev_tools.router, prefix=settings.API_PREFIX, tags=["dev-tools"])
 app.include_router(mcp_status.router, prefix=settings.API_PREFIX, tags=["mcp-status"])
+app.include_router(debug_controller.router, tags=["debug"])  # 调试接口
 # app.include_router(dev_apps.router, prefix=settings.API_PREFIX, tags=["dev-apps"])  # 已关闭DEV-APPS功能
 # app.include_router(admin.router, prefix=settings.API_PREFIX, tags=["admin"])  # admin路由暂未实现
 

@@ -200,18 +200,39 @@ class MCPClientWrapper:
                 # 通用模式：使用命令和参数
                 search_patterns = [target_server, cmd] + args
             
-            for proc in psutil.process_iter(['pid', 'cmdline']):
+            candidates = []
+            
+            for proc in psutil.process_iter(['pid', 'cmdline', 'name']):
                 try:
                     cmdline = ' '.join(proc.info['cmdline']) if proc.info['cmdline'] else ''
+                    proc_name = proc.info.get('name', '')
                     
                     # 检查是否匹配任何搜索模式
                     for pattern in search_patterns:
                         if pattern and pattern in cmdline:
-                            logger.debug(f"找到匹配进程: PID={proc.info['pid']}, cmdline={cmdline}")
-                            return proc.info['pid']
+                            candidates.append({
+                                'pid': proc.info['pid'], 
+                                'cmdline': cmdline,
+                                'name': proc_name
+                            })
+                            logger.debug(f"找到候选进程: PID={proc.info['pid']}, name={proc_name}, cmdline={cmdline}")
+                            break
                             
                 except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                     continue
+            
+            # 优先选择node进程而不是shell进程
+            if candidates:
+                # 首选node进程
+                for candidate in candidates:
+                    if 'node' in candidate['name'] or candidate['cmdline'].startswith('node'):
+                        logger.info(f"选择node进程: PID={candidate['pid']}, cmdline={candidate['cmdline']}")
+                        return candidate['pid']
+                
+                # 如果没有node进程，返回第一个候选
+                first_candidate = candidates[0]
+                logger.info(f"选择第一个候选进程: PID={first_candidate['pid']}, cmdline={first_candidate['cmdline']}")
+                return first_candidate['pid']
                     
         except Exception as e:
             logger.warning(f"检查现有进程时出错: {e}")
@@ -235,23 +256,48 @@ class MCPClientWrapper:
         if target_server in self._managed_processes:
             managed_info = self._managed_processes[target_server]
             pid = managed_info["pid"]
+            start_time = managed_info.get("start_time", time.time())
             
-            try:
-                import psutil
-                if psutil.pid_exists(pid):
-                    proc = psutil.Process(pid)
-                    if proc.is_running():
-                        logger.info(f"复用已管理的MCP进程 (PID: {pid}): {target_server}")
-                        return pid
-                    else:
-                        logger.warning(f"已管理的进程不再运行，清理记录: {target_server}")
-                        del self._managed_processes[target_server]
-                else:
-                    logger.warning(f"已管理的进程PID不存在，清理记录: {target_server}")
-                    del self._managed_processes[target_server]
-            except Exception as e:
-                logger.warning(f"检查已管理进程时出错: {e}，清理记录")
+            # 检查进程是否运行超过90分钟（5400秒）
+            process_age = time.time() - start_time
+            if process_age > 5400:  # 90分钟
+                logger.info(f"MCP进程运行超过90分钟({process_age/60:.1f}分钟)，自动清理: {target_server} (PID: {pid})")
+                try:
+                    import psutil
+                    if psutil.pid_exists(pid):
+                        proc = psutil.Process(pid)
+                        proc.terminate()
+                        logger.info(f"已终止长时间运行的MCP进程: {target_server} (PID: {pid})")
+                except Exception as e:
+                    logger.warning(f"终止长时间运行的进程时出错: {e}")
+                
+                # 清理记录
                 del self._managed_processes[target_server]
+                # 清理对应的连接池
+                if target_server in self._connection_pool:
+                    try:
+                        await self._connection_pool[target_server].close()
+                    except:
+                        pass
+                    del self._connection_pool[target_server]
+            else:
+                # 进程年龄合理，检查是否还在运行
+                try:
+                    import psutil
+                    if psutil.pid_exists(pid):
+                        proc = psutil.Process(pid)
+                        if proc.is_running():
+                            logger.info(f"复用已管理的MCP进程 (PID: {pid}, 运行{process_age/60:.1f}分钟): {target_server}")
+                            return pid
+                        else:
+                            logger.warning(f"已管理的进程不再运行，清理记录: {target_server}")
+                            del self._managed_processes[target_server]
+                    else:
+                        logger.warning(f"已管理的进程PID不存在，清理记录: {target_server}")
+                        del self._managed_processes[target_server]
+                except Exception as e:
+                    logger.warning(f"检查已管理进程时出错: {e}，清理记录")
+                    del self._managed_processes[target_server]
         
         # 2. 查找系统中现有的进程
         existing_pid = await self._find_existing_process(target_server, server_config)
@@ -493,7 +539,7 @@ class MCPClientWrapper:
     # @stable(tested=2025-04-30, test_script=backend/test_api.py)
     async def execute_tool(self, tool_id: str, params: Dict[str, Any], target_server: Optional[str] = None) -> Dict[str, Any]:
         """
-        执行工具 (通过MCP客户端代理)
+        执行工具 (通过独立subprocess调用，完全绕过异步上下文冲突)
         
         Args:
             tool_id: 工具ID
@@ -517,108 +563,140 @@ class MCPClientWrapper:
             target_server = next(iter(self.server_configs))
             logger.debug(f"未指定目标服务器，将使用默认服务器: {target_server}")
 
-        # 使用连接池获取或创建客户端实例
         try:
-            client = await self._get_or_create_client(target_server)
+            params_json = json.dumps(params, ensure_ascii=False)
+            logger.info(f"🚀 通过独立进程调用MCP工具: {target_server}.{tool_id}")
+            logger.debug(f"当前工作目录: {os.getcwd()}")
+            logger.debug(f"参数: {params_json}")
             
-            # 检查连接后，session 是否真的存在
-            if not client or not client.session:
-                logger.error(f"无法执行工具 {tool_id}：未能建立到MCP服务器 '{target_server}' 的连接。")
+            # 使用subprocess调用独立的MCP工具脚本
+            import subprocess
+            
+            # 准备调用参数
+            script_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 
+                "MCP_Client", "standalone_tool_call.py"
+            )
+            
+            logger.debug(f"脚本路径: {script_path}")
+            logger.debug(f"脚本存在: {os.path.exists(script_path)}")
+            
+            # 设置环境变量
+            env = os.environ.copy()
+            mcp_servers_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 
+                "MCP_Client", "config", "mcp_servers.json"
+            )
+            env.update({
+                'LLM_API_KEY': settings.LLM_API_KEY,
+                'LLM_MODEL': settings.LLM_MODEL,
+                'LLM_API_BASE': settings.LLM_API_BASE,
+                'MCP_SERVERS_PATH': mcp_servers_path
+            })
+            
+            logger.debug(f"MCP配置文件路径: {mcp_servers_path}")
+            logger.debug(f"MCP配置文件存在: {os.path.exists(mcp_servers_path)}")
+            logger.debug(f"环境变量 LLM_API_KEY: {env.get('LLM_API_KEY', 'None')[:10]}...")
+            
+            # 调用独立脚本
+            process = await asyncio.create_subprocess_exec(
+                'python3', script_path, target_server, tool_id, params_json,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                env=env,
+                cwd=os.path.join(
+                    os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 
+                    "MCP_Client"
+                )
+            )
+            
+            # 等待结果（60秒超时）
+            try:
+                stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=60.0)
+            except asyncio.TimeoutError:
+                process.kill()
+                await process.wait()
+                logger.error(f"独立MCP调用超时: {tool_id}")
                 return {
                     "tool_id": tool_id,
                     "success": False,
                     "error": {
-                        "code": "MCP_CONNECTION_FAILED",
-                        "message": f"未能连接到MCP服务器 '{target_server}'"
+                        "code": "MCP_SUBPROCESS_TIMEOUT",
+                        "message": f"独立MCP调用超时 (60秒)"
                     }
                 }
-
-            # 直接调用 call_tool
-            logger.info(f"准备通过MCP客户端 ('{target_server}') 执行工具: tool={tool_id}, params={params}")
             
-            # 直接调用 MCPClient 的 session 的 call_tool 方法，添加120秒超时
-            tool_result = await asyncio.wait_for(
-                client.session.call_tool(tool_id, params), 
-                timeout=120.0
-            )
+            # 解析结果
+            if process.returncode != 0:
+                error_msg = stderr.decode('utf-8') if stderr else "未知错误"
+                logger.error(f"独立MCP调用失败: {error_msg}")
+                return {
+                    "tool_id": tool_id,
+                    "success": False,
+                    "error": {
+                        "code": "MCP_SUBPROCESS_ERROR",
+                        "message": f"独立MCP调用失败: {error_msg}"
+                    }
+                }
             
-            # 提取结果内容
-            if hasattr(tool_result, 'content'):
-                if hasattr(tool_result.content, 'text'):
-                    response_content = tool_result.content.text
-                elif isinstance(tool_result.content, list) and len(tool_result.content) > 0:
-                    # 处理内容列表
-                    content_parts = []
-                    for item in tool_result.content:
-                        if hasattr(item, 'text'):
-                            content_parts.append(item.text)
-                        else:
-                            content_parts.append(str(item))
-                    response_content = '\n'.join(content_parts)
-                else:
-                    response_content = str(tool_result.content)
+            # 解析输出结果
+            output = stdout.decode('utf-8')
+            logger.debug(f"独立MCP调用原始输出: {output}")
+            
+            # 提取JSON结果（可能有其他输出混在一起）
+            lines = output.strip().split('\n')
+            json_result = None
+            
+            for line in reversed(lines):  # 从后往前找JSON结果
+                if line.startswith('{') and line.endswith('}'):
+                    try:
+                        json_result = json.loads(line)
+                        break
+                    except json.JSONDecodeError:
+                        continue
+            
+            if not json_result:
+                logger.error(f"无法解析独立MCP调用结果: {output}")
+                return {
+                    "tool_id": tool_id,
+                    "success": False,
+                    "error": {
+                        "code": "MCP_RESULT_PARSE_ERROR",
+                        "message": f"无法解析独立MCP调用结果"
+                    }
+                }
+            
+            if json_result.get("success"):
+                logger.info(f"✅ 独立MCP调用成功: {tool_id}")
+                return {
+                    "tool_id": tool_id,
+                    "success": True,
+                    "result": {
+                        "message": json_result.get("content", ""),
+                        "isError": json_result.get("isError", False)
+                    }
+                }
             else:
-                response_content = str(tool_result)
-                 
-            result = {
-                "tool_id": tool_id,
-                "success": True,
-                "result": {
-                    "message": response_content
+                logger.error(f"独立MCP调用业务失败: {json_result.get('error')}")
+                return {
+                    "tool_id": tool_id,
+                    "success": False,
+                    "error": {
+                        "code": "MCP_BUSINESS_ERROR",
+                        "message": json_result.get("error", "未知业务错误")
+                    }
                 }
-            }
-            logger.info(f"MCP客户端执行工具成功: tool={tool_id}")
-            
-        except asyncio.TimeoutError:
-            logger.error(f"MCP客户端执行工具超时: tool={tool_id} (120秒)")
-            result = {
-                "tool_id": tool_id,
-                "success": False,
-                "error": {
-                    "code": "MCP_EXECUTION_TIMEOUT",
-                    "message": f"工具 {tool_id} 执行超时 (120秒)，请稍后重试"
-                }
-            }
-        except Exception as e:
-            logger.error(f"MCP客户端执行工具失败: tool={tool_id}, error={e}")
-            
-            # 优化的错误处理：只在特定错误类型时清理连接
-            error_str = str(e).lower()
-            should_cleanup_connection = any([
-                "connection" in error_str,
-                "transport" in error_str,
-                "broken pipe" in error_str,
-                "connection reset" in error_str,
-                "session closed" in error_str
-            ])
-            
-            if should_cleanup_connection and target_server in self._connection_pool:
-                try:
-                    await self._connection_pool[target_server].close()
-                except:
-                    pass
-                del self._connection_pool[target_server]
-                logger.info(f"由于连接错误，已从连接池中移除连接: {target_server}")
                 
-                # 同时清理进程管理记录
-                async with self._process_lock:
-                    if target_server in self._managed_processes:
-                        managed_info = self._managed_processes[target_server]
-                        logger.warning(f"工具执行失败，清理进程管理记录 (PID: {managed_info['pid']}): {target_server}")
-                        del self._managed_processes[target_server]
-            else:
-                logger.debug(f"保留连接池中的连接，错误可能是临时的: {target_server}")
-            
-            result = {
+        except Exception as e:
+            logger.error(f"独立MCP调用系统错误: {e}")
+            return {
                 "tool_id": tool_id,
                 "success": False,
                 "error": {
-                    "code": "MCP_EXECUTION_FAILED",
-                    "message": str(e)
+                    "code": "MCP_SYSTEM_ERROR",
+                    "message": f"独立MCP调用系统错误: {e}"
                 }
             }
-        
-        return result
         
     def check_server_exists(self, server_name: str) -> bool:
         """
@@ -641,6 +719,42 @@ class MCPClientWrapper:
             except Exception as e:
                 logger.warning(f"关闭MCP服务器连接时出错 {server_name}: {e}")
         self._connection_pool.clear()
+    
+    async def cleanup_old_processes(self):
+        """清理所有超过90分钟的MCP进程"""
+        import time
+        current_time = time.time()
+        to_cleanup = []
+        
+        for server_name, managed_info in self._managed_processes.items():
+            start_time = managed_info.get("start_time", current_time)
+            process_age = current_time - start_time
+            
+            if process_age > 5400:  # 90分钟
+                to_cleanup.append(server_name)
+        
+        for server_name in to_cleanup:
+            logger.info(f"清理过期MCP进程: {server_name}")
+            managed_info = self._managed_processes[server_name]
+            pid = managed_info["pid"]
+            
+            try:
+                import psutil
+                if psutil.pid_exists(pid):
+                    proc = psutil.Process(pid)
+                    proc.terminate()
+                    logger.info(f"已终止过期MCP进程: {server_name} (PID: {pid})")
+            except Exception as e:
+                logger.warning(f"终止过期进程时出错: {e}")
+            
+            # 清理记录和连接
+            del self._managed_processes[server_name]
+            if server_name in self._connection_pool:
+                try:
+                    await self._connection_pool[server_name].close()
+                except:
+                    pass
+                del self._connection_pool[server_name]
 
 # 创建全局MCP客户端实例
 mcp_client = MCPClientWrapper()
