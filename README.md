@@ -88,19 +88,23 @@ venv\Scripts\activate  # Windows
 pip install -r requirements.txt
 ```
 
-4. 配置环境变量
+4. 配置环境变量（统一配置）
 ```bash
+# 在项目根目录配置环境变量
 cp .env.example .env
-# 编辑.env文件，设置数据库连接、API密钥等
-```
-
-5. 配置环境变量
-```bash
-# 编辑.env文件，设置必要的配置项
+# 编辑根目录的.env文件，设置所有服务的配置
 vim .env
 ```
 
-主要配置项包括：数据库连接、LLM API密钥、JWT密钥等。详细配置说明请参考：[后端开发文档](docs/后端开发文档.md)
+**重要**：所有环境变量配置已统一到项目根目录的`.env`文件中，包括：
+- 数据库连接配置
+- LLM API密钥和模型配置  
+- JWT认证配置
+- MCP客户端配置
+- 测试账号配置
+- 第三方服务配置（OpenAI、Solana等）
+
+详细配置说明请参考：[后端开发文档](docs/后端开发文档.md)
 
 6. 数据库迁移
 ```bash
@@ -126,6 +130,17 @@ cp .env.example .env
 ```
 
 ### MCP_Client 配置
+
+MCP客户端是一个轻量级的Python工具，用于连接和调用各种MCP（Model Context Protocol）服务。它作为我们智能语音AI平台的一个核心组件，处理与各种AI模型和服务的通信。
+
+#### 主要功能
+- 连接到MCP服务器（如MiniMax、Web3、地图服务等）
+- 代理API请求到相应的MCP服务
+- 提供统一的接口供主应用程序调用
+- 支持直接模式和服务模式两种运行方式
+
+#### 安装和配置
+
 1. 进入MCP_Client目录
 ```bash
 cd project/MCP_Client
@@ -144,6 +159,79 @@ source .venv/bin/activate  # Linux/macOS
 pip install openai python-dotenv
 pip install git+https://github.com/modelcontextprotocol/python-sdk.git
 ```
+
+#### MCP服务器配置
+
+创建`MCP_Client/config/mcp_servers.json`文件，添加MCP服务器配置：
+
+```json
+{
+  "mcpServers": {
+    "minimax-mcp-js": {
+      "name": "MiniMax API",
+      "description": "提供MiniMax语音大语言模型接口",
+      "command": "npx",
+      "args": ["minimax-mcp-js"],
+      "env": {
+        "MINIMAX_API_KEY": "your_minimax_api_key_here"
+      },
+      "enabled": true
+    },
+    "amap-maps": {
+      "name": "高德地图API", 
+      "description": "提供高德地图服务和位置信息",
+      "command": "npx",
+      "args": ["-y", "@amap/amap-maps-mcp-server"],
+      "env": {
+        "AMAP_MAPS_API_KEY": "your_amap_api_key_here"
+      },
+      "enabled": true
+    }
+  },
+  "connection": {
+    "timeout": 30,
+    "retry": {
+      "attempts": 3,
+      "delay": 2
+    }
+  }
+}
+```
+
+**注意**：`mcp_servers.json`文件包含敏感的API密钥，已被添加到`.gitignore`中，需要手动创建和配置。
+
+#### 使用方式
+
+**直接模式（测试用）**：
+```bash
+# 连接到指定MCP服务器
+python MCP_Client/mcp_client.py --server-name amap-maps
+
+# 或使用独立工具调用脚本
+python MCP_Client/standalone_tool_call.py amap-maps maps_weather '{"city": "深圳"}'
+```
+
+**服务模式（通过后端API）**：
+MCP_Client由主应用程序的后端通过内部API调用，无需手动启动。
+
+#### 代码结构
+```
+MCP_Client/
+├── config/               # 配置文件
+│   ├── mcp_servers.json  # MCP服务器配置（需手动创建）
+│   └── .gitignore        # 忽略敏感配置文件
+├── mcp_client.py         # 主客户端实现
+├── standalone_tool_call.py # 独立工具调用脚本
+└── .venv/               # Python虚拟环境
+```
+
+#### 故障排除
+
+**常见问题**：
+1. **连接失败** - 检查MCP服务器路径和NPM包安装
+2. **API密钥错误** - 确认mcp_servers.json中的API密钥正确
+3. **会话初始化失败** - 查看日志，可能需要使用独立调用模式
+4. **模块找不到** - 确认虚拟环境已激活且依赖已安装
 
 ## 启动服务
 

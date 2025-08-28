@@ -10,9 +10,9 @@ from pydantic import Field, Extra
 
 # # load_dotenv() # pydantic-settings 会自动加载 env_file 指定的文件
 
-# 获取 backend 目录的绝对路径
-BACKEND_DIR = Path(__file__).parent.parent
-DOTENV_PATH = BACKEND_DIR / ".env"
+# 获取项目根目录的绝对路径（从 backend/app/config.py 往上两级）
+PROJECT_ROOT_DIR = Path(__file__).parent.parent.parent
+DOTENV_PATH = PROJECT_ROOT_DIR / ".env"
 
 logger.info(f"尝试加载 .env 文件: {DOTENV_PATH}, 是否存在: {DOTENV_PATH.exists()}")
 
@@ -47,7 +47,7 @@ def validate_jwt_secret(jwt_secret: str) -> str:
     logger.warning(f"   当前密钥: {'未设置' if not jwt_secret else '不安全的默认值'}")
     logger.warning(f"   已生成新的安全密钥: {new_secret}")
     logger.warning("   建议操作:")
-    logger.warning(f"   1. 将此密钥保存到 backend/.env 文件:")
+    logger.warning(f"   1. 将此密钥保存到项目根目录 .env 文件:")
     logger.warning(f"      JWT_SECRET=\"{new_secret}\"")
     logger.warning("   2. 或设置环境变量:")
     logger.warning(f"      export JWT_SECRET=\"{new_secret}\"")
