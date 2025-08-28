@@ -36,4 +36,7 @@ tests/reports/
 node_modules/
 npm-debug.log*
 yarn-debug.log*
-yarn-error.log* 
+yarn-error.log*
+
+# MCP Configuration (contains API keys)
+config/mcp_servers.json 
