@@ -98,6 +98,14 @@ venv.bak/
 frontend/node_modules/.cache/
 *.pack
 
+# Excluded directories and documentation files (per user request)
+frontend/
+documents/
+待开发功能点集合.md
+前端开发文档.md
+docs/待开发功能点集合.md
+docs/前端开发文档.md
+
 # Sensitive configuration files
 # MCP server configurations with API keys
 mcp_servers.json
