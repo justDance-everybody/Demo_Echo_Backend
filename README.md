@@ -90,16 +90,23 @@ pip install -r requirements.txt
 
 4. 配置环境变量（统一配置）
 ```bash
-# 在项目根目录配置环境变量
+# 在项目根目录复制环境变量模板
 cp .env.example .env
-# 编辑根目录的.env文件，设置所有服务的配置
+
+# 编辑根目录的.env文件，设置您的实际配置
 vim .env
 ```
 
 **重要**：所有环境变量配置已统一到项目根目录的`.env`文件中，包括：
-- 数据库连接配置
-- LLM API密钥和模型配置  
-- JWT认证配置
+
+**必填配置**：
+- `DATABASE_URL` - MySQL数据库连接字符串
+- `LLM_API_KEY` - LLM服务API密钥（支持OpenAI兼容接口）
+- `LLM_API_BASE` - LLM服务端点URL
+- `LLM_MODEL` - 使用的模型名称
+
+**可选配置**：
+- JWT认证配置（会自动生成安全密钥）
 - MCP客户端配置
 - 测试账号配置
 - 第三方服务配置（OpenAI、Solana等）
