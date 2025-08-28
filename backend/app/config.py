@@ -1,5 +1,6 @@
 import os
 import logging
+import secrets
 from typing import Optional, Dict, Any, List
 from pathlib import Path # 导入 Path
 from dotenv import load_dotenv
@@ -18,6 +19,41 @@ logger.info(f"尝试加载 .env 文件: {DOTENV_PATH}, 是否存在: {DOTENV_PAT
 # 定义 MySQL 连接字符串 (从你的 .env 文件复制)
 EXPECTED_MYSQL_URL = "mysql+pymysql://root:b9clqt26@test-db-mysql.ns-6dvkv8ga.svc:3306/ai_assistant"
 DEFAULT_SQLITE_URL = "sqlite:///test.db"
+
+def validate_jwt_secret(jwt_secret: str) -> str:
+    """
+    验证并确保JWT密钥的安全性
+    """
+    # 定义无效/不安全的默认密钥列表
+    invalid_secrets = {
+        "your-secret-key", 
+        "your-very-secure-jwt-secret-key-2025",
+        "default-secret",
+        "",
+        "test",
+        "123456"
+    }
+    
+    # 如果密钥有效且安全，直接使用
+    if jwt_secret and jwt_secret not in invalid_secrets and len(jwt_secret) >= 32:
+        logger.info("✅ 使用已配置的安全JWT密钥")
+        return jwt_secret
+    
+    # 生成新的安全密钥
+    new_secret = secrets.token_urlsafe(32)
+    
+    # 警告信息
+    logger.warning("🔐 JWT密钥安全检查:")
+    logger.warning(f"   当前密钥: {'未设置' if not jwt_secret else '不安全的默认值'}")
+    logger.warning(f"   已生成新的安全密钥: {new_secret}")
+    logger.warning("   建议操作:")
+    logger.warning(f"   1. 将此密钥保存到 backend/.env 文件:")
+    logger.warning(f"      JWT_SECRET=\"{new_secret}\"")
+    logger.warning("   2. 或设置环境变量:")
+    logger.warning(f"      export JWT_SECRET=\"{new_secret}\"")
+    logger.warning("   ⚠️  请妥善保存此密钥，丢失会导致所有用户需要重新登录!")
+    
+    return new_secret
 
 class Settings(BaseSettings):
     """应用配置"""
@@ -83,6 +119,10 @@ class Settings(BaseSettings):
         
     def __init__(self, **data: Any):
         super().__init__(**data)
+        
+        # 智能JWT密钥验证和管理
+        self.JWT_SECRET = validate_jwt_secret(self.JWT_SECRET)
+        
         # 强制检查并设置数据库URL
         if self.DATABASE_URL == DEFAULT_SQLITE_URL or not self.DATABASE_URL:
             logger.warning(f"DATABASE_URL 未从环境或.env正确加载 (当前值: '{self.DATABASE_URL}'), 强制设置为预期的 MySQL URL")
