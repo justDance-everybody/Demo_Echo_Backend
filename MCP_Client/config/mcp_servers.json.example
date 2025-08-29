@@ -5,8 +5,7 @@
       "description": "提供Web浏览和自动化功能",
       "command": "npx",
       "args": [
-        "@playwright/mcp@latest",
-        "--headless"
+        "@playwright/mcp@latest"
       ],
       "enabled": true
     },
@@ -20,10 +19,10 @@
         "minimax-mcp-js"
       ],
       "env": {
-        "MINIMAX_API_KEY": "your-minimax-api-key-here",
+        "MINIMAX_API_KEY": "your_minimax_api_key_here",
         "MINIMAX_API_HOST": "https://api.minimax.chat",
-        "MINIMAX_MCP_BASE_PATH": "../MCP_server/minimax-mcp-js/outputs",
-        "MINIMAX_RESOURCE_MODE": "url"
+        "MINIMAX_MCP_BASE_PATH": "/path/to/your/project/MCP_server/minimax-mcp-js/outputs",
+        "MINIMAX_RESOURCE_MODE": "file"
       },
       "enabled": true
     },
@@ -37,7 +36,7 @@
         "@amap/amap-maps-mcp-server"
       ],
       "env": {
-        "AMAP_MAPS_API_KEY": "your-amap-api-key-here"
+        "AMAP_MAPS_API_KEY": "your_amap_api_key_here"
       },
       "enabled": true
     },
@@ -47,12 +46,12 @@
       "description": "提供多链区块链服务",
       "command": "node",
       "args": [
-        "/home/devbox/project/MCP_server/web3-mcp/build/index.js"
+        "/path/to/your/project/MCP_server/web3-mcp/build/index.js"
       ],
       "env": {
-        "SOLANA_RPC_URL": "your-solana-rpc-url-here"
+        "SOLANA_RPC_URL": "https://api.mainnet-beta.solana.com"
       },
-      "enabled": true
+      "enabled": false
     }
   },
   "defaultServer": "null",

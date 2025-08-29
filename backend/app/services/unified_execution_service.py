@@ -58,7 +58,7 @@ class SessionManager:
             session = Session(
                 session_id=session_id,
                 user_id=user_id,
-                status="parsing",
+                status="interpreting",
                 created_at=datetime.utcnow()
             )
             self.db.add(session)
@@ -192,7 +192,7 @@ class UnifiedExecutionService:
                     # 5. 检查execute_service的执行结果
                     if hasattr(result, 'success') and result.success:
                         # 执行成功
-                        await session_manager.update_session_status(session_id, "completed")
+                        await session_manager.update_session_status(session_id, "done")
                         await session_manager.log_operation(
                             session_id, "execute", "success", "工具执行成功"
                         )
@@ -369,7 +369,7 @@ class UnifiedExecutionService:
                     )
                 
                 # 3. 用户确认执行，更新会话状态
-                await session_manager.update_session_status(session_id, "confirmed")
+                await session_manager.update_session_status(session_id, "executing")
                 
                 # 4. 调用intent_service执行确认的工具
                 try:
@@ -383,7 +383,7 @@ class UnifiedExecutionService:
                     )
                     
                     # 5. 更新会话状态为完成
-                    await session_manager.update_session_status(session_id, "completed")
+                    await session_manager.update_session_status(session_id, "done")
                     
                     # 6. 记录执行成功
                     await session_manager.log_operation(
@@ -494,7 +494,7 @@ class UnifiedExecutionService:
             result = await db.execute(
                 select(Session).where(
                     Session.updated_at < cutoff_time,
-                    Session.status.in_(["completed", "error", "cancelled"])
+                    Session.status.in_(["done", "error", "cancelled"])
                 )
             )
             expired_sessions = result.scalars().all()

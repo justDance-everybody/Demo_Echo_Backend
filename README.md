@@ -268,15 +268,134 @@ HTTP工具允许系统调用外部HTTP API来执行操作。目前支持以下�
 
 ## 测试与调试
 
-### 运行测试
+### 交互式控制台测试
+项目提供了交互式控制台工具，方便开发者测试和调试各种功能：
+
 ```bash
-cd backend
-pytest
+# 启动交互式控制台（会自动登录开发者账号）
+python echo_ai_console.py
 ```
 
-### API调试
-- Swagger UI: http://localhost:3000/docs
-- ReDoc: http://localhost:3000/redoc
+**控制台功能特性：**
+- 🌐 **多语言支持**：中文/英文界面
+- 🔐 **自动登录**：自动使用开发者账号登录
+- 🐛 **详细调试**：默认开启调试模式，显示完整的HTTP请求/响应日志
+- 📜 **命令历史**：支持上下箭头查看历史命令
+- 🛠️ **工具测试**：可直接测试所有MCP和HTTP工具
+
+**支持的命令：**
+```bash
+# 系统命令
+/login <用户名> <密码>     # 登录
+/logout                   # 登出
+/whoami                   # 查看当前用户信息
+/tools                    # 查看可用工具列表
+/debug                    # 切换调试模式开/关
+/help                     # 显示帮助信息
+/quit 或 /exit           # 退出程序
+
+# 自然语言交互（直接输入即可）
+把"你好世界"文字转语音
+访问github.com并截图
+查询北京今天的天气
+转账0.01个SOL到指定地址
+```
+
+**测试用账号：**
+- 普通用户: `testuser_5090` / `8lpcUY2BOt`
+- 开发者: `devuser_5090` / `mryuWTGdMk` (默认自动登录)
+- 管理员: `adminuser_5090` / `SAKMRtxCjT`
+
+### MCP工具同步与管理
+
+**工具同步脚本：**
+```bash
+# 同步所有MCP服务器的工具到数据库
+python complete_sync.py
+```
+
+**MCP服务器管理API：**
+```bash
+# 查看所有MCP服务器状态
+curl http://localhost:3000/api/v1/mcp/status -H "Authorization: Bearer YOUR_TOKEN"
+
+# 启动/停止/重启特定服务器
+curl -X POST http://localhost:3000/api/v1/mcp/start/playwright -H "Authorization: Bearer ADMIN_TOKEN"
+curl -X POST http://localhost:3000/api/v1/mcp/stop/playwright -H "Authorization: Bearer ADMIN_TOKEN"
+curl -X POST http://localhost:3000/api/v1/mcp/restart/playwright -H "Authorization: Bearer ADMIN_TOKEN"
+```
+
+### 支持的MCP工具测试示例
+
+**Playwright浏览器自动化：**
+- `"打开谷歌网站"` - 在浏览器中导航到Google
+- `"访问github.com并截图"` - 访问网站并生成截图
+- `"在百度搜索'人工智能'"` - 执行搜索操作
+- `"打开淘宝并滚动页面"` - 页面交互操作
+
+**MiniMax文字转语音：**
+- `"把'你好世界'文字转语音"` - 生成语音文件
+- `"将'欢迎使用AI助手'转换为音频"` - 文字转音频
+
+**高德地图API：**
+- `"查询北京的地理位置"` - 获取城市坐标信息
+- `"搜索上海市的详细信息"` - 地理位置查询
+
+### 调试技巧
+
+**开启详细日志：**
+1. 在控制台中使用 `/debug` 命令切换调试模式
+2. 调试模式会显示：
+   - HTTP请求/响应的完整详情
+   - MCP工具执行的完整过程
+   - 意图解析和工具调用的中间步骤
+   - 错误信息和异常堆栈
+
+**查看日志文件：**
+```bash
+# 查看API服务日志
+tail -f backend/logs/api.log
+
+# 查看应用日志
+tail -f logs/app.log
+
+# 查看错误日志
+tail -f logs/error.log
+```
+
+**常见问题排查：**
+
+1. **MCP工具调用失败**：
+   - 检查MCP服务器状态：`curl http://localhost:3000/api/v1/mcp/status`
+   - 重启服务器：使用管理员token调用restart接口
+   - 查看服务器日志：`tail -f backend/logs/api.log | grep -i mcp`
+
+2. **浏览器自动化问题**：
+   - Playwright默认headless模式，浏览器会快速打开关闭
+   - 如需查看浏览器操作，修改MCP配置移除`--headless`参数
+   - 单个操作限制：复合操作需要分步执行
+
+3. **语音合成链接无效**：
+   - 检查MiniMax配置中的`MINIMAX_RESOURCE_MODE`设置
+   - `"url"`模式返回远程链接(可能有权限限制)
+   - `"file"`模式生成本地文件(推荐)
+
+### API调试工具
+
+**Swagger UI界面：**
+- 开发环境: http://localhost:3000/docs
+- 提供完整的API文档和在线测试功能
+
+**ReDoc文档：**
+- 开发环境: http://localhost:3000/redoc  
+- 提供更友好的API文档阅读体验
+
+**单元测试：**
+```bash
+cd backend
+pytest tests/ -v  # 运行所有测试
+pytest tests/test_tools.py -v  # 运行特定测试文件
+```
 
 ## 贡献指南
 - Fork本仓库
@@ -286,6 +405,25 @@ pytest
 - 创建Pull Request
 
 ## 更新日志
+
+### 2025-08-29
+- 🚀 **新增交互式控制台工具** (`echo_ai_console.py`)
+  - 支持中文/英文双语界面
+  - 自动登录开发者账号，即开即用
+  - 详细调试模式，显示完整HTTP请求/响应过程
+  - 支持自然语言直接交互测试所有工具
+- 🛠️ **完善MCP服务器管理**
+  - 添加MCP工具自动同步脚本 (`complete_sync.py`)
+  - 实现MCP服务器状态监控和管理API
+  - 支持动态启动/停止/重启MCP服务器
+- 🔧 **优化工具配置和调试**
+  - 修复MiniMax语音合成OSS权限问题
+  - 优化Playwright浏览器自动化配置
+  - 添加详细的错误诊断和排查指南
+- 📚 **完善文档和测试用例**
+  - 更新README添加完整的测试和调试指南
+  - 提供丰富的MCP工具测试示例
+  - 添加常见问题排查方法
 
 ### 2025-05-14
 - 实现通用HTTP API工具支持，包括多种HTTP方法、认证方式和结果处理
@@ -305,4 +443,4 @@ pytest
 
 ---
 
-> 文档更新时间：2025-05-14
+> 文档更新时间：2025-08-29
