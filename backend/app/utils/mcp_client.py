@@ -1212,7 +1212,7 @@ class MCPClientWrapper:
     # @stable(tested=2025-04-30, test_script=backend/test_api.py)
     async def execute_tool(self, tool_id: str, params: Dict[str, Any], target_server: Optional[str] = None) -> Dict[str, Any]:
         """
-        执行工具 (通过MCP客户端代理)
+        执行工具 (通过独立进程subprocess调用，解决会话初始化问题)
         
         Args:
             tool_id: 工具ID
@@ -1222,6 +1222,11 @@ class MCPClientWrapper:
         Returns:
             执行结果
         """
+        import subprocess
+        import json
+        import tempfile
+        import os
+        
         # 确定目标服务器
         if not target_server:
             if not self.server_configs:
@@ -1236,66 +1241,129 @@ class MCPClientWrapper:
             target_server = next(iter(self.server_configs))
             logger.debug(f"未指定目标服务器，将使用默认服务器: {target_server}")
 
-        # 使用连接池获取或创建客户端实例
+        logger.info(f"🚀 通过独立进程调用MCP工具: {target_server}.{tool_id}")
+        
         try:
-            client = await self._get_or_create_client(target_server)
+            # 获取standalone_tool_call.py的完整路径
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            backend_dir = os.path.dirname(os.path.dirname(current_dir))  # 回到backend目录
+            project_root = os.path.dirname(backend_dir)  # 回到项目根目录
+            script_path = os.path.join(project_root, "MCP_Client", "standalone_tool_call.py")
             
-            # 检查连接后，session 是否真的存在
-            if not client or not client.session:
-                logger.error(f"无法执行工具 {tool_id}：未能建立到MCP服务器 '{target_server}' 的连接。")
+            if not os.path.exists(script_path):
+                logger.error(f"独立工具调用脚本不存在: {script_path}")
                 return {
                     "tool_id": tool_id,
                     "success": False,
                     "error": {
-                        "code": "MCP_CONNECTION_FAILED",
-                        "message": f"未能连接到MCP服务器 '{target_server}'"
+                        "code": "SCRIPT_NOT_FOUND",
+                        "message": f"独立工具调用脚本不存在: {script_path}"
                     }
                 }
-
-            # 直接调用 call_tool
-            logger.info(f"准备通过MCP客户端 ('{target_server}') 执行工具: tool={tool_id}, params={params}")
             
-            # 直接调用 MCPClient 的 session 的 call_tool 方法，添加120秒超时
-            tool_result = await asyncio.wait_for(
-                client.session.call_tool(tool_id, params), 
-                timeout=120.0
+            # 准备参数
+            params_json = json.dumps(params, ensure_ascii=False)
+            
+            # 构建命令
+            cmd = [
+                "python3", script_path,
+                target_server,
+                tool_id,
+                params_json
+            ]
+            
+            logger.debug(f"执行命令: {' '.join(cmd)}")
+            
+            # 执行subprocess调用，添加120秒超时
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                cwd=os.path.join(project_root, "MCP_Client")  # 设置工作目录
             )
             
-            # 提取结果内容
-            if hasattr(tool_result, 'content'):
-                if hasattr(tool_result.content, 'text'):
-                    response_content = tool_result.content.text
-                elif isinstance(tool_result.content, list) and len(tool_result.content) > 0:
-                    # 处理内容列表
-                    content_parts = []
-                    for item in tool_result.content:
-                        if hasattr(item, 'text'):
-                            content_parts.append(item.text)
-                        else:
-                            content_parts.append(str(item))
-                    response_content = '\n'.join(content_parts)
-                else:
-                    response_content = str(tool_result.content)
-            else:
-                response_content = str(tool_result)
-                 
-            result = {
-                "tool_id": tool_id,
-                "success": True,
-                "result": {
-                    "message": response_content
+            try:
+                stdout, stderr = await asyncio.wait_for(
+                    process.communicate(), 
+                    timeout=120.0
+                )
+            except asyncio.TimeoutError:
+                process.kill()
+                await process.wait()
+                logger.error(f"独立进程执行工具超时: tool={tool_id} (120秒)")
+                return {
+                    "tool_id": tool_id,
+                    "success": False,
+                    "error": {
+                        "code": "EXECUTION_TIMEOUT",
+                        "message": f"工具 {tool_id} 执行超时 (120秒)"
+                    }
                 }
-            }
-            logger.info(f"MCP客户端执行工具成功: tool={tool_id}")
             
-        except asyncio.TimeoutError as e:
-            logger.error(f"MCP客户端执行工具超时: tool={tool_id} (120秒)")
+            stdout_text = stdout.decode('utf-8', errors='replace')
+            stderr_text = stderr.decode('utf-8', errors='replace')
+            
+            logger.debug(f"独立进程stdout: {stdout_text}")
+            if stderr_text:
+                logger.warning(f"独立进程stderr: {stderr_text}")
+            
+            # 解析结果JSON
+            result_start = "--- RESULT_JSON_START ---"
+            result_end = "--- RESULT_JSON_END ---"
+            
+            if result_start in stdout_text and result_end in stdout_text:
+                start_index = stdout_text.find(result_start) + len(result_start)
+                end_index = stdout_text.find(result_end)
+                result_json = stdout_text[start_index:end_index].strip()
+                
+                try:
+                    result = json.loads(result_json)
+                    logger.info(f"独立进程执行工具成功: tool={tool_id}")
+                    return result
+                except json.JSONDecodeError as e:
+                    logger.error(f"解析独立进程结果JSON失败: {e}")
+                    return {
+                        "tool_id": tool_id,
+                        "success": False,
+                        "error": {
+                            "code": "RESULT_PARSE_ERROR",
+                            "message": f"解析结果失败: {e}"
+                        }
+                    }
+            else:
+                # 如果没有找到结果标记，检查进程退出码
+                if process.returncode != 0:
+                    error_msg = f"独立进程执行失败，退出码: {process.returncode}"
+                    if stderr_text:
+                        error_msg += f", 错误信息: {stderr_text}"
+                    logger.error(error_msg)
+                    return {
+                        "tool_id": tool_id,
+                        "success": False,
+                        "error": {
+                            "code": "PROCESS_FAILED",
+                            "message": error_msg
+                        }
+                    }
+                else:
+                    logger.error(f"独立进程输出格式异常: {stdout_text}")
+                    return {
+                        "tool_id": tool_id,
+                        "success": False,
+                        "error": {
+                            "code": "OUTPUT_FORMAT_ERROR",
+                            "message": "独立进程输出格式异常"
+                        }
+                    }
+            
+        except Exception as e:
+            logger.error(f"独立进程执行工具失败: tool={tool_id}, error={e}")
             
             # 使用错误分类器进行精确分类
-            error_type = MCPErrorClassifier.classify_error("tool execution timeout", asyncio.TimeoutError)
-            user_message = MCPErrorClassifier.get_user_friendly_message(error_type, f"工具 {tool_id} 执行超时 (120秒)")
+            error_type = MCPErrorClassifier.classify_error(str(e), type(e))
+            user_message = MCPErrorClassifier.get_user_friendly_message(error_type, str(e))
             
-            result = {
+            return {
                 "tool_id": tool_id,
                 "success": False,
                 "error": {
@@ -1305,60 +1373,6 @@ class MCPClientWrapper:
                     "original_error": str(e)
                 }
             }
-        except Exception as e:
-            logger.error(f"MCP客户端执行工具失败: tool={tool_id}, error={e}")
-            
-            # 使用错误分类器进行精确分类
-            error_type = MCPErrorClassifier.classify_error(str(e), type(e))
-            user_message = MCPErrorClassifier.get_user_friendly_message(error_type, str(e))
-            
-            # 智能连接清理：根据错误类型决定是否清理连接
-            connection_related_errors = {
-                MCPErrorType.CONNECTION_FAILED,
-                MCPErrorType.CONNECTION_LOST,
-                MCPErrorType.CONNECTION_REFUSED,
-                MCPErrorType.CONNECTION_TIMEOUT,
-                MCPErrorType.SERVER_CRASHED,
-                MCPErrorType.PROCESS_CRASHED
-            }
-            
-            should_cleanup_connection = error_type in connection_related_errors
-            
-            if should_cleanup_connection and target_server in self._connection_pool:
-                try:
-                    await self._connection_pool[target_server].close()
-                except Exception as cleanup_error:
-                    logger.debug(f"清理连接时出错: {cleanup_error}")
-                del self._connection_pool[target_server]
-                logger.info(f"由于{error_type.name}错误，已从连接池中移除连接: {target_server}")
-                
-                # 同时清理进程管理记录
-                async with self._process_lock:
-                    if target_server in self._managed_processes:
-                        managed_info = self._managed_processes[target_server]
-                        logger.warning(f"工具执行失败，清理进程管理记录 (PID: {managed_info['pid']}): {target_server}")
-                        del self._managed_processes[target_server]
-            else:
-                logger.debug(f"保留连接池中的连接，错误类型为{error_type.name}，可能是临时的: {target_server}")
-            
-            result = {
-                "tool_id": tool_id,
-                "success": False,
-                "error": {
-                    "code": error_type.value,
-                    "type": error_type.name,
-                    "message": user_message,
-                    "original_error": str(e),
-                    "should_retry": error_type not in {
-                        MCPErrorType.TOOL_NOT_FOUND,
-                        MCPErrorType.TOOL_INVALID_PARAMS,
-                        MCPErrorType.CONFIG_INVALID,
-                        MCPErrorType.PROCESS_PERMISSION_DENIED
-                    }
-                }
-            }
-        
-        return result
         
     def check_server_exists(self, server_name: str) -> bool:
         """
