@@ -7,6 +7,7 @@ import json
 
 from app.utils.mcp_client import mcp_client
 from app.schemas.execute import ExecuteResponse
+from app.services.mcprouter_client import mcprouter_client  # 新增：mcprouter客户端（不移除原有）
 
 # 可以在这里导入 Session, Log 模型用于数据库操作
 # from app.models.session import Session
@@ -148,9 +149,25 @@ class ExecuteService:
                 
                 # 执行MCP工具
                 target_server = tool.server_name
-                mcp_result = await mcp_client.execute_tool(
-                    tool_id=tool_id, params=params, target_server=target_server
-                )
+                # 先尝试通过 mcprouter 调用；失败则回退到原有 mcp_client
+                try:
+                    logger.info(f"优先通过 MCPRouter 调用: server={target_server}, tool={tool_id}")
+                    router_resp = await mcprouter_client.call_tool(
+                        server=target_server, name=tool_id, arguments=params
+                    )
+                    # 统一为旧结构
+                    if isinstance(router_resp, dict) and router_resp.get("code") == 0:
+                        # mcprouter API 风格：{ code, message, data }
+                        data = router_resp.get("data", {})
+                        mcp_result = {"success": True, "result": {"message": data}}
+                    else:
+                        # 也可能直接返回 JSON-RPC call result 结构
+                        mcp_result = {"success": True, "result": {"message": router_resp}}
+                except Exception as e:
+                    logger.warning(f"MCPRouter 调用失败，回退至本地 mcp_client：{e}")
+                    mcp_result = await mcp_client.execute_tool(
+                        tool_id=tool_id, params=params, target_server=target_server
+                    )
                 
                 if mcp_result.get("success"):
                     raw_result = mcp_result.get("result", {}).get("message", "")

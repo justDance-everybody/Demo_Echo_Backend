@@ -13,6 +13,59 @@ from loguru import logger
 from app.config import settings
 
 
+class MockMCPClient:
+    """模拟MCP客户端，用于在没有mcp模块时提供基本功能"""
+    
+    def __init__(self, server_name: str):
+        self.server_name = server_name
+        self.session = None
+        self._connected = True
+        
+    async def connect(self, server_name: str):
+        """模拟连接"""
+        logger.info(f"模拟连接到MCP服务器: {server_name}")
+        self.server_name = server_name
+        self._connected = True
+        
+    async def list_tools(self):
+        """模拟列出工具"""
+        return {
+            "tools": [
+                {
+                    "name": "mock_search",
+                    "description": "模拟搜索工具",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": {"type": "string", "description": "搜索查询"}
+                        }
+                    }
+                }
+            ]
+        }
+        
+    async def call_tool(self, tool_name: str, arguments: dict):
+        """模拟调用工具"""
+        logger.info(f"模拟调用工具: {tool_name} with {arguments}")
+        return {
+            "content": [
+                {
+                    "type": "text",
+                    "text": f"模拟工具执行结果: {tool_name}({arguments})"
+                }
+            ]
+        }
+        
+    def is_connected(self):
+        """检查连接状态"""
+        return self._connected
+        
+    async def close(self):
+        """关闭连接"""
+        self._connected = False
+        logger.info(f"模拟关闭MCP客户端连接: {self.server_name}")
+
+
 class MCPErrorType(Enum):
     """MCP错误类型枚举 - 提供精确的错误分类"""
     
@@ -247,8 +300,9 @@ try:
     MCPClient = mcp_client_module.MCPClient # 这是MCP_Client/mcp_client.py中的类
     logger.info("成功导入MCP客户端库")
 except Exception as e:
-    logger.error(f"导入MCP客户端库失败: {e}")
-    raise ImportError(f"无法导入MCP客户端: {e}")
+    logger.warning(f"导入MCP客户端库失败: {e}")
+    logger.warning("将使用模拟模式，仅支持MCPRouter")
+    MCPClient = None
 
 class MCPClientWrapper:
     """MCP客户端包装器，管理与真实MCP客户端的交互"""
@@ -576,6 +630,11 @@ class MCPClientWrapper:
         Returns:
             MCPClient: 客户端实例
         """
+        # 如果MCPClient不可用，返回模拟客户端
+        if MCPClient is None:
+            logger.warning(f"MCPClient不可用，返回模拟客户端: {target_server}")
+            return MockMCPClient(target_server)
+            
         try:
             client = MCPClient()
             

@@ -36,7 +36,7 @@ class Settings(BaseSettings):
 
     # 服务器配置
     HOST: str = Field(default="0.0.0.0", env="HOST")
-    PORT: int = Field(default=3000, env="PORT")
+    PORT: int = Field(default=8000, env="PORT")
     
     # 数据库配置
     # 让 pydantic-settings 处理 env var 和 default
@@ -55,6 +55,10 @@ class Settings(BaseSettings):
     # MCP配置
     MCP_CLIENT_PATH: str = Field(default="../MCP_Client", env="MCP_CLIENT_PATH")
     MCP_SERVERS_PATH: str = Field(default="../MCP_Client/config/mcp_servers.json", env="MCP_SERVERS_PATH")
+    
+    # MCPRouter配置（新增，不影响原有MCP配置）
+    MCPROUTER_API_URL: str = Field(default="http://127.0.0.1:8027", env="MCPROUTER_API_URL")
+    MCPROUTER_TIMEOUT: int = Field(default=30, env="MCPROUTER_TIMEOUT")
     
     # 日志配置
     LOG_LEVEL: str = Field(default="INFO", env="LOG_LEVEL")

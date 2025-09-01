@@ -1,0 +1,26 @@
+# MCPRouter Configuration File
+# 确保TOML格式正确，避免解析错误
+
+[app]
+use_db = false
+use_cache = false
+save_log = false
+
+[proxy_server]
+port = 8025
+host = "127.0.0.1"
+
+[api_server]
+port = 8027
+host = "127.0.0.1"
+
+# MCP Server Commands
+[mcp_server_commands]
+amap-maps = "npx -y @amap/amap-maps-mcp-server"
+minimax-mcp-js = "npx -y minimax-mcp-js"
+playwright = "npx @playwright/mcp@latest --headless"
+
+# MCP Server Environment Variables
+[mcp_server_env]
+amap-maps = { AMAP_MAPS_API_KEY = "your-amap-api-key-here" }
+minimax-mcp-js = { MINIMAX_API_KEY = "your-minimax-api-key-here", MINIMAX_API_HOST = "https://api.minimax.chat" }
