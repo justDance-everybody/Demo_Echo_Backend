@@ -7,17 +7,6 @@ on:
     branches: [ main ]
 
 jobs:
-  backend-code-quality:
-    runs-on: ubuntu-latest
-    name: 后端代码质量检查
-    steps:
-      - name: 📥 下载代码
-        uses: actions/checkout@v4
-      
-      - name: ✅ 代码质量检查通过
-        run: |
-          echo "✅ 后端代码质量检查通过"
-
   api-integration-test:
     runs-on: ubuntu-latest
     name: API接口完整性测试
@@ -28,6 +17,17 @@ jobs:
       - name: ✅ API测试通过
         run: |
           echo "✅ API接口完整性测试通过"
+
+  backend-code-quality:
+    runs-on: ubuntu-latest
+    name: 后端代码质量检查
+    steps:
+      - name: 📥 下载代码
+        uses: actions/checkout@v4
+      
+      - name: ✅ 代码质量检查通过
+        run: |
+          echo "✅ 后端代码质量检查通过"
 
   database-security-check:
     runs-on: ubuntu-latest
