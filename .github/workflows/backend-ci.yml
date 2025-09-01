@@ -20,8 +20,9 @@ on:
       - 'pyproject.toml'
 
 jobs:
-  后端代码质量检查:
+  backend-code-quality:
     runs-on: ubuntu-latest
+    name: 后端代码质量检查
     steps:
       - name: 📥 下载代码
         uses: actions/checkout@v4
@@ -59,8 +60,9 @@ jobs:
             echo "⚠️ 未找到测试文件，跳过测试"
           fi
 
-  API接口完整性测试:
+  api-integration-test:
     runs-on: ubuntu-latest
+    name: API接口完整性测试
     steps:
       - name: 📥 下载代码
         uses: actions/checkout@v4
@@ -96,8 +98,9 @@ jobs:
             echo "⚠️ 未找到启动文件，跳过API测试"
           fi
 
-  数据库安全检查:
+  database-security-check:
     runs-on: ubuntu-latest
+    name: 数据库安全检查
     steps:
       - name: 📥 下载代码
         uses: actions/checkout@v4
@@ -126,8 +129,9 @@ jobs:
             echo "✅ SQL安全检查通过"
           fi
 
-  安全检查:
+  security-check:
     runs-on: ubuntu-latest
+    name: 安全检查
     steps:
       - name: 📥 下载代码
         uses: actions/checkout@v4
