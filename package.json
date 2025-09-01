@@ -1,8 +1,10 @@
 {
+  "devDependencies": {
+    "msw": "^2.10.4"
+  },
   "dependencies": {
-    "axios": "^1.8.4",
-    "minimax-mcp-js": "^0.0.7",
-    "morgan": "^1.10.0",
-    "uuid": "^11.1.0"
+    "@amap/amap-maps-mcp-server": "^0.0.8",
+    "@playwright/mcp": "^0.0.32",
+    "minimax-mcp-js": "^0.0.17"
   }
 }

@@ -1,6 +1,6 @@
 ---
-description:
-globs:
+description: 数据库设计与MySQL规范指南
+globs: 
 alwaysApply: false
 ---
 # 数据库设计与MySQL规范指南
@@ -175,3 +175,4 @@ alwaysApply: false
 - 重大迁移前制定回滚计划
 
 坚持以上规范，确保数据库设计的合理性、可维护性和性能。
+
