@@ -101,10 +101,12 @@ frontend/node_modules/.cache/
 # Excluded directories and documentation files (per user request)
 frontend/
 documents/
+.trae/
 待开发功能点集合.md
 前端开发文档.md
 docs/待开发功能点集合.md
 docs/前端开发文档.md
+start-frontend.sh
 
 # Sensitive configuration files
 # MCP server configurations with API keys
