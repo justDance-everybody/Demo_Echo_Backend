@@ -91,7 +91,7 @@ class Settings(BaseSettings):
     
     # MCP配置
     MCP_CLIENT_PATH: str = Field(default="../MCP_Client", env="MCP_CLIENT_PATH")
-    MCP_SERVERS_PATH: str = Field(default="../MCP_Client/config/mcp_servers.json", env="MCP_SERVERS_PATH")
+    MCP_SERVERS_PATH: str = Field(default="config/mcp_servers.json", env="MCP_SERVERS_PATH")
     
     # 日志配置
     LOG_LEVEL: str = Field(default="INFO", env="LOG_LEVEL")

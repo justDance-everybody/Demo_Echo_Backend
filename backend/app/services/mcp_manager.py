@@ -44,7 +44,21 @@ class MCPServerManager:
     def _load_server_configs(self):
         """加载MCP服务器配置"""
         try:
-            config_path = os.getenv("MCP_SERVERS_PATH", "/home/devbox/project/MCP_Client/config/mcp_servers.json")
+            # 获取MCP客户端目录和配置文件路径
+            mcp_client_path = settings.MCP_CLIENT_PATH
+            mcp_servers_path = settings.MCP_SERVERS_PATH
+            
+            # 如果是相对路径，需要与项目根目录拼接
+            if not os.path.isabs(mcp_client_path):
+                project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+                mcp_client_path = os.path.join(project_root, mcp_client_path)
+            
+            # 配置文件路径相对于MCP客户端目录
+            if not os.path.isabs(mcp_servers_path):
+                config_path = os.path.join(mcp_client_path, mcp_servers_path)
+            else:
+                config_path = mcp_servers_path
+                
             with open(config_path, 'r', encoding='utf-8') as f:
                 config_data = json.load(f)
                 self.server_configs = config_data.get("mcpServers", {})

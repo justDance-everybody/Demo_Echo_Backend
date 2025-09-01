@@ -156,7 +156,11 @@ sys.path.insert(0, '.')
 try:
     from app.config import settings
     from sqlalchemy import create_engine, text
-    from sqlalchemy.exc import OperationalError
+    try:
+        from sqlalchemy.exc import OperationalError
+    except ImportError:
+        from sqlalchemy import exc
+        OperationalError = exc.OperationalError
     
     # 强制要求MySQL连接
     if not settings.DATABASE_URL.startswith('mysql'):
