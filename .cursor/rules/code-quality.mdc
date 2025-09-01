@@ -1,0 +1,139 @@
+---
+description: Code Quality Guidelines
+globs: 
+alwaysApply: false
+---
+---
+description: Code Quality Guidelines
+globs: 
+---
+# AI 辅助编程核心规则
+
+以下规则指导 AI 在编程过程中，优先复用现有实现，避免不必要的代码新增和重复。
+
+## 1. 复用现有实现，避免重复造轮子
+- 在引入任何新代码前，先检索代码库中是否已有相同或类似功能。  
+- AI 建议时，应优先调用、组合或优化现有函数/模块。
+
+## 2. 优先简化，不盲目扩展
+- 若原有实现已能满足需求，AI 不应新增或拆分功能。  
+- 仅在原功能无法覆盖新场景时，才考虑新增或重构。
+
+## 3. 可配置化胜过硬编码
+- 对可预见的变动场景，优先通过配置或参数化实现。  
+- 避免为单一用例硬编码逻辑。
+
+## 4. 环境感知与隔离
+- AI 生成的改动需明确区分 `dev`、`test`、`prod` 三种环境。  
+- 禁止在生产环境中使用模拟数据或一次性脚本。
+
+## 5. 谨慎修改，保持回退能力
+- 修改前，AI 应生成清晰的“变更点列表”。  
+- 对潜在风险高的改动，应提示添加单元测试与回滚方案。
+
+## 6. 清晰可维护，行数受控
+- 单个函数或类不宜超过 50–100 行。  
+- 文件代码超过 200–300 行时，AI 应建议拆分或抽象公共逻辑，进行封装。
+
+## 7. 生成前必须审核
+- AI 每次输出代码片段前，在注释中标明“复用点”或“新增点”。  
+- 由开发者确认后，方可合入主分支。
+
+## 8. 改动前说明原因
+	-	在任何代码改动（新功能、重构、修复）前，用通俗语言简要说明：
+	-	为什么要改（解决什么痛点／带来哪些好处）
+	-	涉及哪些核心逻辑
+	-	可能的影响范围
+
+## 9. 分层调试与验证规则 (Layered Debugging & Verification Rules)
+### 逐层验证数据流： 
+    在排查涉及多个组件（如 Controller-Service-Model）的问题时，务必在每一层的边界验证数据的接收和传递是否符合预期。不要跳过中间层直接假设问题出在末端。
+    例如： 验证 Controller 是否收到了正确的请求参数，Service 是否返回了预期的结果，Model 初始化时是否接收到了正确的值。
+### 最小化问题范围： 
+    遇到复杂问题时，尝试暂时移除或简化非核心部分（如注释掉 response_model、暂时返回硬编码数据），以隔离问题所在的具体组件或逻辑。
+### 不要完全相信日志（或谨慎解读）： 
+    日志是重要的调试手段，但要警惕日志本身可能带来的误导。
+    确保日志打印的是你真正关心的信息（例如，打印传入函数的参数，而不是函数内部可能被修改过的变量）。
+    如果日志输出与预期严重不符，需要质疑日志本身或其打印时机，并结合代码逻辑重新判断。
+### 检查边界和转换点： 
+    特别关注数据格式或结构发生转换的地方。
+    例如： JSON 到 Pydantic 对象的转换（请求解析）、Pydantic 对象到字典/JSON 的转换（响应序列化）、服务层字典到 Pydantic 响应对象的转换。这些点是常见的错误来源。
+### 质疑假设与细节： 
+    当常规方法失效时，回顾并质疑你最初的假设。问题可能隐藏在某个库的特定行为、配置细节或不常见的交互方式中（如此次的 Pydantic 继承初始化问题）。
+
+---
+
+> **目标**：让 AI 成为“最懂现有代码”的助理，既提高开发效率，又杜绝不必要的冗余扩张。
+
+# Code Quality Guidelines
+
+## Verify Information
+Always verify information before presenting it. Do not make assumptions or speculate without clear evidence.
+
+## File-by-File Changes
+Make changes file by file and give me a chance to spot mistakes.
+
+## No Apologies
+Never use apologies.
+
+## No Understanding Feedback
+Avoid giving feedback about understanding in comments or documentation.
+
+## No Whitespace Suggestions
+Don't suggest whitespace changes.
+
+## No Summaries
+Don't summarize changes made.
+
+## No Inventions
+Don't invent changes other than what's explicitly requested.
+
+## No Unnecessary Confirmations
+Don't ask for confirmation of information already provided in the context.
+
+## Preserve Existing Code
+Don't remove unrelated code or functionalities. Pay attention to preserving existing structures.
+
+## Single Chunk Edits
+Provide all edits in a single chunk instead of multiple-step instructions or explanations for the same file.
+
+## No Implementation Checks
+Don't ask the user to verify implementations that are visible in the provided context.
+
+## No Unnecessary Updates
+Don't suggest updates or changes to files when there are no actual modifications needed.
+
+## Provide Real File Links
+Always provide links to the real files, not x.md.
+
+## No Current Implementation
+Don't show or discuss the current implementation unless specifically requested.
+
+
+## others 
+- Always verify information before presenting it. Do not make assumptions or speculate without clear evidence.
+- Make changes file by file and give me a chance to spot mistakes.
+- Never use apologies.
+- Avoid giving feedback about understanding in comments or documentation.
+- Don't suggest whitespace changes.
+- Don't summarize changes made.
+- Don't invent changes other than what's explicitly requested.
+- Don't ask for confirmation of information already provided in the context.
+- Don't remove unrelated code or functionalities. Pay attention to preserving existing structures.
+- Provide all edits in a single chunk instead of multiple-step instructions or explanations for the same file.
+- Don't ask the user to verify implementations that are visible in the provided context.
+- Don't suggest updates or changes to files when there are no actual modifications needed.
+- Always provide links to the real files, not the context generated file.
+- Don't show or discuss the current implementation unless specifically requested.
+- Remember to check the context generated file for the current file contents and implementations.
+- Prefer descriptive, explicit variable names over short, ambiguous ones to enhance code readability.
+- Adhere to the existing coding style in the project for consistency.
+- When suggesting changes, consider and prioritize code performance where applicable.
+- Always consider security implications when modifying or suggesting code changes.
+- Suggest or include appropriate unit tests for new or modified code.
+- Implement robust error handling and logging where necessary.
+- Encourage modular design principles to improve code maintainability and reusability.
+- Ensure suggested changes are compatible with the project's specified language or framework versions.
+- Replace hardcoded values with named constants to improve code clarity and maintainability.
+- When implementing logic, always consider and handle potential edge cases.
+- Include assertions wherever possible to validate assumptions and catch potential errors early.

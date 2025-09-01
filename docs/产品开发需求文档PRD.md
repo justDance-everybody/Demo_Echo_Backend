@@ -1,186 +1,308 @@
-# 产品需求文档（PRD）  
-智能语音 **AI‑Agent** 开放平台  
-_版本：v0.9 / 2025‑04‑19_
+# 全语音AI-Agent平台的产品需求文档（PRD）
+**状态：** 已批准·正在实施
 
 ---
 
-## 1. 立项背景
+## 1. 引言
 
-- **Web3 场景的交互痛点**  
-  复杂钱包操作、链上查询与跨链服务，当前多靠 CLI / DApp，门槛高、易误操作。  
-- **大模型与 MCP 标准的成熟**  
-  MCP（Model Context Protocol）为 LLM 与外部服务之间建立了统一调用规范，使“语音→意图→服务”成为可能。  
-- **目标**  
-  - 让普通用户**只用语音**即可完成链上核心任务  
-  - 让 AI‑Agent 开发者低门槛接入平台，迅速扩展能力  
-  - 为管理员提供可视化监控与审核，确保安全与合规
+**1.1 项目描述**  
+"全语音AI-Agent平台"是一个端到端、以语音为唯一交互手段的智能代理系统。用户一句话即可调度海量"技能"（MCP 脚本、第三方 HTTP API 等），并通过实时的 TTS 语音反馈，获得即时、精准的服务体验。
 
----
+**1.2 项目范围概览**  
+- **MVP 范围**：单次调用单个功能的端到端闭环体验
+- **后续迭代**：多工具编排、多轮确认、动态加载技能、并行/串联调用、日志监控、CI/CD、K8s 部署
 
-## 2. 产品目标
+**1.3 业务背景与驱动**  
+- **市场需求**：自然语言交互普及，用户期望低门槛的智能服务
+- **技术机遇**：大模型（LLM）与浏览器 STT/TTS 技术成熟
+- **竞争优势**：零点击、语音即服务，适配车载、IoT、可穿戴场景
 
-| 维度       | 指标                                  | 发布窗口 |
-|------------|---------------------------------------|----------|
-| 易用性     | 普通用户 3 分钟内学会，90% 操作全程语音 | 核心版   |
-| 开放性     | 接入 ≥ 5 个第三方 AI‑Agent 服务         | 核心版   |
-| 安全性     | 关键操作 100% 二次语音确认；零私钥上传   | 核心版   |
-| 可扩展性   | MCP 调用接口可动态装载                | 扩展版   |
-| 稳定性     | 24h 内关键接口可用性 ≥ 99%            | 扩展版   |
+**1.4 目标用户／利益相关者**  
+- **终端用户**：普通消费者，需"一句话"完成查询、控制等操作
+- **第三方开发者**：提供 HTTP API 或 MCP 脚本，快速接入平台
+- **内部团队**：前端、后端、测试、运维、产品经理
 
 ---
 
-## 3. 角色与核心价值
+## 2. 目标与 KPI
 
-- **普通用户**：用最自然的语音完成链上转账、余额查询等，“零代码”操控链上资产  
-- **AI‑Agent 开发者**：快速对接服务、查看调用数据，实现增收和扩大服务影响力  
-- **管理员**：审核服务、监控风控、运维，确保平台安全合规可运营  
+**2.1 项目目标**  
+1. 实现"一句话→解析→复述确认→执行→播报"的完整闭环  
+2. 极简接口规范，第三方技能 30 分钟内接入
+
+**2.2 可衡量成果**  
+- **端到端调用成功率**：≥90%  
+- **意图解析准确率（MVP）**：≥80%  
+- **平均解析+执行时长**：≤500ms  
+
+**2.3 成功标准**  
+- 二次修改失败率 ≤5%  
+- 前后端联调问题 ≤5 个/Sprint  
+- 第三方接入时间 ≤30 分钟
+
+**2.4 关键绩效指标（KPIs）**  
+| KPI               | 目标值    |
+|------------------|-----------|
+| 端到端成功率     | ≥90%      |
+| 平均解析时长     | ≤200ms    |
+| 平均执行时长     | ≤300ms    |
+| 二次修改失败率   | ≤5%       |
+| 第三方接入时间   | ≤30min    |
+
+### 2.5 MVP阶段开发原则
+
+1.  **聚焦核心价值**：在MVP（最小可行产品）阶段，所有开发活动应优先服务于核心业务流程的实现、验证和迭代，快速向市场推出能够解决用户核心痛点的产品。
+2.  **敏捷与迭代**：快速迭代，小步快跑。优先完成核心功能的端到端闭环。
+3.  **需求驱动开发**：AI助手及开发团队应严格按照明确的用户需求和产品规划进行开发，避免在MVP阶段引入非核心、未经充分验证或可能导致项目复杂化、延期的功能。
+4.  **资源审慎投入**：对于需要大量投入但对当前阶段核心用户体验提升或用户增长不构成直接显著影响的特性（例如，超出Web内容无障碍指南（WCAG）AA级别合规性的深度、专项无障碍优化），应在MVP阶段审慎评估其优先级和投入产出比，可考虑在产品成熟、用户基数扩大后再行投入。基础的无障碍实践（如语义化HTML、键盘可访问性、足够的颜色对比度）应作为质量保障的一部分，但不应过度扩展。
 
 ---
 
-## 4. 版本策略
+## 3. 功能需求
 
-**Phase 1：核心版（高优先级）**  
-- 语音转文字 → 网关LLM 意图解析 → 关键操作前复述 & 确认 → Mock‑MCP 调用 → 语音反馈  
-- 开发者后台：Markdown 文档 + API 参数 → 连通性 & 安全校验 → 入库（pending_review）  
-- 管理员后台：用户列表、服务审核、任务日志  
+### 3.1 前端需求  
+- **技术框架**：React 18 + Vite + Ant Design Mobile + Web Speech API  
+- **核心模块**：
+  - **认证系统**：登录/注册界面，JWT认证，AuthContext，基于角色的权限控制(user/developer/admin)
+  - **录音 & STT**：实时语音转文本
+  - **进度状态**：识别/理解/执行/完成四阶段进度展示
+  - **AI 复述 & 确认**：TTS + 自动 STT 分类 CONFIRM/RETRY/CANCEL
+  - **结果反馈**：动态卡片展示执行结果
+  - **技能列表**：列表/卡片/网格视图切换，搜索过滤
+  - **用户配置**：contacts、wallets等用户数据管理
+  - **全局弹窗**：Toast系统，错误、超时、重试提示
+  - **错误边界**：React ErrorBoundary 捕获渲染错误
+  - **第三方开发者Portal**：上传、管理自定义API，仅对具有developer或admin角色的用户可见
+- **设计系统**：
+  - **设计令牌**：CSS变量驱动所有样式
+    - 色彩：主色 #4FD1C5，背景 #1E1E2F，文本 #F8F8F8，错误 #F56565，警告 #ECC94B
+    - 间距：8px(sm)/16px(md)/24px(lg)
+    - 圆角：8px
+    - 字体：Inter, sans-serif
+  - **响应式策略**：Mobile-First + 断点适配
+  - **主题切换**：支持运行时动态调整（包括深色/浅色模式及自定义主题参数），持久化到localStorage
+  - **组件一致性**：所有UI组件统一使用设计令牌
 
-**Phase 2：扩展版（次优先级）**  
-- 真正的 LLM 意图解析模块  
-- MCP 网关/路由能力（动态注册/下线、负载均衡与熔断、监控 & 健康检查）  
-- 任务监控仪表板 & 指标告警  
-- 更多语音容错、自动回滚策略  
+### 3.2 后端需求  
+- **技术栈**：Python + FastAPI + Uvicorn  
+- **NLU 引擎**：OpenAI Python SDK（GPT-3.5/4）  
+- **核心接口**（JWT 鉴权，前缀 `/v1`）：
+  - `POST /auth/register`：
+    - **请求**：
+      ```json
+      {"username":"<string>","email":"<string>","password":"<string>"}
+      ```  
+    - **响应 201**：
+      ```json
+      {"id":<int>,"username":"<string>","email":"<string>"}
+      ```  
+  - `POST /auth/login`：
+    - **请求**：
+      ```json
+      {"username":"<string>","password":"<string>"}
+      ```  
+    - **响应 200**：
+      ```json
+      {"token":"<JWT>","user":{"id":<int>,"username":"<string>"}}
+      ```
+  - `POST /v1/api/interpret`：
+    - **请求**：
+      ```json
+      {"sessionId":"<UUID>","userId":<int>,"text":"用户转写文本"}
+      ```  
+    - **响应 200**：
+      ```json
+      {"type":"confirm","action":"toolId","params":{...},"confirmText":"复述文本"}
+      ```  
+    - **错误**：4xx/5xx + `{error:{code,msg}}`
+  - `POST /v1/api/execute`：
+    - **请求**：
+      ```json
+      {"sessionId":"<UUID>","userId":<int>,"action":"toolId","params":{...}}
+      ```  
+    - **响应 200**：
+      ```json
+      {"success":true,"data":{...}}
+      ```  
+    - **错误**：
+      ```json
+      {"success":false,"error":{"code":"EXEC_FAIL","message":"..."}}
+      ```
+  - `GET /v1/api/tools`：
+    - **响应 200**：
+      ```json
+      {"tools":[{"tool_id":"<string>","name":"<string>","description":"<string>","type":"<string>"}]}
+      ```
+- **错误码**：INVALID_PARAM、UNKNOWN_ALIAS、EXEC_FAIL、SERVICE_UNAVAILABLE、TIMEOUT、AUTH_FAILED
+
+### 3.3 数据库设计  
+- **持久化方案**：MySQL + SQLAlchemy + Alembic
+- **核心表 DDL**：
+  ```sql
+  CREATE TABLE users (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    username VARCHAR(64) UNIQUE NOT NULL,
+    email VARCHAR(128) UNIQUE NOT NULL,
+    password_hash VARCHAR(256) NOT NULL,
+    role ENUM('user', 'developer', 'admin') NOT NULL DEFAULT 'user', -- 用户角色: 普通用户、开发者、管理员
+    contacts JSON,
+    wallets JSON,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+  CREATE TABLE tools (
+    tool_id VARCHAR(64) PRIMARY KEY,
+    name VARCHAR(128) NOT NULL,
+    type ENUM('mcp','http') NOT NULL,
+    endpoint JSON NOT NULL,
+    request_schema JSON NOT NULL,
+    response_schema JSON NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+  CREATE TABLE sessions (
+    session_id CHAR(36) PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    status ENUM('interpreting','waiting_confirm','executing','done','error') NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY(user_id) REFERENCES users(id)
+  );
+  CREATE TABLE logs (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    session_id CHAR(36) NOT NULL,
+    step VARCHAR(32) NOT NULL,
+    status VARCHAR(32) NOT NULL,
+    message TEXT,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(session_id) REFERENCES sessions(session_id)
+  );
+  ```
 
 ---
 
-## 5. 功能需求与实施计划
+## 4. 技术框架
+| 层级      | 技术选型                                              |
+|-----------|------------------------------------------------------|
+| 前端      | React 18 + Vite + Ant Design Mobile + Web Speech API |
+| 后端      | Python + FastAPI + Uvicorn                           |
+| NLU       | OpenAI SDK (Python)                                  |
+| STT/TTS   | 浏览器 Web Speech API                                |
+| 数据库    | MySQL + SQLAlchemy + Alembic                         |
+| 会话管理  | JWT + Redis (可选)                                   |
+| 测试工具  | Jest + RTL + Cypress + MSW                           |
+| 自动化    | Cursor CLI + auto-dev.sh                             |
+| 部署运维  | Docker Compose → Kubernetes（后续）                  |
 
-### 5.1 主要流程（Phase 1）
+---
 
+## 5. 交互流程
+
+### 5.1 认证流程
 ```mermaid
 sequenceDiagram
-    participant U as 普通用户
-    participant FE as 前端(React)
-    participant BE as 后端(Node/Express)
-    participant MLLM as Mock‑LLM
-    participant MMCP as Mock‑MCP
+  User->>Front: 访问应用
+  Front->>Front: 检查本地JWT
+  alt 未登录
+    Front->>Front: 展示登录页
+    User->>Front: 输入用户名密码
+    Front->>Back: POST /auth/login
+    Back->>Back: 验证凭证
+    Back-->>Front: 返回JWT(包含用户角色)
+    Front->>Front: 保存JWT和角色信息，跳转对应主页
+  else 已登录
+    Front->>Front: 根据用户角色显示相应界面
+  end
+```
 
-    U->>FE: 点击录音按钮
-    FE->>FE: Web Speech API 转写
-    FE->>BE: POST /api/voice/upload
-    BE->>MLLM: POST /api/llm/interpret (Mock)
-    MLLM-->>BE: {intent:"转账",details:{recipient:"Alice",amount:"1 ETH"}}
-    BE-->>FE: TTS 播报摘要并提示确认
-    U->>FE: “确认”
-    FE->>BE: POST /api/mcp/execute (confirmation=true,Mock)
-    MMCP-->>BE: {txHash:"0x123..."}
-    BE-->>FE: TTS 播报结果 + 页面提示
+### 5.2 核心交互流程
+```mermaid
+sequenceDiagram
+  User->>Front: 一句话
+  Front->>Speech API: 录音 & 转文本
+  Front->>Back: POST /v1/api/interpret
+  Back->>OpenAI: 解析 → {action,params,confirmText}
+  Back-->>Front: 响应 confirmText 等
+  Front->>TTS: 播报 confirmText
+  Front->>Front: STT 监听用户语音 → rawText
+  Front->>Front: classify intent (CONFIRM/RETRY/CANCEL)
+  alt CONFIRM
+    Front->>Back: POST /v1/api/execute
+    Back->>AliasResolver: 解析别名
+    Back->>ToolRegistry: 查元数据
+    Back-->>MCP/HTTP: 调用服务
+    Back-->>Front: 返回结果 data
+    Front->>TTS: 播报结果
+  else RETRY
+    Front->>Back: POST /v1/api/interpret
+  else CANCEL
+    Front->>TTS: 播报"操作已取消"
+  end
+```
 
-    5.2 普通用户前端（语音优先）
-	•	录音按钮：长按/点击开始录音，松手或再次点击结束
-	•	本地语音转文字：使用 Web Speech API，支持中英文
-	•	关键操作复述：在检测到“转账”等高风险操作时，语音播报“您将转账 X ETH 给 Y，请说‘确认’或‘取消’”
-	•	语音确认解析：识别“确认”或“取消”，超时默认取消（15 秒）
-	•	TTS 结果播报：操作成功或失败后，通过 TTS 播报余额、交易哈希等摘要信息
-	•	辅助界面：展示平台当前支持的服务列表、会话状态提示和错误弹窗（仅参考，不需点击）
+---
 
-## 5.3 用户基本信息配置管理
+## 6. 已实现功能与近期更新
 
-**目标：** 在平台中维护一套可扩展的用户配置项（如钱包地址、默认收款人、语言偏好等），用于自动补全 MCP 调用所需参数并支持未来随时新增配置。
+### 6.1 已实现功能
+- **后端核心功能**：
+  - API架构：FastAPI基础架构、路由、控制器、服务层
+  - 数据库模型：用户、工具、会话、日志
+  - 意图解析：基于LLM的意图理解
+  - 工具执行：MCP和HTTP工具调用
+  - 用户认证：JWT授权机制
 
-**需求描述：**
-1. 平台预定义常用配置键（`walletAddress`、`defaultRecipient`、`preferredChain`、`language` 等），并允许扩展任意新键。
-2. 提供统一的 API 读取/更新用户配置，所有配置与用户身份绑定，且仅限存储非敏感信息。
-3. 在意图解析后自动从用户配置中补全缺失参数；在“设置”界面展示并允许用户修改这些配置。
-4. 配置结构须支持动态新增键值，无需变更表结构或重部署。
+- **前端核心组件**：
+  - 语音交互：VoiceRecorder组件（录音/STT）
+  - 状态管理：SessionContext、进度条显示
+  - 结果展示：ResultDisplay组件
+  - API集成：apiClient服务封装
+  - 设计系统：统一设计令牌系统，实现主题切换（ThemeContext, ThemeToggle, ThemeSettings, StyleEditor）和样式调试
+  - 全局布局：包括 Header 和 Footer 组件
+  - 错误处理：ErrorBoundary组件
+  - **第三方开发者Portal**：上传、管理自定义API，仅对具有developer或admin角色的用户可见。核心UI (`DeveloperConsolePage`) 已实现并通过单元测试，覆盖服务列表展示、状态切换和删除功能。
 
+### 6.2 近期更新 (2025-05-15)
+- **后端**：
+  - 完成了HTTP工具调用支持（Dify平台、Coze平台、通用HTTP API）
+  - 实现了用户身份认证系统（注册/登录API、JWT中间件）
+  - 修复了session_id在API响应中为null的问题
+  - 开始优化技能服务目录，支持列表/网格视图切换和搜索
+  - 优化了响应式策略，采用Mobile-First方法，实现断点适配
 
-5.4 开发者后台（AI‑Agent 接入）
-	•	登录与鉴权：邮箱+密码或 MetaMask 认证
-	•	服务创建向导：填写服务名称、描述、分类
-	•	文档上传与校验：上传符合模板的 Markdown 文档（字段：Service Name、Description、Endpoint、Method、Auth、Request Params、Response、Error Codes、Sample cURL），前端校验完整性
-	•	接口连通性测试：根据 Sample cURL 自动发起测试请求，2xx 返回视为通过，否则提示错误详情
-	•	基础安全扫描：检查域名/端口黑名单、强制 HTTPS、限制请求体大小
-	•	统计与入库：通过测试后生成 agentId，存入 agents 表并标记为 pending_review，前端展示测试结果和状态
+- **2025-05-19 (或当前日期)**:
+  - **前端**：完成了主题系统（包括深色/浅色模式切换 `ThemeToggle`、自定义主题设置 `ThemeSettings`、样式调试面板 `StyleEditor`）的开发和单元测试。核心组件（`ThemeToggle`, `ThemeSettings`, `SettingsPage`）已通过 `jest-axe` 无障碍规范检查。
+  - **前端**：实现了页脚（`Footer`）组件，并将其集成到主应用布局（`AppLayout`）中，完成了单元测试和 `jest-axe` 无障碍检查。
+  - **前端**：更新了 `TASKS.md` 中相关任务 (T004, T004-1, T004-1-3, T004-3-1, T004-3-3, T007-5) 的状态为"已完成"。
+  - **文档**：更新了前端开发文档和产品需求文档以反映最新的开发进展。
 
+---
 
+## 7. 接下来优先实施计划
 
-5.5 管理员后台
-	•	用户与服务管理：支持搜索、冻结账号、重置密码
-	•	服务审核：预览开发者提交的文档、测试 API 连通性，审核通过或驳回
-	•	任务日志查询：按用户、时间、状态过滤并查看详细交互日志
-	•	系统监控（Phase 2）：展示 QPS、错误率、资源占用等指标
+1. **前端认证系统**：
+   - 完成登录和注册组件
+   - 实现AuthContext全局状态
+   - 添加路由保护机制
+   - 实现JWT存储和刷新
 
-5.5.1 后端核心模块（Phase 1）
-	•	语音文本接收：POST /api/voice/upload，保存用户 ID 与文本
-	•	Mock LLM 意图解析：POST /api/llm/interpret，返回模拟意图及参数
-	•	Mock MCP 调用：POST /api/mcp/execute，模拟执行并返回 txHash
-	•	任务与日志管理：记录流程日志，GET /api/tasks/:taskId 查询
-	•	AI‑Agent 管理：POST /api/developer/submit，存储文档与配置，状态设为 pending_review
+2. **通用提示系统**：
+   - 实现Toast/Modal组件系统
+   - 统一错误处理流程
+   - 集成设计令牌确保风格一致
 
-5.6 Phase 2 扩展（次优先级）
-	•	动态路由：后端维护 MCP Server Registry，根据标签自动选择实例
-	•	服务热插拔：支持动态注册和下线 MCP Server，实时生效
-	•	负载与熔断：实现轮询或权重负载均衡，健康检查失败则熔断
-	•	监控接口：GET /api/mcp/registry、GET /api/mcp/health（Prometheus exporter）
+3. **技能服务目录**：
+   - 完善列表/网格视图切换
+   - 实现搜索过滤功能
+   - 优化服务卡片设计
+   - 支持第三方开发者上传的服务
 
-普通用户调用 /api/mcp/execute 不变，路由逻辑完全隐藏在后端。
+4. **自动化测试环境**：
+   - 完善Cypress E2E测试
+   - 集成MSW模拟后端API
+   - 优化auto-dev.sh自动化流程
 
-5.7 非功能需求、里程碑、风险与验收
+5. **主题与样式**：
+   - 实现运行时主题切换
+   - 创建样式调试面板
+   - 完善响应式适配策略
 
-非功能需求
-	•	性能：单接口 QPS ≥ 10；端到端时延 ≤ 3 s（Mock）
-	•	安全：HTTPS / JWT / 角色权限；关键操作二次确认
-	•	运维：Docker 容器化；日志按 taskId 关联
-	•	测试：Jest + Supertest；E2E：Cypress（录音模拟）
-
-关键里程碑
-	•	M0 + 2 周：前端录音 & 语音转写原型（05‑03）
-	•	M0 + 4 周：Mock 后端 API & 端到端 Demo（05‑17）
-	•	M0 + 6 周：开发者后台 MVP & 服务审核流（05‑31）
-	•	M0 + 8 周：核心版 Beta 发布（06‑14）
-
-风险与对策
-	•	语音识别准确率低 → 关键操作二次语音确认；错误提示重试
-	•	LLM/MCP 选型延迟 → Phase 1 使用 Mock 接口，接口格式不变
-	•	第三方 Agent 不稳定 → 健康检测 + 熔断；降级兜底
-	•	Web Speech API 差异 → Polyfill + 浏览器支持提示
-
-数据指标与验收
-	•	录音→播报时延 ≤ 3 s（端到端计时）
-	•	转账确认失败率 < 1 %（日志统计）
-	•	开发者服务上线时长 < 30 min（提交→审核→可调用）
-	•	P0 Bug 数 = 0（UAT）
-
-
-6. API 接口与安全策略
-
-6.1 接口统一封装
-
-所有前后端交互均通过 /api 前缀的 RESTful 接口完成，请求与响应均使用 application/json。
-响应格式统一为：
-{ 
-  "code": number,   // 0 表示成功，其它表示错误类型
-  "data": any,      // 返回数据
-  "message": string // 提示信息
-}
-
-
-6.2 鉴权与权限
-	•	普通用户：登录后由后端签发短期 JWT Token，所有接口需在 Authorization: Bearer <token> 中携带，服务端验证并注入 userId。
-	•	开发者/管理员：基于角色字段做细粒度授权，只有拥有对应权限的角色才能访问相应接口。
-
-6.3 输入校验
-
-使用 JSON Schema（如 AJV）对每个接口请求体做严格校验，拦截不符合格式或多余字段。对包含命令或脚本的字段（如 Sample cURL）进行内容扫描，防止注入攻击。
-
-6.4 HTTPS 与 CORS
-	•	强制全站 HTTPS，防止中间人攻击。
-	•	仅允许白名单中的前端域名访问（配置 Access-Control-Allow-Origin）。
-
-6.5 限流与防刷
-
-对高频接口（如 /api/voice/upload、/api/mcp/execute）在网关或服务层采用令牌桶限流，防止恶意刷接口或 DDOS 攻击。针对关键操作（如转账）还可在业务层做速率限制。
-
-6.6 日志与审计
-
-对每次 API 调用记录请求参数（敏感字段脱敏）、调用者身份、时间戳与响应状态，并提供审计查询接口，便于后台查看与追踪。
+---

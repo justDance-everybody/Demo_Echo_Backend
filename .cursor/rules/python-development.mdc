@@ -1,6 +1,6 @@
 ---
-description:
-globs:
+description: Python脚本应用开发指南
+globs: 
 alwaysApply: false
 ---
 # Python脚本应用开发指南
@@ -67,6 +67,7 @@ alwaysApply: false
 - 使用pytest作为测试框架
 - 确保测试覆盖关键功能和边界情况
 - 集成测试验证与其他组件的交互
+- 优先使用uv来运行python代码
 
 ## 与Node.js集成
 
@@ -107,3 +108,4 @@ alwaysApply: false
 - 是否有冗余或可优化的代码？
 
 坚持以上规范，确保Python脚本的高质量、可维护性和安全性。
+
