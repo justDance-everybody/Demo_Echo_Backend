@@ -1,0 +1,135 @@
+name: PR自动化助手
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  pr-assistant:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 下载代码
+        uses: actions/checkout@v4
+
+      - name: 💬 PR开启时添加检查清单
+        uses: actions/github-script@v6
+        if: github.event.action == 'opened'
+        with:
+          script: |
+            const body = `## 🎯 代码审查检查清单
+            
+            **提交者请确认：**
+            - [ ] 代码已在本地测试通过
+            - [ ] 添加了必要的注释和文档
+            - [ ] 遵循了项目的代码规范
+            - [ ] 敏感信息（API密钥等）未被提交
+            - [ ] 数据库迁移文件（如有）已包含
+            
+            **审查者请检查：**
+            - [ ] 业务逻辑正确性
+            - [ ] 代码可读性和可维护性
+            - [ ] 错误处理是否完善
+            - [ ] 是否影响现有功能
+            - [ ] 性能影响评估
+            
+            **CI状态：**
+            - CI检查将自动运行，请等待结果
+            - 如有问题请查看详细日志
+            
+            ---
+            🤖 *此评论由GitHub Actions自动生成*
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      - name: 📊 CI状态汇总
+        uses: actions/github-script@v6
+        if: github.event.action == 'synchronize'
+        with:
+          script: |
+            // 获取最新的CI运行状态
+            const runs = await github.rest.actions.listWorkflowRunsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              branch: context.payload.pull_request.head.ref,
+              per_page: 5
+            });
+            
+            const latestRun = runs.data.workflow_runs[0];
+            if (latestRun) {
+              const status = latestRun.status;
+              const conclusion = latestRun.conclusion;
+              
+              let emoji = '🔄';
+              let message = 'CI检查正在运行中...';
+              
+              if (status === 'completed') {
+                if (conclusion === 'success') {
+                  emoji = '✅';
+                  message = 'CI检查全部通过！';
+                } else if (conclusion === 'failure') {
+                  emoji = '❌';
+                  message = 'CI检查失败，请查看详细日志';
+                }
+              }
+              
+              console.log(`${emoji} ${message}`);
+            }
+
+  code-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 下载代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 📈 分析代码变更
+        run: |
+          echo "## 📊 代码变更统计" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # 统计变更的文件
+          CHANGED_FILES=$(git diff --name-only origin/main...HEAD)
+          TOTAL_FILES=$(echo "$CHANGED_FILES" | wc -l)
+          
+          echo "**变更文件数量：** $TOTAL_FILES" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # 按类型分类
+          PYTHON_FILES=$(echo "$CHANGED_FILES" | grep "\.py$" | wc -l)
+          CONFIG_FILES=$(echo "$CHANGED_FILES" | grep -E "\.(yml|yaml|json|toml|env)$" | wc -l)
+          DOC_FILES=$(echo "$CHANGED_FILES" | grep -E "\.(md|txt)$" | wc -l)
+          
+          echo "**文件类型分布：**" >> $GITHUB_STEP_SUMMARY
+          echo "- Python文件: $PYTHON_FILES" >> $GITHUB_STEP_SUMMARY
+          echo "- 配置文件: $CONFIG_FILES" >> $GITHUB_STEP_SUMMARY
+          echo "- 文档文件: $DOC_FILES" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # 代码行数统计
+          ADDED_LINES=$(git diff --numstat origin/main...HEAD | awk '{sum+=$1} END {print sum}')
+          DELETED_LINES=$(git diff --numstat origin/main...HEAD | awk '{sum+=$2} END {print sum}')
+          
+          echo "**代码变更量：**" >> $GITHUB_STEP_SUMMARY
+          echo "- 新增行数: $ADDED_LINES" >> $GITHUB_STEP_SUMMARY
+          echo "- 删除行数: $DELETED_LINES" >> $GITHUB_STEP_SUMMARY
+          
+          # 风险评估
+          if [ $TOTAL_FILES -gt 20 ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ **风险提醒：** 此PR涉及较多文件，建议仔细审查" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ $ADDED_LINES -gt 500 ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ **风险提醒：** 此PR新增代码较多，建议分批审查" >> $GITHUB_STEP_SUMMARY
+          fi
+
