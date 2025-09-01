@@ -13,12 +13,23 @@ from openai import AsyncOpenAI
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
-load_dotenv()
+# 优先加载当前目录的.env，如果不存在则从项目根目录加载
+current_dir_env = os.path.join(os.getcwd(), '.env')
+parent_dir_env = os.path.join(os.path.dirname(os.getcwd()), 'backend', '.env')
+
+if os.path.exists(current_dir_env):
+    load_dotenv(current_dir_env)
+elif os.path.exists(parent_dir_env):
+    load_dotenv(parent_dir_env)
+    print("使用后端配置文件中的LLM设置")
+else:
+    load_dotenv()  # 使用默认查找
+
 LLM_API_KEY = os.getenv("LLM_API_KEY")
-LLM_MODEL = os.getenv("LLM_MODEL")
+LLM_MODEL = os.getenv("LLM_MODEL") 
 LLM_API_BASE = os.getenv("LLM_API_BASE")
 if not all([LLM_API_KEY, LLM_MODEL, LLM_API_BASE]):
-    raise RuntimeError("缺少环境变量: LLM_API_KEY、LLM_MODEL 或 LLM_API_BASE")
+    raise RuntimeError("缺少环境变量: LLM_API_KEY、LLM_MODEL 或 LLM_API_BASE。请配置backend/.env或MCP_Client/.env")
 
 llm = AsyncOpenAI(api_key=LLM_API_KEY, base_url=LLM_API_BASE)
 
