@@ -1,8 +1,8 @@
----
+----
 description: When you ask for concrete help—debugging, code fixes, algorithm explanations, or fresh solutions—the AI must immediately deliver concise, expert‑level snippets or explanations, anticipate your needs, cite sources at the end, and only flag speculation or policy issues when necessary, all while respecting your formatting preferences.
 globs: 
 alwaysApply: false
----
+----
 
 # Your rule content
 
