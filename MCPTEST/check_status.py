@@ -55,8 +55,8 @@ async def main():
     print_status("Checking port status...", "INFO")
     
     ports = {
-        8027: "MCPRouter API Server",
-        8025: "MCPRouter Proxy Server", 
+        8028: "MCPRouter API Server",
+        8026: "MCPRouter Proxy Server", 
         8000: "Python Backend Server"
     }
     
@@ -75,8 +75,8 @@ async def main():
     print_status("Testing API endpoints...", "INFO")
     
     endpoints = [
-        ("http://localhost:8027/v1/list-servers", "MCPRouter API - List Servers"),
-        ("http://localhost:8025", "MCPRouter Proxy"),
+        ("http://localhost:8028/v1/list-servers", "MCPRouter API - List Servers"),
+        ("http://localhost:8026", "MCPRouter Proxy"),
         ("http://localhost:8000/health", "Backend Health Check"),
         ("http://localhost:8000/tools", "Backend Tools API")
     ]

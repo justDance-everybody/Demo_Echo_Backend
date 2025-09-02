@@ -36,28 +36,40 @@ async def test_mcprouter_api():
     
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            # 测试 list-servers 端点
-            response = await client.get("http://localhost:8027/v1/list-servers")
-            if response.status_code == 200:
-                servers = response.json()
-                print_status(f"✓ List servers successful (HTTP {response.status_code})", "SUCCESS")
-                print(f"Available servers: {json.dumps(servers, indent=2, ensure_ascii=False)}")
-                
-                # 测试 list-tools 端点
-                if isinstance(servers, dict) and servers:
-                    first_server = list(servers.keys())[0]
-                    response = await client.get(f"http://localhost:8027/v1/list-tools?server={first_server}")
+            # 测试 list-servers 端点 - 使用 POST 方法和授权头
+            headers = {
+                "Authorization": "Bearer fetch",
+                "Content-Type": "application/json"
+            }
+            # 测试所有配置的MCP服务器
+            servers_to_test = ["fetch", "time", "playwright", "minimax-mcp-js", "amap-maps", "web3-rpc"]
+            successful_servers = 0
+            
+            for server in servers_to_test:
+                print_status(f"Testing {server} server...", "INFO")
+                try:
+                    response = await client.post(
+                        "http://localhost:8028/v1/list-tools", 
+                        headers=headers,
+                        json={"server": server}
+                    )
                     if response.status_code == 200:
                         tools = response.json()
-                        print_status(f"✓ List tools successful for {first_server}", "SUCCESS")
-                        print(f"Available tools: {json.dumps(tools, indent=2, ensure_ascii=False)}")
+                        print_status(f"✓ {server} server successful (HTTP {response.status_code})", "SUCCESS")
+                        if "data" in tools and "tools" in tools["data"]:
+                            tool_count = len(tools["data"]["tools"])
+                            print(f"  - Found {tool_count} tools:")
+                            for i, tool in enumerate(tools["data"]["tools"], 1):
+                                print(f"    {i}. {tool['name']}: {tool.get('description', 'No description')}")
+                        successful_servers += 1
                     else:
-                        print_status(f"✗ List tools failed for {first_server} (HTTP {response.status_code})", "WARNING")
-                
-                return True
-            else:
-                print_status(f"✗ List servers failed (HTTP {response.status_code})", "ERROR")
-                return False
+                        print_status(f"✗ {server} server failed (HTTP {response.status_code})", "WARNING")
+                        print(f"  - Response: {response.text}")
+                except Exception as e:
+                    print_status(f"✗ {server} server error: {e}", "ERROR")
+            
+            print_status(f"Total servers tested: {len(servers_to_test)}, Successful: {successful_servers}", "INFO")
+            return successful_servers > 0
                 
     except Exception as e:
         print_status(f"✗ MCPRouter API test failed: {e}", "ERROR")
@@ -81,6 +93,47 @@ async def test_mcprouter_proxy():
         print_status(f"✗ Proxy test failed: {e}", "ERROR")
         return False
 
+async def test_solana_account():
+    """测试Solana账户信息查询"""
+    print_status("Testing Solana Account Information...", "INFO")
+    
+    solana_address = "7Ts3yn7mUbaR1YFDkLgPAXQVXB7NSMV1fNFbrnZskayf"
+    
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            headers = {
+                "Authorization": "Bearer web3-rpc",
+                "Content-Type": "application/json"
+            }
+            
+            # 测试获取账户信息
+            print_status(f"Querying account info for: {solana_address}", "INFO")
+            response = await client.post(
+                "http://localhost:8028/v1/call-tool",
+                headers=headers,
+                json={
+                    "server": "web3-rpc",
+                    "Name": "getAccountInfo",
+                    "arguments": {
+                        "address": solana_address
+                    }
+                }
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                print_status(f"✓ Solana account info query successful (HTTP {response.status_code})", "SUCCESS")
+                print(f"Account Info Result: {json.dumps(result, indent=2, ensure_ascii=False)}")
+                return True
+            else:
+                print_status(f"✗ Solana account info query failed (HTTP {response.status_code})", "ERROR")
+                print(f"Response: {response.text}")
+                return False
+                
+    except Exception as e:
+        print_status(f"✗ Solana account test failed: {e}", "ERROR")
+        return False
+
 async def main():
     """主函数"""
     print("=" * 60)
@@ -90,13 +143,13 @@ async def main():
     # 检查端口状态
     print_status("Checking MCPRouter services...", "INFO")
     
-    api_running = check_port(8027)
+    api_running = check_port(8028)
     proxy_running = check_port(8025)
     
     if api_running:
-        print_status("✓ MCPRouter API Server (port 8027) is running", "SUCCESS")
+        print_status("✓ MCPRouter API Server (port 8028) is running", "SUCCESS")
     else:
-        print_status("✗ MCPRouter API Server (port 8027) is not running", "ERROR")
+        print_status("✗ MCPRouter API Server (port 8028) is not running", "ERROR")
     
     if proxy_running:
         print_status("✓ MCPRouter Proxy Server (port 8025) is running", "SUCCESS")
@@ -106,7 +159,9 @@ async def main():
     if not api_running and not proxy_running:
         print_status("✗ No MCPRouter services are running", "ERROR")
         print("\n请先启动 MCPRouter 服务:")
-        print("cd Demo_Echo_Backend && .\\start-mcprouter.bat")
+        print("API Server: cd Demo_Echo_Backend/mcprouter && go run main.go api")
+        print("Proxy Server: cd Demo_Echo_Backend/mcprouter && go run main.go proxy")
+        print("注意: API服务器默认运行在8028端口")
         return False
     
     print()
@@ -120,6 +175,11 @@ async def main():
     proxy_success = False
     if proxy_running:
         proxy_success = await test_mcprouter_proxy()
+    
+    # 测试 Solana 账户信息
+    print()
+    print_status("Testing Solana Blockchain Integration...", "INFO")
+    solana_success = await test_solana_account()
     
     print()
     print("=" * 60)
@@ -136,8 +196,13 @@ async def main():
     else:
         print_status("✗ MCPRouter Proxy 测试失败", "WARNING")
     
-    if api_success:
-        print_status("🎉 MCPRouter 核心功能正常！", "SUCCESS")
+    if solana_success:
+        print_status("✓ Solana 账户信息查询测试通过", "SUCCESS")
+    else:
+        print_status("✗ Solana 账户信息查询测试失败", "ERROR")
+    
+    if api_success and solana_success:
+        print_status("🎉 MCPRouter 核心功能和区块链集成正常！", "SUCCESS")
         return True
     else:
         print_status("❌ MCPRouter 功能异常", "ERROR")

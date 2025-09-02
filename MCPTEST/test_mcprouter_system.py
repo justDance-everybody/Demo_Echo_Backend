@@ -20,7 +20,7 @@ class MCPRouterTester:
     """MCPRouter 系统测试类"""
     
     def __init__(self):
-        self.mcprouter_api_url = "http://localhost:8027"
+        self.mcprouter_api_url = "http://localhost:8028"
         self.backend_api_url = "http://localhost:8000"
         self.timeout = 30.0
         
@@ -189,19 +189,19 @@ class MCPRouterTester:
         try:
             # 检查 MCPRouter API 端口
             result = subprocess.run(['netstat', '-an'], capture_output=True, text=True)
-            status['mcprouter_api'] = ':8027' in result.stdout and 'LISTENING' in result.stdout
-            status['mcprouter_proxy'] = ':8025' in result.stdout and 'LISTENING' in result.stdout
+            status['mcprouter_api'] = ':8028' in result.stdout and 'LISTENING' in result.stdout
+            status['mcprouter_proxy'] = ':8026' in result.stdout and 'LISTENING' in result.stdout
             status['backend'] = ':8000' in result.stdout and 'LISTENING' in result.stdout
             
             if status['mcprouter_api']:
-                self.print_status("✓ MCPRouter API Server (port 8027) is running", "SUCCESS")
+                self.print_status("✓ MCPRouter API Server (port 8028) is running", "SUCCESS")
             else:
-                self.print_status("✗ MCPRouter API Server (port 8027) is not running", "ERROR")
-                
+                self.print_status("✗ MCPRouter API Server (port 8028) is not running", "ERROR")
+            
             if status['mcprouter_proxy']:
-                self.print_status("✓ MCPRouter Proxy Server (port 8025) is running", "SUCCESS")
+                self.print_status("✓ MCPRouter Proxy Server (port 8026) is running", "SUCCESS")
             else:
-                self.print_status("✗ MCPRouter Proxy Server (port 8025) is not running", "ERROR")
+                self.print_status("✗ MCPRouter Proxy Server (port 8026) is not running", "ERROR")
                 
             if status['backend']:
                 self.print_status("✓ Python Backend Server (port 8000) is running", "SUCCESS")
@@ -289,7 +289,7 @@ async def main():
         print("\n故障排除建议:")
         print("1. 确保 MCPRouter 服务已启动 (运行 start-mcprouter.bat)")
         print("2. 确保 Python 后端服务已启动 (运行 python -m uvicorn app.main:app --host 0.0.0.0 --port 8000)")
-        print("3. 检查端口 8025, 8027, 8000 是否被占用")
+        print("3. 检查端口 8026, 8028, 8000 是否被占用")
         print("4. 检查配置文件是否正确")
     
     return success

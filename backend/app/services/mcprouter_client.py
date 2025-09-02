@@ -13,12 +13,12 @@ class MCPRouterClient:
 
     不依赖全局 settings，直接读取环境变量，避免修改现有配置代码。
     环境变量（可选）：
-      - MCPROUTER_API_URL (默认 http://127.0.0.1:8027)
+              - MCPROUTER_API_URL (默认 http://127.0.0.1:8028)
       - MCPROUTER_TIMEOUT (秒，默认 30)
     """
 
     def __init__(self) -> None:
-        self.api_base_url: str = os.getenv("MCPROUTER_API_URL", "http://127.0.0.1:8027").rstrip("/")
+        self.api_base_url: str = os.getenv("MCPROUTER_API_URL", "http://127.0.0.1:8028").rstrip("/")
         timeout_s: float = float(os.getenv("MCPROUTER_TIMEOUT", "30"))
         self._client = httpx.AsyncClient(
             base_url=self.api_base_url,

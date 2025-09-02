@@ -57,7 +57,7 @@ class Settings(BaseSettings):
     MCP_SERVERS_PATH: str = Field(default="../MCP_Client/config/mcp_servers.json", env="MCP_SERVERS_PATH")
     
     # MCPRouter配置（新增，不影响原有MCP配置）
-    MCPROUTER_API_URL: str = Field(default="http://127.0.0.1:8027", env="MCPROUTER_API_URL")
+    MCPROUTER_API_URL: str = Field(default="http://127.0.0.1:8028", env="MCPROUTER_API_URL")
     MCPROUTER_TIMEOUT: int = Field(default=30, env="MCPROUTER_TIMEOUT")
     
     # 日志配置

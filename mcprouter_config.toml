@@ -1,5 +1,4 @@
 # MCPRouter Configuration File
-# 确保TOML格式正确，避免解析错误
 
 [app]
 use_db = false
@@ -7,20 +6,23 @@ use_cache = false
 save_log = false
 
 [proxy_server]
-port = 8025
+port = 8026
 host = "127.0.0.1"
 
 [api_server]
-port = 8027
+port = 8028
 host = "127.0.0.1"
 
-# MCP Server Commands
-[mcp_server_commands]
-amap-maps = "npx -y @amap/amap-maps-mcp-server"
-minimax-mcp-js = "npx -y minimax-mcp-js"
-playwright = "npx @playwright/mcp@latest --headless"
+# MCP Servers
+[mcp_servers]
+fetch = { command = "npx @smithery/mcp-fetch", share_process = true }
+playwright = { command = "npx @playwright/mcp@latest --headless", share_process = true }
+minimax-mcp-js = { command = "npx -y minimax-mcp-js", share_process = true }
+amap-maps = { command = "npx -y @amap/amap-maps-mcp-server", share_process = true }
+web3-rpc = { command = "node MCP_server/web3-mcp/build/index.js", share_process = true }
 
 # MCP Server Environment Variables
 [mcp_server_env]
 amap-maps = { AMAP_MAPS_API_KEY = "your-amap-api-key-here" }
-minimax-mcp-js = { MINIMAX_API_KEY = "your-minimax-api-key-here", MINIMAX_API_HOST = "https://api.minimax.chat" }
+minimax-mcp-js = { MINIMAX_API_KEY = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJHcm91cE5hbWUiOiJIYW5hem9ub1l1cmluZSIsIlVzZXJOYW1lIjoiSGFuYXpvbm9ZdXJpbmUiLCJBY2NvdW50IjoiIiwiU3ViamVjdElEIjoiMTk1MzgzMDE1NzU1OTAwOTMyMiIsIlBob25lIjoiMTg5NTExMDc5MjMiLCJHcm91cElEIjoiMTk1MzgzMDE1NzU1MDYyMDcxNCIsIlBhZ2VOYW1lIjoiIiwiTWFpbCI6IiIsIkNyZWF0ZVRpbWUiOiIyMDI1LTA4LTA5IDA5OjM5OjUzIiwiVG9rZW5UeXBlIjoxLCJpc3MiOiJtaW5pbWF4In0.co8UtgtAsmj5mB8Yapq_DpYXB-yepjXOz1VSnb1CWCvI3AskPv__TED216B-tyekG4mrE0KHf2VQ4WS2P9PgdQmIblwbwNuZCZe8gN3DcNj-ewiOnU3x15HUxSzFryBFPZxdQ9UTb4K0FIb0zOCOE3VnXKAmpIglxN4YiQcL6a02MB8PrmPTSozdAywrbT2sE_ocsscp1_Y6kEjd7PLUtCWoOWQRN4cn99zbWcVTFMY3nXAxw1c74aSEYVq9s9feIp3CjLa4p1Xeb6H_5-ZW2mJJit8VgKvRo1FUwhbD4L-VGgH_lBooL8hsdOg9dgWN0dmB18PUD8i1NXGBiyllOw", MINIMAX_API_HOST = "https://api.minimax.chat" }
+web3-rpc = { SOLANA_RPC_URL = "your-solana-rpc-url-here" }

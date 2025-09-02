@@ -322,7 +322,7 @@ tail -f mcprouter.log
 
 ### MCPRouter 配置
 
-编辑 `mcprouter_config.toml`：
+编辑 `.env.toml`：
 
 ```toml
 [api]

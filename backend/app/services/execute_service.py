@@ -155,14 +155,14 @@ class ExecuteService:
                     router_resp = await mcprouter_client.call_tool(
                         server=target_server, name=tool_id, arguments=params
                     )
-                    # 统一为旧结构
+                    # 统一为旧结构，但保留原始数据
                     if isinstance(router_resp, dict) and router_resp.get("code") == 0:
                         # mcprouter API 风格：{ code, message, data }
                         data = router_resp.get("data", {})
-                        mcp_result = {"success": True, "result": {"message": data}}
+                        mcp_result = {"success": True, "result": {"message": data, "raw_data": router_resp}}
                     else:
                         # 也可能直接返回 JSON-RPC call result 结构
-                        mcp_result = {"success": True, "result": {"message": router_resp}}
+                        mcp_result = {"success": True, "result": {"message": router_resp, "raw_data": router_resp}}
                 except Exception as e:
                     logger.warning(f"MCPRouter 调用失败，回退至本地 mcp_client：{e}")
                     mcp_result = await mcp_client.execute_tool(
@@ -197,7 +197,13 @@ class ExecuteService:
                         )
                         tts_message = f"已成功执行工具 {tool_id}。"
                 
-                    response_data = {"tts_message": tts_message}
+                    # 保留原始数据和LLM总结
+                    raw_data = mcp_result.get("result", {}).get("raw_data", {})
+                    response_data = {
+                        "tts_message": tts_message,
+                        "raw_data": raw_data,  # 保留原始MCPRouter返回数据
+                        "summary": "LLM总结的语音播报内容"
+                    }
                     response = ExecuteResponse(
                         tool_id=tool_id,
                         success=True,
