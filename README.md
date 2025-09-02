@@ -219,38 +219,101 @@ pip install git+https://github.com/modelcontextprotocol/python-sdk.git
 
 ## MCPRouter 配置与启动
 
-### 1. MCPRouter 配置文件
+### 1. 获取 MCPRouter 源码
 
-编辑 `mcprouter_config.toml` 文件：
+**重要提示：** 由于MCPRouter包含Git子模块，直接下载ZIP文件会导致依赖缺失。请按以下步骤操作：
+
+#### 方法1：使用Git克隆（推荐）
+```bash
+# 在项目根目录下
+cd Demo_Echo_Backend
+
+# 克隆MCPRouter仓库（包含子模块）
+git clone --recursive https://github.com/chatmcp/mcprouter.git
+
+# 如果已经克隆但没有子模块，执行：
+cd mcprouter
+git submodule update --init --recursive
+```
+
+#### 方法2：手动下载并处理子模块
+```bash
+# 1. 下载源码
+wget https://github.com/chatmcp/mcprouter/archive/refs/heads/main.zip
+unzip main.zip
+mv mcprouter-main mcprouter
+
+# 2. 手动下载子模块依赖
+cd mcprouter
+mkdir -p vendor
+# 下载必要的依赖包到vendor目录
+```
+
+#### 方法3：使用Go模块（推荐）
+```bash
+# 在项目根目录下
+cd Demo_Echo_Backend
+
+# 创建mcprouter目录
+mkdir mcprouter
+cd mcprouter
+
+# 初始化Go模块
+go mod init mcprouter
+
+# 添加MCPRouter依赖
+go get github.com/chatmcp/mcprouter@latest
+
+# 下载依赖
+go mod tidy
+```
+
+### 2. MCPRouter 配置文件
+
+编辑 `mcprouter/.env.toml` 文件（基于官方示例）：
 
 ```toml
-[api]
-host = "127.0.0.1"
-port = 8028
+# 复制官方示例配置
+cp mcprouter/.env.example.toml mcprouter/.env.toml
 
-[proxy]
-host = "127.0.0.1"
+# 编辑配置文件
+# MCPRouter Configuration File
+
+[app]
+use_db = false
+use_cache = false
+save_log = false
+
+[proxy_server]
 port = 8026
+host = "127.0.0.1"
 
-[log]
-level = "info"
-file = "mcprouter.log"
+[api_server]
+port = 8028
+host = "127.0.0.1"
 
-[server]
-timeout = 30
-max_connections = 100
+[mcp_servers]
+fetch = { command = "npx @smithery/mcp-fetch", share_process = true }
+time = { command = "npx time-mcp", share_process = true }
+web3-rpc = { command = "node ../MCP_server/web3-mcp/build/index.js", share_process = true }
 ```
 
 **重要端口说明：**
 - **8028端口**：MCPRouter API服务器，提供HTTP API接口
 - **8026端口**：MCPRouter代理服务器，处理MCP协议通信
 
-### 2. MCP 服务器配置
+### 3. MCP 服务器配置
 
 编辑 `MCP_Client/config/mcp_servers.json`：
 
 ```json
 {
+  "fetch_server": {
+    "script_path": "MCP_Client/src/mcp/servers/fetch_server.py",
+    "env": {
+      "API_KEY": "your-api-key"
+    }
+  },
   "web3_server": {
     "script_path": "MCP_Client/src/mcp/servers/web3_server.py",
     "env": {
@@ -263,17 +326,11 @@ max_connections = 100
     "env": {
       "BROWSER_TYPE": "chromium"
     }
-  },
-  "minimax_server": {
-    "script_path": "MCP_Client/src/mcp/servers/minimax_server.py",
-    "env": {
-      "MINIMAX_API_KEY": "your-minimax-api-key"
-    }
   }
 }
 ```
 
-### 3. 启动 MCPRouter 服务
+### 4. 启动 MCPRouter 服务
 
 #### Windows 启动
 ```bash
@@ -288,25 +345,67 @@ chmod +x start-mcprouter.sh
 ./start-mcprouter.sh
 ```
 
-#### 手动启动
+#### 手动启动（官方方式）
 ```bash
 cd mcprouter
-go run main.go
-# 或使用编译后的二进制文件
-./mcprouter
+
+# 启动代理服务器
+go run main.go proxy
+
+# 启动API服务器（新终端）
+go run main.go api
 ```
 
-### 4. 验证 MCPRouter 状态
+### 5. 验证 MCPRouter 状态
 
 ```bash
 # 检查端口占用
 netstat -an | grep ":8026\|:8028"
 
 # 测试 API 服务器
-curl http://localhost:8028/v1/list-servers
+curl -X POST http://127.0.0.1:8028/v1/list-tools \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer fetch'
 
 # 测试代理服务器
-curl http://localhost:8026/health
+curl http://localhost:8026/sse/fetch
+```
+
+### 6. 故障排除
+
+#### 子模块问题
+```bash
+# 如果遇到子模块问题
+cd mcprouter
+git submodule update --init --recursive
+
+# 或者重新克隆
+cd ..
+rm -rf mcprouter
+git clone --recursive https://github.com/chatmcp/mcprouter.git
+```
+
+#### 依赖问题
+```bash
+# 确保Go环境正确
+go version
+go env
+
+# 清理并重新下载依赖
+cd mcprouter
+go clean -modcache
+go mod tidy
+go mod download
+```
+
+#### 编译问题
+```bash
+# 检查Go版本（需要1.21+）
+go version
+
+# 重新编译
+cd mcprouter
+go build -o mcprouter main.go
 ```
 
 ## 启动服务
@@ -410,7 +509,7 @@ kill -9 <PID>
 #### 2. MCPRouter 启动失败
 **检查项目：**
 1. 确认Go环境已安装：`go version`
-2. 检查配置文件：`mcprouter_config.toml`
+2. 检查配置文件：`mcprouter/.env.toml`
 3. 查看日志文件：`mcprouter.log`
 
 #### 3. MCP 服务器连接失败
@@ -424,6 +523,52 @@ kill -9 <PID>
 1. 确认MCPRouter正在运行
 2. 检查端口配置是否一致
 3. 验证网络连接
+
+#### 5. MCPRouter 子模块问题（重要）
+**问题描述：** 直接下载ZIP文件或克隆时没有包含子模块，导致依赖缺失
+
+**解决方案：**
+```bash
+# 方法1：重新克隆包含子模块
+cd Demo_Echo_Backend
+rm -rf mcprouter
+git clone --recursive https://github.com/chatmcp/mcprouter.git
+
+# 方法2：更新现有仓库的子模块
+cd mcprouter
+git submodule update --init --recursive
+
+# 方法3：使用Go模块方式
+cd mcprouter
+go mod tidy
+go mod download
+```
+
+**验证子模块状态：**
+```bash
+cd mcprouter
+git submodule status
+# 应该显示所有子模块的commit hash，而不是 -<hash>
+```
+
+#### 6. Go依赖问题
+**错误信息：** `cannot find module` 或 `missing go.sum entry`
+
+**解决方案：**
+```bash
+cd mcprouter
+# 清理模块缓存
+go clean -modcache
+
+# 重新下载依赖
+go mod download
+
+# 验证依赖
+go mod verify
+
+# 整理模块
+go mod tidy
+```
 
 ### 日志查看
 
