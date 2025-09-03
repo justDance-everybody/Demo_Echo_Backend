@@ -228,12 +228,143 @@ vim config/mcp_servers.json
         "AMAP_MAPS_API_KEY": "your_amap_api_key_here"
       },
       "enabled": true
+    },
+    "web3-rpc": {
+      "name": "Web3 区块链API",
+      "description": "提供多链区块链服务（Solana等）",
+      "command": "node",
+      "args": [
+        "/path/to/your/project/MCP_server/web3-mcp/build/index.js"
+      ],
+      "env": {
+        "SOLANA_RPC_URL": "https://api.devnet.solana.com"
+      },
+      "enabled": false
     }
   }
 }
 ```
 
-### 6️⃣ MCP工具同步
+### 6️⃣ Web3区块链MCP服务器配置（可选）
+
+如果需要Solana等区块链操作功能，可配置Web3 MCP服务器：
+
+```bash
+# 进入MCP_server目录
+cd ../MCP_server
+
+# 克隆web3-mcp项目
+git clone https://github.com/strangelove-ventures/web3-mcp.git
+
+# 进入项目目录并安装依赖
+cd web3-mcp
+npm install
+
+# 创建环境配置文件
+cp .env.example .env
+
+# 编辑配置文件，启用需要的区块链（以Solana为例）
+vim .env
+```
+
+**Web3 MCP环境配置示例：**
+```bash
+# 网络RPC配置
+SOLANA_RPC_URL=https://api.devnet.solana.com
+
+# 私钥配置（需要自行生成测试钱包）
+SOLANA_PRIVATE_KEY=your_solana_private_key_base58
+
+# 启用/禁用区块链工具
+ENABLE_SOLANA_TOOLS=true
+ENABLE_EVM_TOOLS=false
+ENABLE_BITCOIN_TOOLS=false
+ENABLE_LITECOIN_TOOLS=false
+ENABLE_DOGECOIN_TOOLS=false
+ENABLE_BITCOINCASH_TOOLS=false
+ENABLE_THORCHAIN_TOOLS=false
+ENABLE_RIPPLE_TOOLS=false
+ENABLE_CARDANO_TOOLS=false
+ENABLE_TON_TOOLS=false
+
+# CoinGecko API Key
+COINGECKO_API_KEY=CG-Z9ajuvwG1cheNJSByUgmvTgg
+```
+
+**生成Solana测试钱包：**
+```bash
+# 回到backend目录
+cd ../../backend
+
+# 创建钱包生成脚本
+cat > generate_solana_wallet.js << 'EOF'
+const { Keypair } = require('@solana/web3.js');
+const bs58 = require('bs58').default;
+
+console.log('🔑 正在生成Solana测试钱包...\n');
+
+const keypair = Keypair.generate();
+const publicKey = keypair.publicKey.toString();
+const privateKeyBase58 = bs58.encode(keypair.secretKey);
+
+console.log('✅ 钱包生成成功！');
+console.log('=====================================');
+console.log('🏠 钱包地址 (Public Key):');
+console.log(publicKey);
+console.log('\n🔐 私钥 (Base58格式 - 用于MCP配置):');
+console.log(privateKeyBase58);
+console.log('=====================================');
+console.log('\n📋 下一步操作:');
+console.log('1. 复制上面的私钥到MCP配置文件的 SOLANA_PRIVATE_KEY');
+console.log('2. 访问 https://faucet.solana.com/ 为钱包充值测试SOL');
+console.log('3. 在faucet页面粘贴钱包地址:', publicKey);
+EOF
+
+# 安装依赖并生成钱包
+npm install @solana/web3.js bs58
+node generate_solana_wallet.js
+```
+
+**构建Web3 MCP服务器：**
+```bash
+# 返回web3-mcp目录
+cd ../MCP_server/web3-mcp
+
+# 构建项目
+npm run build
+
+# 验证构建成功
+ls -la build/index.js
+```
+
+**更新MCP配置文件：**
+```bash
+# 编辑MCP服务器配置
+cd ../../MCP_Client
+vim config/mcp_servers.json
+```
+
+在MCP配置文件中启用web3-rpc服务器：
+```json
+{
+  "mcpServers": {
+    "web3-rpc": {
+      "name": "Web3 区块链API",
+      "description": "提供多链区块链服务（Solana等）",
+      "command": "node",
+      "args": [
+        "/Users/your_username/path/to/MCP_server/web3-mcp/build/index.js"
+      ],
+      "env": {
+        "SOLANA_RPC_URL": "https://api.devnet.solana.com"
+      },
+      "enabled": true
+    }
+  }
+}
+```
+
+### 7️⃣ MCP工具同步
 ```bash
 # 返回后端目录
 cd ../backend
@@ -246,18 +377,43 @@ python complete_sync.py
 **预期输出：**
 ```
 🚀 开始完整MCP工具同步...
-📋 发现 3 个MCP服务器:
+📋 发现 4 个MCP服务器:
   - playwright: 启用 (Playwright浏览器)
   - minimax-mcp-js: 启用 (MiniMax API)
   - amap-maps: 启用 (高德地图API)
+  - web3-rpc: 启用 (Web3 区块链API)
 
-✅ 新增工具: 43
+✅ 新增工具: 57
 🔄 更新工具: 0  
 ❌ 失败工具: 0
+
+📋 数据库中现有 60 个工具:
+🔧 web3-rpc (14 个工具):
+  - getMyAddress: 获取我的钱包地址
+  - getBalance: 查看SOL余额
+  - transfer: 转账SOL
+  - executeSwap: 执行代币交换
+  - getSplTokenBalances: 查看SPL代币余额
+  - getCoinGeckoPrices: 获取代币价格
+  ... (其他区块链工具)
+
 🎉 同步成功完成!
 ```
 
-### 7️⃣ 启动后端服务
+**可用的Web3区块链操作：**
+- **钱包管理**：查看地址、余额、账户信息
+- **代币操作**：转账SOL、查看SPL代币、执行代币交换
+- **价格查询**：获取实时代币价格、搜索代币信息
+- **跨链桥接**：支持多链资产桥接和查询
+
+> **⚠️ 安全提示**：Web3 MCP服务器配置了真实的区块链私钥，请确保：
+> - 仅在测试网络使用
+> - 使用专门的测试钱包，不要使用主钱包
+> - 妥善保管私钥，不要提交到代码仓库
+> - 定期检查钱包余额和交易记录
+```
+
+### 8️⃣ 启动后端服务
 ```bash
 # 启动开发服务器
 uvicorn app.main:app --reload --host 0.0.0.0 --port 3000
@@ -274,7 +430,7 @@ INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:3000 (Press CTRL+C to quit)
 ```
 
-### 8️⃣ 验证部署
+### 9️⃣ 验证部署
 ```bash
 # 验证API健康状态
 curl http://localhost:3000/health
@@ -309,6 +465,12 @@ devuser_5090@echo-ai> 访问github.com
 
 # 地图查询测试
 devuser_5090@echo-ai> 查询北京今天的天气
+
+# Web3区块链测试（如果已配置）
+devuser_5090@echo-ai> 查看我的Solana钱包地址
+devuser_5090@echo-ai> 查看我的SOL余额
+devuser_5090@echo-ai> 获取SOL当前价格
+devuser_5090@echo-ai> 查看我的SPL代币余额
 
 # 退出控制台
 devuser_5090@echo-ai> /quit
@@ -372,6 +534,26 @@ lsof -i :3000
 
 # 杀死占用进程
 sudo kill -9 $(lsof -t -i:3000)
+```
+
+### 📋 6. Web3区块链功能问题
+```bash
+# 检查web3-mcp服务器构建
+ls -la MCP_server/web3-mcp/build/index.js
+
+# 验证Solana钱包地址格式
+echo "钱包地址应该是44个字符的Base58编码"
+
+# 测试Solana RPC连接
+curl -X POST https://api.devnet.solana.com \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"getVersion"}'
+
+# 检查私钥格式（应该是Base58格式）
+echo "私钥应该是Base58编码，约87-88个字符"
+
+# 验证web3-mcp环境变量
+cd MCP_server/web3-mcp && cat .env | grep SOLANA
 ```
 
 ---
@@ -441,5 +623,13 @@ echo "🎉 部署完成！访问 http://localhost:3000/docs 查看API文档"
 - 数据库迁移脚本sessions表缺少status字段
 - Tool模型主键类型不一致导致的外键约束失败
 - MCP工具同步流程和配置文件管理
+- Web3 MCP服务器配置和Solana区块链集成
 
-项目现在具备完整的迁移性和鲁棒性，可以在新环境中顺利复现部署。
+**新增功能特性：**
+- ✅ Web3区块链操作支持（Solana转账、代币交换、余额查询）
+- ✅ 多链区块链工具集成（支持Solana、以太坊等多个区块链）
+- ✅ 实时代币价格查询和市场数据获取
+- ✅ 跨链桥接和去中心化金融(DeFi)操作
+- ✅ 完整的区块链钱包管理和安全保护
+
+项目现在具备完整的迁移性和鲁棒性，包含传统AI功能和Web3区块链操作能力，可以在新环境中顺利复现部署。无论是语音交互、网页自动化还是区块链操作，都能通过统一的对话界面进行控制。
