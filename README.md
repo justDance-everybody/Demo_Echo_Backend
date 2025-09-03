@@ -413,7 +413,140 @@ python complete_sync.py
 > - 定期检查钱包余额和交易记录
 ```
 
-### 8️⃣ 启动后端服务
+### 8️⃣ HTTP工具配置（可选）
+
+系统支持集成外部HTTP API服务，包括Dify平台、Coze平台和通用HTTP API。通过数据库直接配置HTTP工具：
+
+#### Dify平台配置
+```sql
+INSERT INTO tools (
+  tool_id, name, type, description, endpoint, request_schema, 
+  is_public, status, version, tags, download_count, created_at
+) VALUES (
+  'dify_chat_assistant',
+  'Dify智能助手',
+  'http',
+  '基于Dify平台的智能对话助手',
+  JSON_OBJECT(
+    'platform', 'dify',
+    'api_key', 'app-your_dify_api_key_here',
+    'base_url', 'https://api.dify.ai/v1',
+    'app_config', JSON_OBJECT('response_mode', 'blocking', 'timeout', 30)
+  ),
+  JSON_OBJECT(
+    'type', 'object',
+    'properties', JSON_OBJECT(
+      'query', JSON_OBJECT('type', 'string', 'description', '用户的问题或请求')
+    ),
+    'required', JSON_ARRAY('query')
+  ),
+  1, 'active', '1.0.0', JSON_ARRAY('dify', 'chat', 'ai'), 0, NOW()
+);
+```
+
+#### Coze平台配置
+```sql
+INSERT INTO tools (
+  tool_id, name, type, description, endpoint, request_schema,
+  is_public, status, version, tags, download_count, created_at
+) VALUES (
+  'coze_chat_assistant',
+  'Coze智能助手',
+  'http',
+  '基于Coze平台的智能对话助手，支持多种AI模型',
+  JSON_OBJECT(
+    'platform', 'coze',
+    'api_key', 'your_coze_api_key_here',
+    'base_url', 'https://www.coze.cn/api/v3',
+    'bot_id', 'your_bot_id_here',
+    'user_id', 'default_user',
+    'stream', false,
+    'timeout', 30
+  ),
+  JSON_OBJECT(
+    'type', 'object',
+    'properties', JSON_OBJECT(
+      'query', JSON_OBJECT('type', 'string', 'description', '用户的问题或请求'),
+      'conversation_id', JSON_OBJECT('type', 'string', 'description', '会话ID（可选）', 'required', false)
+    ),
+    'required', JSON_ARRAY('query')
+  ),
+  1, 'active', '1.0.0', JSON_ARRAY('coze', 'chat', 'ai', 'bot'), 0, NOW()
+);
+```
+
+#### 通用HTTP API配置
+```sql
+INSERT INTO tools (
+  tool_id, name, type, description, endpoint, request_schema,
+  is_public, status, version, tags, download_count, created_at
+) VALUES (
+  'generic_http_api',
+  '通用HTTP API',
+  'http',
+  '支持自定义HTTP请求的通用API工具',
+  JSON_OBJECT(
+    'platform', 'generic',
+    'base_url', 'https://your-api.example.com',
+    'method', 'POST',
+    'path', '/api/v1/chat',
+    'headers', JSON_OBJECT(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer your_api_key_here'
+    ),
+    'timeout', 30
+  ),
+  JSON_OBJECT(
+    'type', 'object',
+    'properties', JSON_OBJECT(
+      'message', JSON_OBJECT('type', 'string', 'description', '发送给API的消息'),
+      'parameters', JSON_OBJECT('type', 'object', 'description', '额外参数（可选）', 'required', false)
+    ),
+    'required', JSON_ARRAY('message')
+  ),
+  1, 'active', '1.0.0', JSON_ARRAY('http', 'api', 'generic'), 0, NOW()
+);
+```
+
+#### 执行配置
+```bash
+# 连接数据库执行SQL配置
+mysql -u root -p echo_ai_db < /path/to/your/http_tools_config.sql
+
+# 或者直接在MySQL命令行中执行上述SQL语句
+mysql -u root -p echo_ai_db
+# 然后粘贴相应的INSERT语句
+```
+
+#### 配置参数说明
+
+**Dify平台参数：**
+- `api_key`: 从Dify应用设置中获取的API密钥
+- `base_url`: Dify API基础URL（通常为 `https://api.dify.ai/v1`）
+- `response_mode`: 响应模式，`blocking`为同步模式
+
+**Coze平台参数：**
+- `api_key`: 从Coze开发者控制台获取的API密钥
+- `bot_id`: Coze机器人的唯一标识符
+- `base_url`: Coze API基础URL（通常为 `https://www.coze.cn/api/v3`）
+
+**通用HTTP API参数：**
+- `method`: HTTP请求方法（GET, POST, PUT等）
+- `path`: API端点路径
+- `headers`: 请求头信息，包含认证信息
+- `base_url`: API服务的基础URL
+
+#### 验证HTTP工具配置
+```bash
+# 检查工具是否成功添加到数据库
+mysql -u root -p echo_ai_db -e "SELECT tool_id, name, type FROM tools WHERE type='http';"
+
+# 重启后端服务以加载新配置
+# Ctrl+C停止当前服务，然后重启
+uvicorn app.main:app --reload --host 0.0.0.0 --port 3000
+```
+
+### 9️⃣ 启动后端服务
 ```bash
 # 启动开发服务器
 uvicorn app.main:app --reload --host 0.0.0.0 --port 3000
@@ -430,7 +563,7 @@ INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:3000 (Press CTRL+C to quit)
 ```
 
-### 9️⃣ 验证部署
+### 🔟 验证部署
 ```bash
 # 验证API健康状态
 curl http://localhost:3000/health
