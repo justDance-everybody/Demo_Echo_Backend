@@ -1,7 +1,7 @@
 # Echo 智能语音 AI-Agent 开放平台
 
 ## 📖 项目简介
-Echo是一个基于Python(FastAPI)后端和React前端的智能语音AI-Agent开放平台，支持语音全流程交互、意图识别、工具调用等功能。系统可集成MCP服务和各类HTTP API，实现丰富的技能服务。
+Echo是一个基于Python(FastAPI)后端和React前端的智能语音AI-Agent开放平台，支持语音全流程交互、意图识别、工具调用等功能。系统可集成MCP服务和各类HTTP API，实现丰富的技能服务
 
 ## ✨ 主要特性
 - **🎙️ 语音全流程交互**：支持语音输入、意图识别、语音合成输出
