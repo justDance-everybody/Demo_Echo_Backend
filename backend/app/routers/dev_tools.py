@@ -39,7 +39,7 @@ async def get_developer_tools(
 ):
     """
     获取开发者工具列表
-    
+
     Args:
         page: 页码
         page_size: 每页大小
@@ -48,7 +48,7 @@ async def get_developer_tools(
         search: 搜索关键词
         current_user: 当前开发者用户
         db: 数据库会话
-        
+
     Returns:
         开发者工具列表
     """
@@ -63,7 +63,7 @@ async def get_developer_tools(
     )
 
 
-@router.post("/tools", response_model=DeveloperToolResponse)
+@router.post("/tools", response_model=DeveloperToolResponse, status_code=201)
 async def create_developer_tool(
     tool_data: DeveloperToolCreate,
     current_user: User = Depends(get_developer_user),
@@ -71,15 +71,15 @@ async def create_developer_tool(
 ):
     """
     创建新的开发者工具
-    
+
     Args:
         tool_data: 工具创建数据
         current_user: 当前开发者用户
         db: 数据库会话
-        
+
     Returns:
         创建的工具信息
-        
+
     Raises:
         HTTPException: 如果工具ID已存在
     """
@@ -98,15 +98,15 @@ async def get_developer_tool(
 ):
     """
     获取开发者工具详情
-    
+
     Args:
         tool_id: 工具ID
         current_user: 当前开发者用户
         db: 数据库会话
-        
+
     Returns:
         工具详情
-        
+
     Raises:
         HTTPException: 如果工具不存在或无权限访问
     """
@@ -126,16 +126,16 @@ async def update_developer_tool(
 ):
     """
     更新开发者工具
-    
+
     Args:
         tool_id: 工具ID
         tool_data: 工具更新数据
         current_user: 当前开发者用户
         db: 数据库会话
-        
+
     Returns:
         更新后的工具信息
-        
+
     Raises:
         HTTPException: 如果工具不存在或无权限访问
     """
@@ -155,15 +155,15 @@ async def delete_developer_tool(
 ):
     """
     删除开发者工具
-    
+
     Args:
         tool_id: 工具ID
         current_user: 当前开发者用户
         db: 数据库会话
-        
+
     Returns:
         删除成功消息
-        
+
     Raises:
         HTTPException: 如果工具不存在或无权限访问
     """
@@ -182,12 +182,12 @@ async def upload_tool_package(
 ):
     """
     上传工具包文件
-    
+
     Args:
         file: 上传的文件
         current_user: 当前开发者用户
         db: 数据库会话
-        
+
     Returns:
         上传结果
     """
@@ -197,7 +197,7 @@ async def upload_tool_package(
             db=db,
             current_user=current_user
         )
-        
+
         return ToolUploadResponse(
             upload_id=f"upload_{current_user.id}_{int(datetime.now().timestamp())}",
             status="completed" if result["success"] else "failed",
@@ -220,11 +220,11 @@ async def validate_tool_package(
 ):
     """
     验证工具包格式
-    
+
     Args:
         file: 上传的文件
         current_user: 当前开发者用户
-        
+
     Returns:
         验证结果
     """
@@ -240,13 +240,13 @@ async def test_developer_tool(
 ):
     """
     测试指定的开发者工具
-    
+
     Args:
         tool_id: 工具ID
         test_data: 测试数据
         current_user: 当前开发者用户
         db: 数据库会话
-        
+
     Returns:
         测试结果
     """
@@ -256,7 +256,7 @@ async def test_developer_tool(
         test_data=test_data.test_data,
         current_user=current_user
     )
-    
+
     return ToolTestResponse(
         success=result["success"],
         result=result["result"],
@@ -275,19 +275,19 @@ async def batch_test_tools(
 ):
     """
     批量测试工具
-    
+
     Args:
         tool_ids: 工具ID列表
         test_data: 测试数据
         current_user: 当前开发者用户
         db: 数据库会话
-        
+
     Returns:
         批量测试结果
     """
     # TODO: 实现批量测试逻辑
     # 这里需要在T025-11中实现具体的批量测试服务
-    
+
     results = []
     for tool_id in tool_ids:
         # 这里应该调用单个工具测试逻辑
@@ -296,7 +296,7 @@ async def batch_test_tools(
             "success": True,
             "message": "测试成功"
         })
-    
+
     return {
         "total": len(tool_ids),
         "success_count": len(results),

@@ -13,8 +13,8 @@ from app.config import settings
 router = APIRouter()
 
 @router.post(
-    "/execute", 
-    response_model=ExecuteResponse, 
+    "/execute",
+    response_model=ExecuteResponse,
     response_model_exclude_none=False,
     summary="执行指定工具",
     description="使用给定参数执行指定工具并返回结果。"
@@ -27,7 +27,7 @@ async def execute_tool(
 ) -> ExecuteResponse:
     """
     执行工具的端点。
-    
+
     Args:
         request: 执行工具请求
         db: 数据库会话
@@ -35,9 +35,38 @@ async def execute_tool(
     """
     # 强制使用认证用户的ID，确保安全
     request.user_id = current_user.id
-    
-    # 直接调用控制器处理请求
-    return await execute_controller(request=request, db=db)
+
+    # 调用控制器处理请求
+    response = await execute_controller(request=request, db=db)
+
+    # 根据业务错误返回适当的HTTP状态码
+    if not response.success and response.error:
+        error_code = response.error.get("code", "") if isinstance(response.error, dict) else ""
+        error_message = response.error.get("message", "") if isinstance(response.error, dict) else str(response.error)
+
+        if error_code == "TOOL_NOT_FOUND":
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=error_message or "工具不存在"
+            )
+        elif error_code in ["INVALID_PARAMS", "VALIDATION_ERROR"]:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=error_message or "参数验证失败"
+            )
+        elif error_code in ["PERMISSION_DENIED", "ACCESS_DENIED"]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=error_message or "权限不足"
+            )
+        else:
+            # 其他业务错误返回400
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=error_message or "执行失败"
+            )
+
+    return response
 
 
 # 注意：/tools 端点已移至 tools.py 路由中，使用强制认证

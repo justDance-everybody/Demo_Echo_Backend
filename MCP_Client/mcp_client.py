@@ -46,16 +46,19 @@ class MCPClient:
             args = [name]
             env = os.environ.copy()
         
-        # 检查是否已有同类进程运行，如果有则尝试复用连接，而非启动新进程
+        # 检查是否已有同类进程运行，如果有则跳过启动新进程
         import psutil
         existing_process = None
         for proc in psutil.process_iter(['pid', 'cmdline']):
             try:
                 cmdline = ' '.join(proc.info['cmdline']) if proc.info['cmdline'] else ''
-                if 'mcp-amap' in cmdline and proc.info['pid'] != os.getpid():
-                    existing_process = proc.info['pid']
-                    print(f"发现现有MCP服务器进程 (PID: {existing_process})，尝试复用连接")
-                    break
+                # 检查更广泛的MCP服务器进程模式
+                if any(pattern in cmdline.lower() for pattern in ['@amap/amap-maps-mcp-server', 'mcp-amap', f'mcp.*{name}']):
+                    if proc.info['pid'] != os.getpid():
+                        existing_process = proc.info['pid']
+                        print(f"发现现有MCP服务器进程 (PID: {existing_process})，避免重复启动")
+                        # 抛出特定异常，让上层处理
+                        raise RuntimeError(f"MCP服务器 {name} 已在运行 (PID: {existing_process})，避免重复启动")
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue
         
@@ -66,7 +69,7 @@ class MCPClient:
         
         try:
             # 为不同服务器设置不同的超时时间
-            if name in ['web3-rpc', 'blockchain-rpc']:
+            if name in ['web3-rpc', 'blockchain-rpc', 'amap-maps']:
                 step_timeout = 30.0  # 慢服务器使用30秒超时
                 total_timeout_desc = "30秒"
             else:
