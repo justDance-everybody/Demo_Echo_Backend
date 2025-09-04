@@ -30,3 +30,22 @@ async def get_tools(
         current_user: 当前认证用户
     """
     return await get_tools_controller(db=db)
+
+
+@router.get(
+    "/tools/public",
+    response_model=ToolsListResponse,
+    response_model_exclude_none=False,
+    summary="获取可用工具列表（无需认证）",
+    description="检索系统中所有可用工具的列表，无需认证，仅用于测试。"
+)
+async def get_tools_public(
+    db: AsyncSession = Depends(get_async_db_session)
+) -> ToolsListResponse:
+    """
+    获取所有可用工具列表（无需认证）
+    
+    Args:
+        db: 数据库会话
+    """
+    return await get_tools_controller(db=db)

@@ -20,8 +20,9 @@ class OpenAIClient:
         api_key = settings.LLM_API_KEY or os.getenv("LLM_API_KEY")
         api_base = settings.LLM_API_BASE or os.getenv("LLM_API_BASE")
         
+        # 必须提供API key
         if not api_key:
-            raise OpenAIClientError("未配置LLM_API_KEY环境变量")
+            raise OpenAIClientError("未配置LLM_API_KEY环境变量，请设置有效的API密钥")
             
         config = {
             "api_key": api_key,
