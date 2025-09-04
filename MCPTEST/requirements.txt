@@ -1,4 +1,12 @@
 openai>=1.75.0
+httpx>=0.25.0
+asyncio
+typing
+json
+time
+sys
+os
+subprocess
 python-dotenv>=1.0.0
 mcp>=1.6.1
 httpx>=0.28.0

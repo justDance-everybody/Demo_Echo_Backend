@@ -1,0 +1,47 @@
+@baseUrl = http://127.0.0.1:8027/v1
+@apiKey = xxx
+@clientName = ChatMCP
+@clientURL = https://chatmcp.ai
+
+### list servers
+POST {{baseUrl}}/list-servers
+Content-Type: application/json
+Authorization: Bearer {{apiKey}}
+
+{
+  "page": 1,
+  "limit": 30
+}
+
+### get server
+POST {{baseUrl}}/get-server
+Content-Type: application/json
+Authorization: Bearer {{apiKey}}
+
+{
+  "name": "time-mcp",
+  "author_name": "anthropic"
+}
+### list tools
+POST {{baseUrl}}/list-tools
+Content-Type: application/json
+Authorization: Bearer {{apiKey}}
+
+{
+  "server": "time"
+}
+
+### call tool
+POST {{baseUrl}}/call-tool
+Content-Type: application/json
+Authorization: Bearer {{apiKey}}
+HTTP-Referer: {{clientURL}}
+X-Title: {{clientName}}
+
+{
+  "server": "time",
+  "name": "get_current_time",
+  "arguments": {
+    "timezone": "Asia/Shanghai"
+  }
+}
