@@ -410,6 +410,27 @@ go build -o mcprouter main.go
 
 ## 启动服务
 
+### 0. 一键启动（推荐）
+
+Windows（项目根目录）：
+
+```bash
+start-all.bat
+```
+
+Linux/macOS（项目根目录）：
+
+```bash
+chmod +x start-all.sh
+./start-all.sh
+```
+
+说明：
+- 默认端口：Backend 8000、MCP API 8028、MCP Proxy 8026。
+- 日志目录：`logs/`（含 `backend.*.log`、`mcprouter_*.log`、`start-all.log`）。
+- 实时输出开关（可选，默认开启）：`SHOW_PY_CONSOLE=1`、`SHOW_MCP_CONSOLE=1`。
+- 若端口占用，脚本会提示并跳过启动；请先清理端口后重试。
+
 ### 1. 启动 MCPRouter（必需）
 
 ```bash
@@ -434,6 +455,8 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 # 生产模式
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
+
+提示：请在 `backend` 目录启动，以确保数据库与模块导入路径正确（或设置 `PYTHONPATH=backend`）。
 
 ### 3. 使用PM2启动（生产环境推荐）
 ```bash
