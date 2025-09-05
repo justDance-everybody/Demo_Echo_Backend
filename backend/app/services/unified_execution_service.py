@@ -8,6 +8,7 @@
 """
 
 import asyncio
+import json
 import uuid
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, Tuple
@@ -205,6 +206,11 @@ class UnifiedExecutionService:
                             "error": None,
                             "session_id": session_id
                         }
+                        # 输出完整响应到控制台
+                        try:
+                            logger.info(f"[Session: {session_id}] ExecuteResponse 成功返回: {json.dumps(response_data, ensure_ascii=False, default=str)}")
+                        except Exception:
+                            logger.info(f"[Session: {session_id}] ExecuteResponse 成功返回(非JSON可序列化)，已使用字符串化: {str(response_data)}")
                         
                         logger.info(f"工具执行成功: {session_id}, 工具: {request.tool_id}")
                         return ExecuteResponse(**response_data)
@@ -224,6 +230,11 @@ class UnifiedExecutionService:
                             "error": error_info,
                             "session_id": session_id
                         }
+                        # 输出完整失败响应到控制台
+                        try:
+                            logger.info(f"[Session: {session_id}] ExecuteResponse 失败返回: {json.dumps(response_data, ensure_ascii=False, default=str)}")
+                        except Exception:
+                            logger.info(f"[Session: {session_id}] ExecuteResponse 失败返回(非JSON可序列化)，已使用字符串化: {str(response_data)}")
                         
                         logger.error(f"工具执行失败: {session_id}, 工具: {request.tool_id}, 错误: {error_info}")
                         return ExecuteResponse(**response_data)
