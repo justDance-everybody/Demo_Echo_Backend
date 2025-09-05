@@ -185,10 +185,11 @@ class ExecuteService:
                                 model=settings.LLM_MODEL,
                                 messages=[{"role": "user", "content": summary_prompt}],
                                 temperature=0.2,
-                                max_tokens=250,
+                                
                             )
                         )
                         tts_message = summary_response.choices[0].message.content.strip()
+                        print('tts_message:', tts_message)
                         logger.info(f"LLM 成功总结了 MCP 工具 '{tool_id}' 的结果。")
                     except Exception as llm_err:
                         logger.error(
