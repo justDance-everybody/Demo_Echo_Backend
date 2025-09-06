@@ -50,6 +50,57 @@ Demo_Echo_Backend/
 
 ## 🚀 快速开始
 
+### 🎯 一键配置脚本（推荐）
+
+**新用户推荐使用一键配置脚本**，无需手动执行复杂的配置步骤：
+
+```bash
+# 1. 克隆项目
+git clone <repo_url>
+cd Demo_Echo_Backend/Backend
+
+# 2. 配置环境变量（重要！）
+cp backend/.env.example backend/.env
+vim backend/.env  # 编辑配置必要的环境变量
+
+**必须配置的环境变量**：
+```bash
+# 数据库连接（选择其一）
+DATABASE_URL=mysql+pymysql://root:your_password@127.0.0.1:3306/echo_ai_db
+# 或 SQLite: DATABASE_URL=sqlite:///./echo_db.db
+
+# LLM API配置
+OPENAI_API_KEY=your-api-key
+API_BASE=https://your-api-endpoint
+LLM_MODEL=gpt-4o
+
+# JWT密钥
+JWT_SECRET_KEY=your-jwt-secret-key-here
+等等
+```
+
+# 3. 运行一键配置脚本
+chmod +x setup.sh
+./setup.sh
+
+# 4. 启动服务
+./start-backend.sh start
+```
+
+
+### 🔧 统一虚拟环境架构
+
+**重要说明**：本项目采用统一虚拟环境架构，所有Python组件（后端服务、MCP客户端、工具同步脚本等）共享同一个虚拟环境，位于项目根目录的`.venv`。
+
+**统一环境的优势**：
+- ✅ **简化依赖管理**：避免多个虚拟环境间的版本冲突
+- ✅ **统一MCP SDK版本**：确保所有组件使用相同的MCP协议版本
+- ✅ **降低维护成本**：只需管理一个虚拟环境和依赖列表
+- ✅ **避免路径问题**：消除硬编码路径和环境检测逻辑
+
+**关于Playwright修复**：
+之前Playwright工具同步失败的根本原因是**MCP SDK版本不兼容**。旧版本的MCP SDK无法正确处理现代MCP服务器的协议握手，导致连接超时。通过统一使用最新版本的MCP SDK（`git+https://github.com/modelcontextprotocol/python-sdk.git`），所有MCP服务器（包括Playwright、MiniMax、高德地图、Web3等）都能正常工作。
+
 ### 📁 工作目录说明
 本文档中的所有命令都基于以下目录结构，请确保在正确的目录下执行相应命令：
 
@@ -78,22 +129,23 @@ Demo_Echo_Backend/           ← 项目根目录
 git clone <repo_url>
 cd Demo_Echo_Backend
 
-# 创建并激活Python虚拟环境
-cd backend
-python -m venv venv
+# 创建统一的Python虚拟环境（项目根目录）
+python -m venv .venv
 
 # 激活虚拟环境（选择适合你操作系统的命令）
 # Linux/macOS:
-# 激活后端虚拟环境
-# Linux/macOS: source venv/bin/activate
-# Windows: venv\Scripts\activate
+source .venv/bin/activate
 # Windows Command Prompt:
-# venv\Scripts\activate.bat
+# .venv\Scripts\activate.bat
 # Windows PowerShell:
-# venv\Scripts\Activate.ps1
+# .venv\Scripts\Activate.ps1
 
-# 安装Python依赖
+# 安装所有Python依赖（包括后端和MCP客户端）
+cd Backend/backend
 pip install -r requirements.txt
+
+# 安装MCP SDK（重要：确保版本兼容性）
+pip install git+https://github.com/modelcontextprotocol/python-sdk.git
 ```
 
 ### 2️⃣ 数据库配置
@@ -101,7 +153,7 @@ pip install -r requirements.txt
 #### 选项A：MySQL（推荐生产环境）
 ```bash
 # 创建数据库
-mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS echo_ai_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+MYSQL_PWD=$(echo $DATABASE_URL | sed 's/.*:\/\/.*:\(.*\)@.*/\1/') mysql -u root -e "CREATE DATABASE IF NOT EXISTS ${DB_NAME:-echo_ai_db} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 ```
 
 #### 选项B：SQLite（开发测试）
@@ -148,23 +200,11 @@ TEST_ADMIN_PASSWORD=SAKMRtxCjT
 在执行数据库迁移之前，需要先配置MCP服务器，以便后续的工具同步能够正常工作：
 
 ```bash
-# 进入MCP客户端目录
+# 进入MCP客户端目录（虚拟环境已在项目根目录激活）
 cd ../MCP_Client
 
-# 创建MCP虚拟环境（独立于后端）
-python -m venv .venv
-
-# 激活MCP虚拟环境（选择适合你操作系统的命令）
-# Linux/macOS:
-source .venv/bin/activate
-# Windows Command Prompt:
-# .venv\Scripts\activate.bat
-# Windows PowerShell:
-# .venv\Scripts\Activate.ps1
-
-# 安装MCP依赖
+# 安装MCP客户端额外依赖（如果需要）
 pip install openai python-dotenv loguru
-pip install git+https://github.com/modelcontextprotocol/python-sdk.git
 
 # 配置MCP服务器（重要！）
 vim config/mcp_servers.json
@@ -217,7 +257,7 @@ cd ../backend
 alembic upgrade head
 
 # 验证表创建（MySQL）
-mysql -u root -p echo_ai_db -e "SHOW TABLES;"
+mysql -u ${DB_USER} -p${DB_PASSWORD} -h ${DB_HOST} -P ${DB_PORT} ${DB_NAME} -e "SHOW TABLES;"
 # 或验证表创建（SQLite）
 sqlite3 echo_db.db ".tables"
 ```
@@ -233,10 +273,10 @@ alembic_version  app_tools  apps  logs  sessions  tools  users
 
 ```bash
 # 创建三个测试账户（根据.env文件中的配置）
-python scripts/create_admin.py devuser_5090 mryuWTGdMk developer
-python scripts/create_admin.py testuser_5090 8lpcUY2BOt user  
-python scripts/create_admin.py adminuser_5090 SAKMRtxCjT admin
-
+source .env && python scripts/create_admin.py ${TEST_DEV_USERNAME} ${TEST_DEV_PASSWORD} ${TEST_DEV_ROLE}
+source .env && python scripts/create_admin.py ${TEST_USER_USERNAME} ${TEST_USER_PASSWORD} ${TEST_USER_ROLE}
+source .env && python scripts/create_admin.py ${TEST_ADMIN_USERNAME} ${TEST_ADMIN_PASSWORD} ${TEST_ADMIN_ROLE}
+```
 # 验证账户创建成功
 python -c "
 import sys, os
@@ -392,11 +432,8 @@ vim config/mcp_servers.json
 
 ### 7️⃣ MCP工具同步
 ```bash
-# 返回后端目录
-cd ../backend
-# 激活后端虚拟环境
-# Linux/macOS: source venv/bin/activate
-# Windows: venv\Scripts\activate
+# 确保在后端目录且虚拟环境已激活
+cd Backend/backend
 
 # 同步MCP工具到数据库
 python complete_sync.py
@@ -556,10 +593,9 @@ INSERT INTO tools (
 ```bash
 # 连接数据库执行SQL配置
 # 先将上述SQL语句保存到文件，例如 http_tools_config.sql
-mysql -u root -p echo_ai_db < http_tools_config.sql
-
+mysql -u ${DB_USER} -p${DB_PASSWORD} -h ${DB_HOST} -P ${DB_PORT} ${DB_NAME} < http_tools_config.sql
 # 或者直接在MySQL命令行中执行上述SQL语句
-mysql -u root -p echo_ai_db
+mysql -u ${DB_USER} -p${DB_PASSWORD} -h ${DB_HOST} -P ${DB_PORT} ${DB_NAME}
 # 然后粘贴相应的INSERT语句
 ```
 
@@ -592,20 +628,51 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 3000
 ```
 
 ### 9️⃣ 启动后端服务
-```bash
-# 启动开发服务器
-uvicorn app.main:app --reload --host 0.0.0.0 --port 3000
 
-# 或使用生产模式
-uvicorn app.main:app --host 0.0.0.0 --port 3000
+**推荐使用启动脚本**（提供完整的生产级功能）：
+
+```bash
+# 启动服务（推荐）
+./start-backend.sh start
+
+# 其他启动选项
+./start-backend.sh safe-start    # 安全启动（自动清理重复进程）
+./start-backend.sh monitor       # 启动并监控服务（自动重启）
+./start-backend.sh restart       # 重启服务
+./start-backend.sh status        # 查看服务状态
+./start-backend.sh stop          # 停止服务
+```
+
+**启动脚本功能特性**：
+- ✅ **环境验证**：自动检查Python版本、依赖包、数据库连接
+- ✅ **端口冲突处理**：智能检测和处理端口占用问题
+- ✅ **进程管理**：安全的进程启动、停止和重启
+- ✅ **健康检查**：实时监控服务状态和MCP服务器状态
+- ✅ **日志管理**：自动日志轮转和错误追踪
+- ✅ **系统服务**：支持安装为系统服务（开机自启动）
+
+**传统启动方式**（仅开发测试）：
+```bash
+# 手动启动（不推荐生产环境）
+cd backend
+source ../.venv/bin/activate
+uvicorn app.main:app --reload --host 0.0.0.0 --port 3000
 ```
 
 **预期输出：**
 ```
-INFO:     Started server process [12345]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://0.0.0.0:3000 (Press CTRL+C to quit)
+✓ 环境验证通过
+✓ 数据库连接检查通过  
+✓ 后端服务启动成功！
+ℹ 服务地址: http://localhost:3000
+ℹ API文档: http://localhost:3000/docs
+ℹ 健康检查: http://localhost:3000/health
+
+=== MCP服务器启动状态 ===
+MCP服务器总数: 3, 运行中: 3, 失败: 0
+  ✓ playwright: 运行中 (重启次数: 0)
+  ✓ minimax-mcp-js: 运行中 (重启次数: 0)
+  ✓ amap-maps: 运行中 (重启次数: 0)
 ```
 
 ### 🔟 验证部署
@@ -655,6 +722,60 @@ devuser_5090@echo-ai> /quit
 ```
 
 ---
+
+## 🛠️ 生产环境部署
+
+### 系统服务安装
+
+**安装为系统服务**（推荐生产环境）：
+
+```bash
+# 安装系统服务（开机自启动）
+./start-backend.sh install-service
+
+# 查看服务状态
+sudo systemctl status echo-ai-backend
+
+# 手动控制服务
+sudo systemctl start echo-ai-backend
+sudo systemctl stop echo-ai-backend
+sudo systemctl restart echo-ai-backend
+
+# 卸载系统服务
+./start-backend.sh uninstall-service
+```
+
+### 服务监控和维护
+
+**实时监控**：
+```bash
+# 启动监控模式（自动重启异常服务）
+./start-backend.sh monitor
+
+# 查看详细状态
+./start-backend.sh status
+
+# 强制清理（解决进程冲突）
+./start-backend.sh cleanup
+```
+
+**日志管理**：
+```bash
+# 查看实时日志
+tail -f logs/backend_manager.log
+
+# 查看服务日志
+tail -f backend/logs/backend_*.log
+
+# 日志自动轮转（10MB，保留5个文件）
+# 启动脚本会自动管理日志轮转
+```
+
+**性能监控**：
+- CPU和内存使用率实时显示
+- 网络连接数统计
+- 服务重启次数追踪
+- MCP服务器状态监控
 
 ## 🔧 常见问题排查
 
@@ -736,54 +857,81 @@ cd MCP_server/web3-mcp && cat .env | grep SOLANA
 
 ---
 
-## 🎯 一键部署脚本
+## 🎯 启动脚本详细说明
 
-如果你遇到任何问题，可以使用以下脚本进行一键部署验证：
+### 启动脚本功能概览
 
+<mcfile name="start-backend.sh" path="/home/devbox/project/Backend/start-backend.sh"></mcfile> 提供了完整的后端服务管理功能：
+
+**基础命令**：
 ```bash
-#!/bin/bash
-echo "🚀 Echo AI 项目一键部署验证脚本"
+./start-backend.sh start          # 启动服务（包含完整检查）
+./start-backend.sh safe-start     # 安全启动（自动清理重复进程）
+./start-backend.sh stop           # 停止服务
+./start-backend.sh restart        # 重启服务
+./start-backend.sh status         # 显示服务状态和日志
+./start-backend.sh monitor        # 启动监控模式（自动重启）
+./start-backend.sh cleanup        # 强制清理所有相关进程
+```
 
-# 1. 环境检查
-echo "🔍 1. 检查环境..."
-python3 --version
-node --version
-mysql --version
+**系统服务命令**：
+```bash
+./start-backend.sh install-service    # 安装为系统服务
+./start-backend.sh uninstall-service  # 卸载系统服务
+```
 
-# 2. 创建数据库
-echo "🗄️ 2. 创建数据库..."
-mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS echo_ai_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+### 启动前自动检查项
 
-# 3. 虚拟环境设置
-echo "🐍 3. 设置Python虚拟环境..."
-cd backend
-python3 -m venv venv
-# 激活后端虚拟环境
-# Linux/macOS: source venv/bin/activate
-# Windows: venv\Scripts\activate
-pip install -r requirements.txt
+启动脚本会自动执行以下检查，确保服务稳定运行：
 
-# 4. 数据库迁移
-echo "📋 4. 执行数据库迁移..."
-alembic upgrade head
+1. **环境验证**：
+   - Python版本检查（需要3.8+）
+   - 虚拟环境存在性验证
+   - 必要系统命令检查
+   - 端口范围验证
 
-# 5. 创建测试账户
-echo "👤 5. 创建测试账户..."
-python scripts/create_admin.py devuser_5090 mryuWTGdMk developer
-python scripts/create_admin.py testuser_5090 8lpcUY2BOt user
-python scripts/create_admin.py adminuser_5090 SAKMRtxCjT admin
+2. **依赖检查**：
+   - Python包依赖验证
+   - 系统工具可用性检查
+   - 配置文件存在性验证
 
-# 6. MCP工具同步
-echo "🔧 6. 同步MCP工具..."
-python complete_sync.py
+3. **数据库连接检查**：
+   - 强制要求MySQL数据库
+   - 连接参数验证
+   - 数据库权限检查
 
-# 7. 启动验证
-echo "✅ 7. 启动服务验证..."
-uvicorn app.main:app --host 0.0.0.0 --port 3000 &
-sleep 5
-curl -f http://localhost:3000/health && echo "✅ 后端服务正常" || echo "❌ 后端服务异常"
+4. **端口冲突处理**：
+   - 智能检测端口占用
+   - 区分自有服务和外部进程
+   - 提供交互式冲突解决
 
-echo "🎉 部署完成！访问 http://localhost:3000/docs 查看API文档"
+### 服务监控功能
+
+**实时状态显示**：
+- 服务运行状态（PID、端口、健康检查）
+- 系统资源使用（CPU、内存）
+- 网络连接统计
+- 服务运行时间和重启次数
+- MCP服务器状态详情
+
+**自动重启机制**：
+- 健康检查失败自动重启
+- 最大重启次数限制
+- 重启间隔控制
+- 失败日志记录
+
+### 日志管理
+
+**自动日志轮转**：
+- 日志文件大小限制（10MB）
+- 保留历史文件数量（5个）
+- 按时间戳命名日志文件
+- 自动清理过期日志
+
+**日志位置**：
+```bash
+logs/backend_manager.log          # 启动脚本日志
+backend/logs/backend_*.log        # 服务运行日志
 ```
 
 ---
@@ -812,4 +960,21 @@ echo "🎉 部署完成！访问 http://localhost:3000/docs 查看API文档"
 - ✅ 跨链桥接和去中心化金融(DeFi)操作
 - ✅ 完整的区块链钱包管理和安全保护
 
+## 📋 部署方式对比
+
+| 部署方式 | 适用场景 | 优势 | 劣势 |
+|---------|---------|------|------|
+| **一键配置脚本** | 新用户、快速部署 | 全自动配置、零错误 | 需要预先配置环境变量 |
+| **启动脚本** | 生产环境、日常运维 | 完整监控、自动重启 | 需要手动配置依赖 |
+| **手动启动** | 开发调试 | 灵活控制、实时日志 | 缺少监控和错误处理 |
+| **系统服务** | 生产服务器 | 开机自启、系统集成 | 需要root权限 |
+
+## 🎉 总结
+
 项目现在具备完整的迁移性和鲁棒性，包含传统AI功能和Web3区块链操作能力，可以在新环境中顺利复现部署。无论是语音交互、网页自动化还是区块链操作，都能通过统一的对话界面进行控制。
+
+**推荐部署流程**：
+1. 🚀 **新用户**：使用一键配置脚本 `./setup.sh`
+2. 🛠️ **日常运维**：使用启动脚本 `./start-backend.sh`
+3. 🏭 **生产环境**：安装系统服务 `./start-backend.sh install-service`
+4. 🔍 **问题排查**：查看详细日志和状态信息
