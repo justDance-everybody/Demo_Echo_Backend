@@ -84,19 +84,27 @@ chmod +x setup.sh
 ./setup.sh
 
 # 4. 启动服务
-./start-backend.sh start
+cd backend
+source ../.venv/bin/activate
+python -m uvicorn app.main:app --host 0.0.0.0 --port ${SERVICE_PORT:-3000}
 ```
 
 
-### 🔧 统一虚拟环境架构
+### 🔧 虚拟环境配置
 
-**重要说明**：本项目采用统一虚拟环境架构，所有Python组件（后端服务、MCP客户端、工具同步脚本等）共享同一个虚拟环境，位于项目根目录的`.venv`。
+**重要说明**：本项目的虚拟环境位于Backend目录下的`.venv`，所有Python组件（后端服务、MCP客户端、工具同步脚本等）使用此虚拟环境。
 
-**统一环境的优势**：
-- ✅ **简化依赖管理**：避免多个虚拟环境间的版本冲突
+**虚拟环境的优势**：
+- ✅ **集中管理**：所有依赖集中在Backend目录下管理
 - ✅ **统一MCP SDK版本**：确保所有组件使用相同的MCP协议版本
-- ✅ **降低维护成本**：只需管理一个虚拟环境和依赖列表
-- ✅ **避免路径问题**：消除硬编码路径和环境检测逻辑
+- ✅ **简化部署**：虚拟环境与后端代码在同一目录
+- ✅ **避免路径问题**：消除复杂的相对路径配置
+
+**⚠️ 虚拟环境管理最佳实践**：
+- 🎯 **标准位置**：虚拟环境位于`Backend/.venv`目录
+- 🚫 **避免多环境**：请勿在其他目录创建额外的虚拟环境
+- 📍 **统一路径**：所有脚本和配置都使用Backend目录下的`.venv`
+- 🔍 **环境检查**：如发现多个虚拟环境，请手动删除多余的环境目录
 
 **关于Playwright修复**：
 之前Playwright工具同步失败的根本原因是**MCP SDK版本不兼容**。旧版本的MCP SDK无法正确处理现代MCP服务器的协议握手，导致连接超时。通过统一使用最新版本的MCP SDK（`git+https://github.com/modelcontextprotocol/python-sdk.git`），所有MCP服务器（包括Playwright、MiniMax、高德地图、Web3等）都能正常工作。
@@ -129,7 +137,8 @@ Demo_Echo_Backend/           ← 项目根目录
 git clone <repo_url>
 cd Demo_Echo_Backend
 
-# 创建统一的Python虚拟环境（项目根目录）
+# 进入Backend目录并创建虚拟环境
+cd Backend
 python -m venv .venv
 
 # 激活虚拟环境（选择适合你操作系统的命令）
@@ -141,8 +150,7 @@ source .venv/bin/activate
 # .venv\Scripts\Activate.ps1
 
 # 安装所有Python依赖（包括后端和MCP客户端）
-cd Backend/backend
-pip install -r requirements.txt
+pip install -r backend/requirements.txt
 
 # 安装MCP SDK（重要：确保版本兼容性）
 pip install git+https://github.com/modelcontextprotocol/python-sdk.git
@@ -629,35 +637,48 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 3000
 
 ### 9️⃣ 启动后端服务
 
-**推荐使用启动脚本**（提供完整的生产级功能）：
+**直接启动方式**（推荐）：
 
 ```bash
-# 启动服务（推荐）
-./start-backend.sh start
-
-# 其他启动选项
-./start-backend.sh safe-start    # 安全启动（自动清理重复进程）
-./start-backend.sh monitor       # 启动并监控服务（自动重启）
-./start-backend.sh restart       # 重启服务
-./start-backend.sh status        # 查看服务状态
-./start-backend.sh stop          # 停止服务
-```
-
-**启动脚本功能特性**：
-- ✅ **环境验证**：自动检查Python版本、依赖包、数据库连接
-- ✅ **端口冲突处理**：智能检测和处理端口占用问题
-- ✅ **进程管理**：安全的进程启动、停止和重启
-- ✅ **健康检查**：实时监控服务状态和MCP服务器状态
-- ✅ **日志管理**：自动日志轮转和错误追踪
-- ✅ **系统服务**：支持安装为系统服务（开机自启动）
-
-**传统启动方式**（仅开发测试）：
-```bash
-# 手动启动（不推荐生产环境）
+# 进入backend目录
 cd backend
+
+# 激活虚拟环境
 source ../.venv/bin/activate
-uvicorn app.main:app --reload --host 0.0.0.0 --port 3000
+
+# 启动后端服务
+python -m uvicorn app.main:app --host 0.0.0.0 --port ${SERVICE_PORT:-3000}
+
+# 开发模式启动（支持热重载）
+python -m uvicorn app.main:app --host 0.0.0.0 --port ${SERVICE_PORT:-3000} --reload
 ```
+
+**服务管理**：
+
+```bash
+# 关闭服务
+# 在运行uvicorn的终端中按 Ctrl+C 停止服务
+
+# 重启服务
+# 1. 先按 Ctrl+C 停止当前服务
+# 2. 重新运行启动命令
+python -m uvicorn app.main:app --host 0.0.0.0 --port ${SERVICE_PORT:-3000}
+
+# 后台运行服务
+nohup python -m uvicorn app.main:app --host 0.0.0.0 --port ${SERVICE_PORT:-3000} > ../logs/backend.log 2>&1 &
+
+# 查看后台服务进程
+ps aux | grep uvicorn
+
+# 停止后台服务
+# 找到进程ID后使用kill命令
+kill -TERM <进程ID>
+```
+
+**环境变量说明**：
+- `SERVICE_PORT`: 服务端口号，默认为3000
+- 确保在backend目录下启动服务
+- 确保虚拟环境已正确激活
 
 **预期输出：**
 ```
@@ -725,13 +746,36 @@ devuser_5090@echo-ai> /quit
 
 ## 🛠️ 生产环境部署
 
-### 系统服务安装
+### 后台服务运行
 
-**安装为系统服务**（推荐生产环境）：
+**使用systemd管理服务**（推荐生产环境）：
 
 ```bash
-# 安装系统服务（开机自启动）
-./start-backend.sh install-service
+# 创建systemd服务文件
+sudo tee /etc/systemd/system/echo-ai-backend.service > /dev/null <<EOF
+[Unit]
+Description=Echo AI Backend Service
+After=network.target mysql.service
+
+[Service]
+Type=simple
+User=$(whoami)
+WorkingDirectory=$(pwd)/backend
+Environment=PATH=$(pwd)/.venv/bin
+ExecStart=$(pwd)/.venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port ${SERVICE_PORT:-3000}
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# 重新加载systemd配置
+sudo systemctl daemon-reload
+
+# 启用并启动服务
+sudo systemctl enable echo-ai-backend
+sudo systemctl start echo-ai-backend
 
 # 查看服务状态
 sudo systemctl status echo-ai-backend
@@ -742,40 +786,42 @@ sudo systemctl stop echo-ai-backend
 sudo systemctl restart echo-ai-backend
 
 # 卸载系统服务
-./start-backend.sh uninstall-service
+sudo systemctl stop echo-ai-backend
+sudo systemctl disable echo-ai-backend
+sudo rm /etc/systemd/system/echo-ai-backend.service
+sudo systemctl daemon-reload
 ```
 
 ### 服务监控和维护
 
-**实时监控**：
+**进程管理**：
 ```bash
-# 启动监控模式（自动重启异常服务）
-./start-backend.sh monitor
+# 查看服务进程
+ps aux | grep uvicorn
 
-# 查看详细状态
-./start-backend.sh status
+# 查看端口占用
+lsof -i :3000
 
-# 强制清理（解决进程冲突）
-./start-backend.sh cleanup
+# 停止所有相关进程
+pkill -f "uvicorn.*app.main:app"
 ```
 
 **日志管理**：
 ```bash
-# 查看实时日志
-tail -f logs/backend_manager.log
+# 查看systemd服务日志
+sudo journalctl -u echo-ai-backend -f
 
-# 查看服务日志
-tail -f backend/logs/backend_*.log
+# 查看应用日志（如果配置了日志文件）
+tail -f backend/logs/backend.log
 
-# 日志自动轮转（10MB，保留5个文件）
-# 启动脚本会自动管理日志轮转
+# 创建日志目录
+mkdir -p backend/logs
 ```
 
 **性能监控**：
-- CPU和内存使用率实时显示
-- 网络连接数统计
-- 服务重启次数追踪
-- MCP服务器状态监控
+- 使用 `htop` 或 `top` 监控CPU和内存使用
+- 使用 `netstat -tuln | grep ${SERVICE_PORT:-3000}` 检查端口状态
+- 定期检查服务健康状态：`curl http://localhost:${SERVICE_PORT:-3000}/health`
 
 ## 🔧 常见问题排查
 
@@ -857,81 +903,77 @@ cd MCP_server/web3-mcp && cat .env | grep SOLANA
 
 ---
 
-## 🎯 启动脚本详细说明
+## 🎯 服务管理详细说明
 
-### 启动脚本功能概览
+### 服务启动方式对比
 
-<mcfile name="start-backend.sh" path="/home/devbox/project/Backend/start-backend.sh"></mcfile> 提供了完整的后端服务管理功能：
-
-**基础命令**：
+#### 🚀 直接启动（推荐开发环境）
 ```bash
-./start-backend.sh start          # 启动服务（包含完整检查）
-./start-backend.sh safe-start     # 安全启动（自动清理重复进程）
-./start-backend.sh stop           # 停止服务
-./start-backend.sh restart        # 重启服务
-./start-backend.sh status         # 显示服务状态和日志
-./start-backend.sh monitor        # 启动监控模式（自动重启）
-./start-backend.sh cleanup        # 强制清理所有相关进程
+cd backend
+source ../.venv/bin/activate
+python -m uvicorn app.main:app --host 0.0.0.0 --port 3000
 ```
 
-**系统服务命令**：
+**优点**：
+- 简单直接，易于调试
+- 支持热重载（--reload参数）
+- 实时查看日志输出
+- 快速启动和停止
+
+**缺点**：
+- 需要保持终端会话
+- 不支持自动重启
+- 不适合生产环境
+
+#### 🛠️ 系统服务（推荐生产环境）
 ```bash
-./start-backend.sh install-service    # 安装为系统服务
-./start-backend.sh uninstall-service  # 卸载系统服务
+sudo systemctl start echo-ai-backend
 ```
 
-### 启动前自动检查项
+**优点**：
+- 开机自启动
+- 自动重启机制
+- 系统级别管理
+- 日志集中管理
 
-启动脚本会自动执行以下检查，确保服务稳定运行：
+**缺点**：
+- 配置相对复杂
+- 需要管理员权限
+- 调试不够直观
 
-1. **环境验证**：
-   - Python版本检查（需要3.8+）
-   - 虚拟环境存在性验证
-   - 必要系统命令检查
-   - 端口范围验证
+### 环境变量配置
 
-2. **依赖检查**：
-   - Python包依赖验证
-   - 系统工具可用性检查
-   - 配置文件存在性验证
+服务支持以下环境变量配置：
 
-3. **数据库连接检查**：
-   - 强制要求MySQL数据库
-   - 连接参数验证
-   - 数据库权限检查
-
-4. **端口冲突处理**：
-   - 智能检测端口占用
-   - 区分自有服务和外部进程
-   - 提供交互式冲突解决
-
-### 服务监控功能
-
-**实时状态显示**：
-- 服务运行状态（PID、端口、健康检查）
-- 系统资源使用（CPU、内存）
-- 网络连接统计
-- 服务运行时间和重启次数
-- MCP服务器状态详情
-
-**自动重启机制**：
-- 健康检查失败自动重启
-- 最大重启次数限制
-- 重启间隔控制
-- 失败日志记录
-
-### 日志管理
-
-**自动日志轮转**：
-- 日志文件大小限制（10MB）
-- 保留历史文件数量（5个）
-- 按时间戳命名日志文件
-- 自动清理过期日志
-
-**日志位置**：
 ```bash
-logs/backend_manager.log          # 启动脚本日志
-backend/logs/backend_*.log        # 服务运行日志
+# 服务配置
+export SERVICE_PORT=3000              # 服务端口
+export SERVICE_HOST="0.0.0.0"         # 服务主机
+export WORKERS=1                      # 工作进程数
+
+# 数据库配置
+export DB_HOST="localhost"            # 数据库主机
+export DB_PORT=3306                   # 数据库端口
+export DB_USER="your_username"        # 数据库用户名
+export DB_PASSWORD="your_password"    # 数据库密码
+export DB_NAME="echo_ai"              # 数据库名称
+
+# 日志配置
+export LOG_LEVEL="INFO"               # 日志级别
+export LOG_FILE="backend/logs/backend.log"  # 日志文件路径
+```
+
+### 服务健康检查
+
+```bash
+# 检查服务状态
+curl http://localhost:${SERVICE_PORT:-3000}/health
+
+# 检查API可用性
+curl http://localhost:${SERVICE_PORT:-3000}/api/v1/status
+
+# 检查数据库连接
+curl http://localhost:${SERVICE_PORT:-3000}/api/v1/db/health
 ```
 
 ---
@@ -960,21 +1002,45 @@ backend/logs/backend_*.log        # 服务运行日志
 - ✅ 跨链桥接和去中心化金融(DeFi)操作
 - ✅ 完整的区块链钱包管理和安全保护
 
-## 📋 部署方式对比
+## 📊 部署方式对比
 
-| 部署方式 | 适用场景 | 优势 | 劣势 |
-|---------|---------|------|------|
-| **一键配置脚本** | 新用户、快速部署 | 全自动配置、零错误 | 需要预先配置环境变量 |
-| **启动脚本** | 生产环境、日常运维 | 完整监控、自动重启 | 需要手动配置依赖 |
-| **手动启动** | 开发调试 | 灵活控制、实时日志 | 缺少监控和错误处理 |
-| **系统服务** | 生产服务器 | 开机自启、系统集成 | 需要root权限 |
+| 特性 | 直接启动 | 后台运行 | 系统服务 |
+|------|----------|----------|----------|
+| **易用性** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ |
+| **开发调试** | ⭐⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐ |
+| **生产环境适用** | ⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+| **热重载支持** | ✅ | ❌ | ❌ |
+| **自动重启** | ❌ | ❌ | ✅ |
+| **开机自启** | ❌ | ❌ | ✅ |
+| **日志管理** | 终端输出 | 文件日志 | systemd日志 |
+| **进程管理** | 手动 | 手动 | 自动 |
+| **会话依赖** | 需要 | 不需要 | 不需要 |
+
+### 推荐使用场景
+
+- **开发环境**：直接启动（支持热重载，便于调试）
+- **测试环境**：后台运行（nohup方式）
+- **生产环境**：系统服务（systemd管理，稳定可靠）
+
+### 启动命令对比
+
+```bash
+# 开发环境 - 直接启动
+cd backend && python -m uvicorn app.main:app --host 0.0.0.0 --port ${SERVICE_PORT:-3000} --reload
+
+# 测试环境 - 后台运行
+cd backend && nohup python -m uvicorn app.main:app --host 0.0.0.0 --port ${SERVICE_PORT:-3000} > ../logs/backend.log 2>&1 &
+
+# 生产环境 - 系统服务
+sudo systemctl start echo-ai-backend
+```
 
 ## 🎉 总结
 
 项目现在具备完整的迁移性和鲁棒性，包含传统AI功能和Web3区块链操作能力，可以在新环境中顺利复现部署。无论是语音交互、网页自动化还是区块链操作，都能通过统一的对话界面进行控制。
 
 **推荐部署流程**：
-1. 🚀 **新用户**：使用一键配置脚本 `./setup.sh`
-2. 🛠️ **日常运维**：使用启动脚本 `./start-backend.sh`
-3. 🏭 **生产环境**：安装系统服务 `./start-backend.sh install-service`
+1. 🚀 **开发环境**：直接启动 `python -m uvicorn app.main:app --reload`
+2. 🛠️ **测试环境**：后台运行 `nohup python -m uvicorn app.main:app &`
+3. 🏭 **生产环境**：配置系统服务 `sudo systemctl start echo-ai-backend`
 4. 🔍 **问题排查**：查看详细日志和状态信息

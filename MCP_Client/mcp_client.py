@@ -65,8 +65,8 @@ class MCPClient:
         
         try:
             # 统一的超时时间配置
-            step_timeout = 30.0  # 所有服务器使用统一的30秒超时
-            total_timeout_desc = "30秒"
+            step_timeout = float(os.getenv('MCP_CONNECTION_TIMEOUT', '10.0'))  # 默认10秒，可通过环境变量配置
+            total_timeout_desc = f"{step_timeout}秒"
             
             print(f"🔧 开始连接步骤 1: stdio_client 连接... (超时: {step_timeout}秒)")
             reader, writer = await asyncio.wait_for(

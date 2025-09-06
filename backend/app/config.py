@@ -55,6 +55,7 @@ class Settings(BaseSettings):
     # MCP配置
     MCP_CLIENT_PATH: str = Field(default="../MCP_Client", env="MCP_CLIENT_PATH")
     MCP_SERVERS_PATH: str = Field(default="../MCP_Client/config/mcp_servers.json", env="MCP_SERVERS_PATH")
+    MCP_TIMEOUT_MS: int = Field(default=30000, env="MCP_TIMEOUT_MS")  # MCP连接超时，毫秒
     
     # 日志配置
     LOG_LEVEL: str = Field(default="INFO", env="LOG_LEVEL")

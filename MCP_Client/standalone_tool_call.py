@@ -48,7 +48,7 @@ async def call_tool_standalone(server_name: str, tool_id: str, params: Dict[str,
             raise RuntimeError("MCP客户端会话未正确初始化")
             
         # 3. 检查会话是否已初始化
-        if hasattr(client.session, '_initialized') and not client.session._initialized:
+        if hasattr(client.session, 'initialized') and not client.session.initialized:
             raise RuntimeError("MCP会话尚未完成初始化")
             
         print(f"🔧 开始调用工具: {tool_id}")
@@ -102,8 +102,11 @@ async def call_tool_standalone(server_name: str, tool_id: str, params: Dict[str,
         return {
             "success": False,
             "tool_id": tool_id,
-            "error": str(e),
-            "error_type": type(e).__name__
+            "error": {
+                "code": type(e).__name__.upper(),
+                "message": str(e),
+                "error_type": type(e).__name__
+            }
         }
         
     finally:

@@ -33,10 +33,10 @@ def get_python_executable() -> str:
     backend_dir = os.path.dirname(current_dir)  # /home/devbox/project/Backend
     project_root = os.path.dirname(backend_dir)  # /home/devbox/project
     
-    # 1. 优先使用项目根目录的虚拟环境（统一环境）
-    project_venv = os.path.join(project_root, '.venv', 'bin', 'python')
-    if os.path.isfile(project_venv):
-        return project_venv
+    # 1. 优先使用Backend目录的虚拟环境（统一环境）
+    backend_venv = os.path.join(backend_dir, '.venv', 'bin', 'python')
+    if os.path.isfile(backend_venv):
+        return backend_venv
     
     # 2. 备选：使用当前Python解释器
     if sys.executable and os.path.isfile(sys.executable):

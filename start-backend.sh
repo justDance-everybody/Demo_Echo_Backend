@@ -41,12 +41,12 @@ mkdir -p "$LOG_DIR" "$BACKEND_LOG_DIR"
 # 验证环境
 validate_environment() {
     # 检查Python版本
-    if ! command -v python3 >/dev/null 2>&1; then
-        log_message "ERROR" "Python3未安装或不在PATH中"
+    if ! command -v python >/dev/null 2>&1; then
+        log_message "ERROR" "Python未安装或不在PATH中"
         return 1
     fi
     
-    local python_version=$(python3 --version 2>&1 | cut -d' ' -f2)
+    local python_version=$(python --version 2>&1 | cut -d' ' -f2)
     local major_version=$(echo ${python_version} | cut -d'.' -f1)
     local minor_version=$(echo ${python_version} | cut -d'.' -f2)
     
@@ -61,10 +61,20 @@ validate_environment() {
         return 1
     fi
     
-    # 检查虚拟环境
-    if [ ! -f "$(pwd)/.venv/bin/activate" ]; then
-        log_message "ERROR" "虚拟环境不存在: $(pwd)/.venv"
-        return 1
+    # 检查并激活虚拟环境
+    local venv_path="$(pwd)/.venv"
+    if [ -z "${VIRTUAL_ENV:-}" ]; then
+        if [ -f "$venv_path/bin/activate" ]; then
+            log_message "INFO" "激活虚拟环境: $venv_path"
+            source "$venv_path/bin/activate"
+            if [ -z "${VIRTUAL_ENV:-}" ]; then
+                log_message "ERROR" "虚拟环境激活失败"
+                return 1
+            fi
+        else
+            log_message "ERROR" "虚拟环境不存在: $venv_path"
+            return 1
+        fi
     fi
     
     # 检查端口范围
@@ -143,14 +153,19 @@ check_database_connection() {
     }
     
     # 检查虚拟环境
-    if [ ! -f "../.venv/bin/activate" ]; then
-        log_message "ERROR" "虚拟环境不存在: $(pwd)/../.venv"
+    if [ -z "$VIRTUAL_ENV" ]; then
+        log_message "ERROR" "未检测到激活的虚拟环境，请先激活虚拟环境"
+        return 1
+    fi
+    
+    if [ ! -f "$VIRTUAL_ENV/bin/activate" ]; then
+        log_message "ERROR" "虚拟环境路径无效: $VIRTUAL_ENV"
         return 1
     fi
     
     # 激活虚拟环境并测试数据库连接
     local db_check_result
-    db_check_result=$(source ../.venv/bin/activate && python3 -c "
+    db_check_result=$(python -c "
 import sys
 sys.path.insert(0, '.')
 try:
@@ -237,8 +252,8 @@ check_dependencies() {
             errors+=("后端目录不存在: $BACKEND_DIR")
         fi
         
-        if [ ! -d "$(pwd)/.venv" ]; then
-            errors+=("Python虚拟环境不存在: $(pwd)/.venv")
+        if [ -z "$VIRTUAL_ENV" ] || [ ! -d "$VIRTUAL_ENV" ]; then
+        errors+=("Python虚拟环境未激活或路径无效: $VIRTUAL_ENV")
         fi
         
         if [ ! -f "$BACKEND_DIR/app/main.py" ]; then
@@ -300,9 +315,9 @@ check_dependencies() {
     done
     
     # 检查Python包（需要串行执行）
-    if [ -f "$(pwd)/.venv/bin/activate" ]; then
+    if [ -n "$VIRTUAL_ENV" ] && [ -f "$VIRTUAL_ENV/bin/activate" ]; then
         cd "$BACKEND_DIR" || return 1
-        source ../.venv/bin/activate
+        # 虚拟环境已激活，无需重复激活
         
         if ! python -c "import fastapi, uvicorn" 2>/dev/null; then
             log_message "ERROR" "缺少必要的Python包"
@@ -537,15 +552,26 @@ start_backend_service() {
     # 启动服务
     local log_file="$BACKEND_LOG_DIR/backend_$(date +%Y%m%d_%H%M%S).log"
     
-    log_message "INFO" "启动命令: source ../.venv/bin/activate && python -m uvicorn app.main:app --host 0.0.0.0 --port $SERVICE_PORT"
+    log_message "INFO" "启动命令: python -m uvicorn app.main:app --host 0.0.0.0 --port $SERVICE_PORT (使用虚拟环境: $VIRTUAL_ENV)"
     log_message "INFO" "日志文件: $log_file"
     
     # 使用安全的方式写入PID文件
     (
         flock -x 200
         nohup bash -c "
-            source ../.venv/bin/activate && \
-            python -m uvicorn app.main:app --host 0.0.0.0 --port $SERVICE_PORT
+            # 动态检测并激活虚拟环境，然后在backend目录中启动服务
+            if [ -n '$VIRTUAL_ENV' ]; then
+                source '$VIRTUAL_ENV/bin/activate'
+            else
+                # 尝试常见的虚拟环境路径
+                for venv_path in '/home/devbox/project/Backend/.venv' '/home/devbox/project/.venv' '$(pwd)/.venv' '$(pwd)/../.venv'; do
+                    if [ -f \"\$venv_path/bin/activate\" ]; then
+                        source \"\$venv_path/bin/activate\"
+                        break
+                    fi
+                done
+            fi
+            cd '$BACKEND_DIR' && source '$VIRTUAL_ENV/bin/activate' && python -m uvicorn app.main:app --host 0.0.0.0 --port $SERVICE_PORT
         " > "$log_file" 2>&1 &
         
         local service_pid=$!
@@ -1071,10 +1097,10 @@ Type=simple
 User=devbox
 Group=devbox
 WorkingDirectory=$BACKEND_DIR
-Environment=PATH=$BACKEND_DIR/venv/bin:/usr/local/bin:/usr/bin:/bin
+Environment=PATH=$VIRTUAL_ENV/bin:/usr/local/bin:/usr/bin:/bin
 Environment=PYTHONPATH=$BACKEND_DIR:$BACKEND_DIR/../MCP_Client/src
 Environment=PYTHONUNBUFFERED=1
-ExecStart=$BACKEND_DIR/venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port $SERVICE_PORT
+ExecStart=$VIRTUAL_ENV/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port $SERVICE_PORT
 ExecReload=/bin/kill -HUP \$MAINPID
 KillMode=mixed
 KillSignal=SIGTERM
