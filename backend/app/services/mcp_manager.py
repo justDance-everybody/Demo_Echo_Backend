@@ -669,10 +669,22 @@ class MCPServerManager:
                 server_status.error_message = "环境变量验证失败"
                 return False
                 
-            # 启动进程
+            # 统一解析工作目录与相对路径（确保在任意CWD下都能找到脚本）
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+            resolved_args = []
+            for arg in args:
+                if isinstance(arg, str) and not os.path.isabs(arg) and ('/' in arg or '\\' in arg):
+                    candidate = os.path.join(project_root, arg)
+                    if os.path.exists(candidate):
+                        resolved_args.append(candidate)
+                        continue
+                resolved_args.append(arg)
+
+            # 启动进程（显式将子进程CWD设置为项目根目录）
             process = await asyncio.create_subprocess_exec(
-                cmd, *args,
+                cmd, *resolved_args,
                 env=env,
+                cwd=project_root,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE
             )
