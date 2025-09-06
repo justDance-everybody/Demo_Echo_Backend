@@ -1264,9 +1264,32 @@ class MCPClientWrapper:
             # 准备参数
             params_json = json.dumps(params, ensure_ascii=False)
             
+            # 获取正确的Python路径（使用Backend目录统一虚拟环境）
+            def get_python_executable():
+                """获取正确的Python可执行文件路径"""
+                # 1. 优先使用Backend目录的虚拟环境（统一环境）
+                backend_venv = os.path.join(backend_dir, '.venv', 'bin', 'python')
+                if os.path.isfile(backend_venv):
+                    return backend_venv
+                
+                # 2. 备选：使用当前Python解释器
+                if sys.executable and os.path.isfile(sys.executable):
+                    return sys.executable
+                
+                # 3. 最后备选：系统Python
+                import shutil
+                for python_name in ['python3', 'python']:
+                    python_path = shutil.which(python_name)
+                    if python_path and os.path.isfile(python_path):
+                        return python_path
+                
+                raise RuntimeError("无法找到可用的Python解释器")
+            
+            python_executable = get_python_executable()
+            
             # 构建命令
             cmd = [
-                "python3", script_path,
+                python_executable, script_path,
                 target_server,
                 tool_id,
                 params_json
@@ -1274,12 +1297,17 @@ class MCPClientWrapper:
             
             logger.debug(f"执行命令: {' '.join(cmd)}")
             
+            # 准备环境变量
+            env = os.environ.copy()
+            env["MCP_CONNECTION_TIMEOUT"] = "30"  # 设置30秒连接超时
+            
             # 执行subprocess调用，添加120秒超时
             process = await asyncio.create_subprocess_exec(
                 *cmd,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
-                cwd=os.path.join(project_root, "MCP_Client")  # 设置工作目录
+                cwd=os.path.join(project_root, "MCP_Client"),  # 设置工作目录
+                env=env  # 传递环境变量
             )
             
             try:
