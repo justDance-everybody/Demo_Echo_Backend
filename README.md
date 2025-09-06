@@ -40,6 +40,8 @@ Demo_Echo_Backend/
 ├── MCP_Client/            # MCP客户端
 │   ├── config/            # MCP服务器配置
 │   └── src/               # MCP客户端源码
+├── MCP_server/            # MCP服务器（可选，用于Web3功能）
+│   └── web3-mcp/          # Web3区块链MCP服务器
 ├── echo_ai_console.py     # 交互式控制台
 └── complete_sync.py       # MCP工具同步脚本
 ```
@@ -47,6 +49,22 @@ Demo_Echo_Backend/
 ---
 
 ## 🚀 快速开始
+
+### 📁 工作目录说明
+本文档中的所有命令都基于以下目录结构，请确保在正确的目录下执行相应命令：
+
+```
+Demo_Echo_Backend/           ← 项目根目录
+├── backend/                 ← 后端开发目录
+├── MCP_Client/             ← MCP客户端目录  
+└── MCP_server/             ← MCP服务器目录（可选）
+```
+
+**重要提示**：
+- 🏠 **项目根目录**：执行 `python echo_ai_console.py` 等根级脚本
+- 🐍 **backend目录**：执行后端相关命令（数据库迁移、启动服务等）
+- 🔧 **MCP_Client目录**：配置MCP服务器和客户端
+- 🌐 **MCP_server目录**：构建Web3等自定义MCP服务器
 
 ### 📋 环境要求
 - **Python**: 3.9+
@@ -63,8 +81,16 @@ cd Demo_Echo_Backend
 # 创建并激活Python虚拟环境
 cd backend
 python -m venv venv
-source venv/bin/activate  # Linux/macOS
+
+# 激活虚拟环境（选择适合你操作系统的命令）
+# Linux/macOS:
+# 激活后端虚拟环境
+# Linux/macOS: source venv/bin/activate
 # Windows: venv\Scripts\activate
+# Windows Command Prompt:
+# venv\Scripts\activate.bat
+# Windows PowerShell:
+# venv\Scripts\Activate.ps1
 
 # 安装Python依赖
 pip install -r requirements.txt
@@ -117,8 +143,76 @@ TEST_ADMIN_USERNAME=adminuser_5090
 TEST_ADMIN_PASSWORD=SAKMRtxCjT
 ```
 
-### 3️⃣ 数据库迁移
+### 3️⃣ MCP服务器配置
+
+在执行数据库迁移之前，需要先配置MCP服务器，以便后续的工具同步能够正常工作：
+
 ```bash
+# 进入MCP客户端目录
+cd ../MCP_Client
+
+# 创建MCP虚拟环境（独立于后端）
+python -m venv .venv
+
+# 激活MCP虚拟环境（选择适合你操作系统的命令）
+# Linux/macOS:
+source .venv/bin/activate
+# Windows Command Prompt:
+# .venv\Scripts\activate.bat
+# Windows PowerShell:
+# .venv\Scripts\Activate.ps1
+
+# 安装MCP依赖
+pip install openai python-dotenv loguru
+pip install git+https://github.com/modelcontextprotocol/python-sdk.git
+
+# 配置MCP服务器（重要！）
+vim config/mcp_servers.json
+```
+
+**MCP服务器配置示例：**
+```json
+{
+  "mcpServers": {
+    "playwright": {
+      "name": "Playwright浏览器",
+      "description": "提供Web浏览和自动化功能",
+      "command": "npx",
+      "args": ["@playwright/mcp@latest"],
+      "enabled": true
+    },
+    "minimax-mcp-js": {
+      "name": "MiniMax API",
+      "description": "提供语音合成功能",
+      "command": "npx",
+      "args": ["-y", "minimax-mcp-js"],
+      "env": {
+        "MINIMAX_API_KEY": "your_minimax_api_key_here",
+        "MINIMAX_API_HOST": "https://api.minimax.chat",
+        "MINIMAX_MCP_BASE_PATH": "./outputs",
+        "MINIMAX_RESOURCE_MODE": "file"
+      },
+      "enabled": true
+    },
+    "amap-maps": {
+      "name": "高德地图API", 
+      "description": "提供地图和天气服务",
+      "command": "npx",
+      "args": ["-y", "@amap/amap-maps-mcp-server"],
+      "env": {
+        "AMAP_MAPS_API_KEY": "your_amap_api_key_here"
+      },
+      "enabled": true
+    }
+  }
+}
+```
+
+### 4️⃣ 数据库迁移
+```bash
+# 返回后端目录
+cd ../backend
+
 # 执行数据库迁移
 alembic upgrade head
 
@@ -133,7 +227,7 @@ sqlite3 echo_db.db ".tables"
 alembic_version  app_tools  apps  logs  sessions  tools  users
 ```
 
-### 4️⃣ 创建测试账户
+### 5️⃣ 创建测试账户
 
 使用现有脚本创建控制台测试所需的用户账户：
 
@@ -175,74 +269,6 @@ db.close()
 用户: devuser_5090 | 角色: UserRole.developer | 活跃: True
 用户: testuser_5090 | 角色: UserRole.user | 活跃: True
 用户: adminuser_5090 | 角色: UserRole.admin | 活跃: True
-```
-
-### 5️⃣ MCP客户端配置
-```bash
-# 进入MCP客户端目录
-cd ../MCP_Client
-
-# 创建MCP虚拟环境（独立于后端）
-python -m venv .venv
-source .venv/bin/activate  # Linux/macOS
-# Windows: .venv\Scripts\activate
-
-# 安装MCP依赖
-pip install openai python-dotenv loguru
-pip install git+https://github.com/modelcontextprotocol/python-sdk.git
-
-# 配置MCP服务器（重要！）
-vim config/mcp_servers.json
-```
-
-**MCP服务器配置示例：**
-```json
-{
-  "mcpServers": {
-    "playwright": {
-      "name": "Playwright浏览器",
-      "description": "提供Web浏览和自动化功能",
-      "command": "npx",
-      "args": ["@playwright/mcp@latest"],
-      "enabled": true
-    },
-    "minimax-mcp-js": {
-      "name": "MiniMax API",
-      "description": "提供语音合成功能",
-      "command": "npx",
-      "args": ["-y", "minimax-mcp-js"],
-      "env": {
-        "MINIMAX_API_KEY": "your_minimax_api_key_here",
-        "MINIMAX_API_HOST": "https://api.minimax.chat",
-        "MINIMAX_MCP_BASE_PATH": "/path/to/outputs",
-        "MINIMAX_RESOURCE_MODE": "file"
-      },
-      "enabled": true
-    },
-    "amap-maps": {
-      "name": "高德地图API", 
-      "description": "提供地图和天气服务",
-      "command": "npx",
-      "args": ["-y", "@amap/amap-maps-mcp-server"],
-      "env": {
-        "AMAP_MAPS_API_KEY": "your_amap_api_key_here"
-      },
-      "enabled": true
-    },
-    "web3-rpc": {
-      "name": "Web3 区块链API",
-      "description": "提供多链区块链服务（Solana等）",
-      "command": "node",
-      "args": [
-        "/path/to/your/project/MCP_server/web3-mcp/build/index.js"
-      ],
-      "env": {
-        "SOLANA_RPC_URL": "https://api.devnet.solana.com"
-      },
-      "enabled": false
-    }
-  }
-}
 ```
 
 ### 6️⃣ Web3区块链MCP服务器配置（可选）
@@ -353,7 +379,7 @@ vim config/mcp_servers.json
       "description": "提供多链区块链服务（Solana等）",
       "command": "node",
       "args": [
-        "/Users/your_username/path/to/MCP_server/web3-mcp/build/index.js"
+        "../MCP_server/web3-mcp/build/index.js"
       ],
       "env": {
         "SOLANA_RPC_URL": "https://api.devnet.solana.com"
@@ -368,13 +394,31 @@ vim config/mcp_servers.json
 ```bash
 # 返回后端目录
 cd ../backend
-source venv/bin/activate
+# 激活后端虚拟环境
+# Linux/macOS: source venv/bin/activate
+# Windows: venv\Scripts\activate
 
 # 同步MCP工具到数据库
 python complete_sync.py
 ```
 
-**预期输出：**
+**预期输出（仅配置基础MCP服务器）：**
+```
+🚀 开始完整MCP工具同步...
+📋 发现 3 个MCP服务器:
+  - playwright: 启用 (Playwright浏览器)
+  - minimax-mcp-js: 启用 (MiniMax API)
+  - amap-maps: 启用 (高德地图API)
+
+✅ 新增工具: 45
+🔄 更新工具: 0  
+❌ 失败工具: 0
+
+📋 数据库中现有 45 个工具:
+🎉 同步成功完成!
+```
+
+**预期输出（配置了Web3服务器）：**
 ```
 🚀 开始完整MCP工具同步...
 📋 发现 4 个MCP服务器:
@@ -383,7 +427,7 @@ python complete_sync.py
   - amap-maps: 启用 (高德地图API)
   - web3-rpc: 启用 (Web3 区块链API)
 
-✅ 新增工具: 57
+✅ 新增工具: 60
 🔄 更新工具: 0  
 ❌ 失败工具: 0
 
@@ -511,7 +555,8 @@ INSERT INTO tools (
 #### 执行配置
 ```bash
 # 连接数据库执行SQL配置
-mysql -u root -p echo_ai_db < /path/to/your/http_tools_config.sql
+# 先将上述SQL语句保存到文件，例如 http_tools_config.sql
+mysql -u root -p echo_ai_db < http_tools_config.sql
 
 # 或者直接在MySQL命令行中执行上述SQL语句
 mysql -u root -p echo_ai_db
@@ -713,7 +758,9 @@ mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS echo_ai_db CHARACTER SET utf8
 echo "🐍 3. 设置Python虚拟环境..."
 cd backend
 python3 -m venv venv
-source venv/bin/activate
+# 激活后端虚拟环境
+# Linux/macOS: source venv/bin/activate
+# Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
 # 4. 数据库迁移
