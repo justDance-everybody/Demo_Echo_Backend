@@ -89,6 +89,9 @@ venv.bak/
 *.db
 *.sqlite
 *.sqlite3
+*.db-shm
+*.db-wal
+*.db-journal
 
 # Temporary files
 *.tmp
@@ -128,3 +131,10 @@ jwt_secret*
 token*
 !*example*
 !*template*
+
+# Audio output files
+*.mp3
+*.wav
+*.m4a
+outputs/
+MCP_server/*/outputs/
