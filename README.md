@@ -84,7 +84,6 @@ chmod +x setup.sh
 ./setup.sh
 
 # 4. 启动服务
-cd backend
 source ../.venv/bin/activate
 python -m uvicorn app.main:app --host 0.0.0.0 --port ${SERVICE_PORT:-3000}
 ```
@@ -632,7 +631,7 @@ mysql -u root -p echo_ai_db -e "SELECT tool_id, name, type FROM tools WHERE type
 
 # 重启后端服务以加载新配置
 # Ctrl+C停止当前服务，然后重启
-uvicorn app.main:app --reload --host 0.0.0.0 --port 3000
+python -m uvicorn app.main:app --reload --host 0.0.0.0 --port ${SERVICE_PORT:-3000}
 ```
 
 ### 9️⃣ 启动后端服务
@@ -643,8 +642,9 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 3000
 # 进入backend目录
 cd backend
 
-# 激活虚拟环境
-source ../.venv/bin/activate
+# 激活虚拟环境（路径在backend/.env中的VIRTUAL_ENV_PATH配置）
+# 默认路径：/home/devbox/project/Backend/.venv
+source $(grep "^VIRTUAL_ENV_PATH=" backend/.env | cut -d'=' -f2)/bin/activate
 
 # 启动后端服务
 python -m uvicorn app.main:app --host 0.0.0.0 --port ${SERVICE_PORT:-3000}
@@ -761,8 +761,9 @@ After=network.target mysql.service
 Type=simple
 User=$(whoami)
 WorkingDirectory=$(pwd)/backend
-Environment=PATH=$(pwd)/.venv/bin
-ExecStart=$(pwd)/.venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port ${SERVICE_PORT:-3000}
+# 注意：需要将VIRTUAL_ENV_PATH替换为backend/.env中配置的实际路径
+Environment=PATH=/home/devbox/project/Backend/.venv/bin
+ExecStart=/home/devbox/project/Backend/.venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port ${SERVICE_PORT:-3000}
 Restart=always
 RestartSec=3
 
@@ -910,8 +911,9 @@ cd MCP_server/web3-mcp && cat .env | grep SOLANA
 #### 🚀 直接启动（推荐开发环境）
 ```bash
 cd backend
-source ../.venv/bin/activate
-python -m uvicorn app.main:app --host 0.0.0.0 --port 3000
+# 激活虚拟环境（路径配置在backend/.env中）
+source $(grep "^VIRTUAL_ENV_PATH=" .env | cut -d'=' -f2)/bin/activate
+python -m uvicorn app.main:app --host 0.0.0.0 --port ${SERVICE_PORT:-3000}
 ```
 
 **优点**：

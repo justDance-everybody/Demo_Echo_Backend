@@ -20,7 +20,18 @@ BACKEND_DIR="$(pwd)/backend"
 MCP_CLIENT_DIR="$(pwd)/MCP_Client"
 MCP_SERVER_DIR="$(pwd)/MCP_server"
 ROOT_DIR="$(pwd)"
-VENV_DIR="$ROOT_DIR/.venv"
+
+# 从.env文件读取虚拟环境路径
+if [ -f "$BACKEND_DIR/.env" ]; then
+    VENV_DIR=$(grep "^VIRTUAL_ENV_PATH=" "$BACKEND_DIR/.env" | cut -d'=' -f2)
+    if [ -z "$VENV_DIR" ]; then
+        log_message "ERROR" "未在.env文件中找到VIRTUAL_ENV_PATH配置"
+        exit 1
+    fi
+else
+    log_message "ERROR" "backend/.env 文件不存在"
+    exit 1
+fi
 
 # 日志函数
 log_message() {
@@ -483,7 +494,7 @@ show_completion_info() {
     echo "   python echo_ai_console.py"
     echo ""
     echo -e "${CYAN}4. 访问API文档：${NC}"
-    echo "   http://localhost:3000/docs"
+    echo "   http://localhost:${SERVICE_PORT:-3000}/docs"
     echo ""
     echo -e "${YELLOW}注意事项：${NC}"
     echo "  • 请编辑 MCP_Client/config/mcp_servers.json 配置API密钥"
