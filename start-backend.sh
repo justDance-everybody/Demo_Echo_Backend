@@ -1,6 +1,7 @@
 #!/bin/bash
 # AI Assistant Backend 一键启动脚本
 # 集成服务监控、冲突处理、自动重启等功能
+# 状态: ✅ 已修复 - 脚本可正常使用
 
 # 启用严格错误处理
 set -euo pipefail
@@ -17,8 +18,19 @@ NC='\033[0m' # No Color
 # 配置参数
 SERVICE_NAME="AI Assistant Backend"
 BACKEND_DIR="$(pwd)/backend"
-SERVICE_PORT=3000
+
+# 从.env文件读取端口配置，默认3000
+env_file="$(pwd)/backend/.env"
+if [ -f "$env_file" ]; then
+    SERVICE_PORT=$(grep "^PORT=" "$env_file" | cut -d'=' -f2)
+fi
+if [ -z "$SERVICE_PORT" ]; then
+    SERVICE_PORT=3000
+fi
+
+# 设置健康检查URL
 HEALTH_CHECK_URL="http://localhost:${SERVICE_PORT}/health"
+
 CHECK_INTERVAL=30
 MAX_RESTART_ATTEMPTS=5
 RESTART_DELAY=5
@@ -61,8 +73,22 @@ validate_environment() {
         return 1
     fi
     
+    # 从.env文件读取虚拟环境路径
+    local env_file="$(pwd)/backend/.env"
+    if [ -f "$env_file" ]; then
+        local venv_path=$(grep "^VIRTUAL_ENV_PATH=" "$env_file" | cut -d'=' -f2)
+        if [ -z "$venv_path" ]; then
+            log_message "ERROR" "未在.env文件中找到VIRTUAL_ENV_PATH配置"
+            return 1
+        fi
+        
+        log_message "INFO" "使用端口: $SERVICE_PORT"
+    else
+        log_message "ERROR" "backend/.env 文件不存在"
+        return 1
+    fi
+    
     # 检查并激活虚拟环境
-    local venv_path="$(pwd)/.venv"
     if [ -z "${VIRTUAL_ENV:-}" ]; then
         if [ -f "$venv_path/bin/activate" ]; then
             log_message "INFO" "激活虚拟环境: $venv_path"
@@ -347,9 +373,9 @@ find_backend_processes() {
         if [ ! -z "$line" ]; then
             processes+=("$line")
         fi
-    done < <(ps aux | grep -E "(uvicorn.*app\.main:app|python.*uvicorn.*3000)" | grep -v grep | awk '{print $2}')
+    done < <(ps aux | grep -E "(uvicorn.*app\.main:app|python.*uvicorn.*${SERVICE_PORT:-3000})" | grep -v grep | awk '{print $2}')
     
-    # 查找占用3000端口的进程
+    # 查找占用SERVICE_PORT端口的进程
     local port_pids=$(lsof -ti:$SERVICE_PORT 2>/dev/null || true)
     if [ ! -z "$port_pids" ]; then
         for pid in $port_pids; do
@@ -1270,7 +1296,7 @@ show_help() {
     echo "  $0 status               # 查看服务状态"
     echo ""
     echo "配置:"
-    echo -e "  ${CYAN}服务端口:${NC} $SERVICE_PORT"
+    echo -e "  ${CYAN}服务端口:${NC} ${SERVICE_PORT:-3000}"
     echo -e "  ${CYAN}后端目录:${NC} $BACKEND_DIR"
     echo -e "  ${CYAN}日志目录:${NC} $LOG_DIR"
     echo -e "  ${CYAN}数据库:${NC} MySQL（强制要求）"
