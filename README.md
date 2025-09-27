@@ -84,8 +84,50 @@ chmod +x setup.sh
 ./setup.sh
 
 # 4. 启动服务
-source ../.venv/bin/activate
+source ./.venv/bin/activate
 python -m uvicorn app.main:app --host 0.0.0.0 --port ${SERVICE_PORT:-3000}
+```
+
+## 📡 API接口概览
+
+### 服务地址
+- **API文档**: `http://{YOUR_HOST}:{YOUR_PORT}/docs` (默认: `http://localhost:3000/docs`) (Swagger UI)
+- **健康检查**: `http://{YOUR_HOST}:{YOUR_PORT}/health` (默认: `http://localhost:3000/health`)
+- **API基础路径**: `http://{YOUR_HOST}:{YOUR_PORT}/api/v1` (默认: `http://localhost:3000/api/v1`)
+
+**配置说明**:
+- `{YOUR_HOST}`: 服务器主机地址，本地开发通常为 `localhost`，生产环境为实际域名或IP
+- `{YOUR_PORT}`: 服务端口，默认为 `3000`，可通过环境变量 `SERVICE_PORT` 配置
+
+### 核心接口
+| 接口 | 方法 | 说明 | 认证 |
+|------|------|------|------|
+| `/health` | GET | 健康检查 | ❌ |
+| `/api/v1/auth/token` | POST | 用户登录 | ❌ |
+| `/api/v1/auth/register` | POST | 用户注册 | ❌ |
+| `/api/v1/intent/interpret` | POST | 意图识别 | ✅ |
+| `/api/v1/intent/confirm` | POST | 确认执行 | ✅ |
+| `/api/v1/execute` | POST | 工具执行 | ✅ |
+| `/api/v1/tools` | GET | 获取工具列表 | ✅ |
+| `/api/v1/dev/tools` | GET/POST/PUT/DELETE | 开发者工具管理 | ✅ (developer+) |
+| `/api/v1/mcp/status` | GET | MCP服务器状态 | ✅ |
+
+### 快速测试
+```bash
+# 健康检查 (请替换为您的实际地址)
+curl http://{YOUR_HOST}:{YOUR_PORT}/health
+# 默认: curl http://localhost:3000/health
+
+# 用户登录
+curl -X POST http://{YOUR_HOST}:{YOUR_PORT}/api/v1/auth/token \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "username=testuser_5090&password=8lpcUY2BOt"
+# 默认: curl -X POST http://localhost:3000/api/v1/auth/token ...
+
+# 获取工具列表（需要token）
+curl -H "Authorization: Bearer <your_token>" \
+  http://{YOUR_HOST}:{YOUR_PORT}/api/v1/tools
+# 默认: curl -H "Authorization: Bearer <your_token>" http://localhost:3000/api/v1/tools
 ```
 
 
@@ -707,6 +749,272 @@ curl http://localhost:3000/docs
 # 验证MCP工具状态
 curl http://localhost:3000/api/v1/tools | jq '.[0:3]'
 ```
+
+---
+
+## 🛡️ 进程监控和保护
+
+### 监控脚本功能
+
+系统提供了完整的进程监控和保护机制，确保服务的高可用性：
+
+Backend项目已包含完整的服务管理脚本 `entrypoint.sh` (v2.0)，提供统一的服务管理功能。
+
+### 🚀 脚本功能
+
+**基础服务管理:**
+- `start` - 启动服务
+- `stop` - 停止服务  
+- `restart` - 重启服务
+- `status` - 查看服务状态
+- `monitor` - 持续监控服务（自动重启）
+- `logs` - 查看服务日志
+- `health` - 执行健康检查
+
+**部署配置生成:**
+- `systemd` - 生成systemd服务配置文件
+- `supervisor` - 生成supervisor配置文件
+- `install` - 交互式安装向导
+
+### 📋 使用方法
+
+```bash
+# 设置执行权限
+chmod +x entrypoint.sh
+
+# 查看帮助信息
+./entrypoint.sh help
+
+# 基础服务管理
+./entrypoint.sh start     # 启动服务
+./entrypoint.sh stop      # 停止服务
+./entrypoint.sh restart   # 重启服务
+./entrypoint.sh status    # 查看状态
+./entrypoint.sh monitor   # 持续监控
+./entrypoint.sh logs      # 查看日志
+./entrypoint.sh health    # 健康检查
+
+# 生产环境部署
+./entrypoint.sh systemd     # 生成systemd配置
+./entrypoint.sh supervisor  # 生成supervisor配置
+./entrypoint.sh install     # 安装向导
+```
+
+### ✨ 主要特性
+
+- **🔄 相对路径**: 使用相对路径，支持项目迁移
+- **🛡️ 自动检查**: 虚拟环境和依赖自动检查
+- **💚 健康监控**: HTTP健康检查和自动重启
+- **📊 详细状态**: 进程信息、端口占用、日志查看
+- **🚀 生产就绪**: 支持systemd和supervisor部署
+- **📝 完整日志**: 结构化日志记录和轮转
+
+### 🏭 生产环境部署
+
+**使用systemd (推荐):**
+```bash
+# 生成配置文件
+./entrypoint.sh systemd
+
+# 安装服务
+sudo cp scripts/backend-api.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable backend-api
+sudo systemctl start backend-api
+```
+
+**使用supervisor:**
+```bash
+# 生成配置文件
+./entrypoint.sh supervisor
+
+# 安装配置
+sudo cp scripts/backend-api.conf /etc/supervisor/conf.d/
+sudo supervisorctl reread
+sudo supervisorctl update
+sudo supervisorctl start backend-api
+```
+
+### 监控脚本使用方法
+
+```bash
+# 启动服务
+./entrypoint.sh start
+
+# 查看服务状态
+./entrypoint.sh status
+
+# 重启服务
+./entrypoint.sh restart
+
+# 停止服务
+./entrypoint.sh stop
+
+# 开启持续监控（推荐生产环境）
+./entrypoint.sh monitor
+
+# 查看实时日志
+./entrypoint.sh logs
+
+# 执行健康检查
+./entrypoint.sh health
+```
+
+### 监控功能特性
+
+- **🔄 自动重启**: 检测到服务异常时自动重启
+- **💚 健康检查**: 定期检查API健康状态
+- **📊 状态监控**: 实时显示进程和端口信息
+- **📝 日志管理**: 集中管理服务和监控日志
+- **⚡ 优雅停止**: 支持优雅停止和强制停止
+- **🛡️ 进程保护**: 防止重复启动和僵尸进程
+
+### 生产环境部署建议
+
+```bash
+# 1. 启动持续监控（后台运行）
+nohup ./entrypoint.sh monitor > ../logs/monitor_daemon.log 2>&1 &
+
+# 2. 设置开机自启动（可选）
+echo "@reboot cd $(pwd) && ./entrypoint.sh start" | crontab -
+
+# 3. 定期检查监控状态
+echo "*/5 * * * * cd $(pwd) && ./entrypoint.sh health" | crontab -
+```
+
+### 故障排查
+
+```bash
+# 查看监控日志
+tail -f backend/logs/monitor.log
+
+# 查看服务日志
+tail -f backend/logs/backend.log
+
+# 检查端口占用
+lsof -i :3000
+
+# 手动清理进程
+pkill -f "uvicorn.*app.main:app"
+rm -f /tmp/echo-ai-backend.pid
+```
+
+## 🔧 系统级进程保护
+
+### 方案一：systemd服务（推荐Linux系统）
+
+#### 安装systemd服务
+```bash
+# 使用自动安装脚本
+sudo ./scripts/install_systemd_service.sh install
+```
+
+#### 手动配置systemd服务
+```bash
+# 1. 复制服务文件
+sudo cp scripts/backend-api.service /etc/systemd/system/
+
+# 2. 重新加载systemd配置
+sudo systemctl daemon-reload
+
+# 3. 启用并启动服务
+sudo systemctl enable backend-api.service
+sudo systemctl start backend-api.service
+
+# 4. 查看服务状态
+sudo systemctl status backend-api.service
+```
+
+#### systemd服务管理命令
+```bash
+# 启动服务
+sudo systemctl start backend-api
+
+# 停止服务
+sudo systemctl stop backend-api
+
+# 重启服务
+sudo systemctl restart backend-api
+
+# 查看服务状态
+sudo systemctl status backend-api
+
+# 查看服务日志
+sudo journalctl -u backend-api -f
+
+# 禁用服务
+sudo systemctl disable backend-api
+
+# 卸载服务
+sudo ./scripts/install_systemd_service.sh uninstall
+```
+
+### 方案二：supervisor进程管理
+
+#### 安装和配置supervisor
+```bash
+# 使用自动安装脚本
+./scripts/setup_supervisor.sh install
+```
+
+#### 手动配置supervisor
+```bash
+# 1. 安装supervisor
+sudo apt-get install supervisor  # Ubuntu/Debian
+# 或
+sudo yum install supervisor      # CentOS/RHEL
+
+# 2. 复制配置文件
+sudo cp scripts/backend-api.conf /etc/supervisor/conf.d/
+
+# 3. 重新加载配置
+sudo supervisorctl reread
+sudo supervisorctl update
+
+# 4. 启动服务
+sudo supervisorctl start backend-api
+```
+
+#### supervisor管理命令
+```bash
+# 查看所有服务状态
+sudo supervisorctl status
+
+# 启动服务
+sudo supervisorctl start backend-api
+
+# 停止服务
+sudo supervisorctl stop backend-api
+
+# 重启服务
+sudo supervisorctl restart backend-api
+
+# 查看服务日志
+sudo supervisorctl tail backend-api
+
+# 实时查看日志
+sudo supervisorctl tail -f backend-api
+```
+
+### 进程保护方案对比
+
+| 特性 | 监控脚本 | systemd | supervisor |
+|------|----------|---------|------------|
+| **自动重启** | ✅ | ✅ | ✅ |
+| **开机自启** | 需配置 | ✅ | ✅ |
+| **日志管理** | ✅ | ✅ | ✅ |
+| **资源限制** | ❌ | ✅ | ✅ |
+| **依赖管理** | ❌ | ✅ | ❌ |
+| **跨平台** | ✅ | Linux only | ✅ |
+| **配置复杂度** | 简单 | 中等 | 中等 |
+| **系统集成** | 低 | 高 | 中等 |
+
+### 推荐使用场景
+
+- **开发环境**: 使用监控脚本，简单快速
+- **生产环境（Linux）**: 使用systemd，系统集成度高
+- **生产环境（跨平台）**: 使用supervisor，功能全面
+- **容器环境**: 使用监控脚本或supervisor
 
 ---
 
