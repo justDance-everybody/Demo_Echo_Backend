@@ -158,13 +158,27 @@ AsyncSessionLocal = sessionmaker(
 # 获取异步数据库会话的依赖函数 (用于 FastAPI Depends)
 async def get_async_db_session() -> AsyncGenerator[AsyncSession, None]:
     """提供异步数据库会话的生成器"""
+    from fastapi import HTTPException
+    from sqlalchemy.exc import SQLAlchemyError
+    
     async with AsyncSessionLocal() as session:
         try:
             yield session
             await session.commit() # 异步提交
+        except HTTPException:
+            # HTTPException 是业务逻辑异常，不需要回滚，直接向上传递
+            # 让 FastAPI 的异常处理器处理
+            await session.rollback()
+            raise
+        except SQLAlchemyError as e:
+            # 真正的数据库错误
+            await session.rollback()
+            logger.error(f"数据库操作失败: {e}")
+            raise
         except Exception as e:
-            await session.rollback() # 异步回滚
-            logger.error(f"异步数据库操作失败: {e}")
+            # 其他未预期的异常
+            await session.rollback()
+            logger.error(f"异步数据库会话异常: {e}")
             raise
         finally:
             # 关闭在 AsyncSessionLocal() 的 context manager 中自动处理

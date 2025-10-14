@@ -4,6 +4,7 @@
 import asyncio
 import json
 import os
+import sys
 import time
 import psutil
 import signal
@@ -658,13 +659,39 @@ class MCPServerManager:
                 server_status.error_message = "环境变量验证失败"
                 return False
                 
-            # 启动进程
-            process = await asyncio.create_subprocess_exec(
-                cmd, *args,
-                env=env,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
-            )
+            # 启动进程 - 改进Windows兼容性和管道处理
+            try:
+                if sys.platform == "win32":
+                    # Windows特定的子进程创建选项
+                    creation_flags = 0
+                    try:
+                        import subprocess
+                        # 创建新进程组，便于批量清理
+                        creation_flags = subprocess.CREATE_NEW_PROCESS_GROUP
+                    except ImportError:
+                        pass
+                    
+                    process = await asyncio.create_subprocess_exec(
+                        cmd, *args,
+                        env=env,
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.PIPE,
+                        creationflags=creation_flags,
+                        # 在Windows上设置启动信息隐藏窗口
+                        startupinfo=subprocess.STARTUPINFO(dwFlags=subprocess.STARTF_USESHOWWINDOW, wShowWindow=subprocess.SW_HIDE) if 'subprocess' in locals() else None
+                    )
+                else:
+                    # Unix/Linux系统
+                    process = await asyncio.create_subprocess_exec(
+                        cmd, *args,
+                        env=env,
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.PIPE,
+                        preexec_fn=os.setsid if hasattr(os, 'setsid') else None  # 创建新会话
+                    )
+            except Exception as subprocess_error:
+                logger.error(f"创建子进程失败: {subprocess_error}")
+                raise
             
             # 等待一小段时间检查进程是否成功启动
             await asyncio.sleep(2)
@@ -1971,10 +1998,18 @@ class MCPServerManager:
             for process in processes_to_kill:
                 try:
                     if process.is_running():
-                        process.terminate()
-                        logger.debug(f"向进程 {process.pid} 发送SIGTERM信号")
+                        if sys.platform == "win32":
+                            # Windows上使用terminate()
+                            process.terminate()
+                            logger.debug(f"向进程 {process.pid} 发送终止信号 (Windows)")
+                        else:
+                            # Unix/Linux上使用SIGTERM
+                            process.terminate()
+                            logger.debug(f"向进程 {process.pid} 发送SIGTERM信号")
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
                     continue
+                except Exception as e:
+                    logger.warning(f"终止进程 {process.pid} 时出错: {e}")
             
             # 等待进程优雅退出
             await asyncio.sleep(3)
@@ -1993,10 +2028,27 @@ class MCPServerManager:
                 for process in remaining_processes:
                     try:
                         if process.is_running():
-                            process.kill()
-                            logger.debug(f"强制终止进程 {process.pid}")
+                            if sys.platform == "win32":
+                                # Windows上强制终止
+                                try:
+                                    # 尝试使用taskkill命令强制终止进程树
+                                    import subprocess as sync_subprocess
+                                    result = sync_subprocess.run([
+                                        'taskkill', '/F', '/T', '/PID', str(process.pid)
+                                    ], capture_output=True, check=False, timeout=5)
+                                    logger.debug(f"使用taskkill强制终止进程树 {process.pid}, 返回码: {result.returncode}")
+                                except Exception as taskkill_error:
+                                    # 如果taskkill失败，回退到psutil
+                                    logger.debug(f"taskkill失败 ({taskkill_error})，回退到psutil.kill()")
+                                    process.kill()
+                            else:
+                                # Unix/Linux上使用SIGKILL
+                                process.kill()
+                                logger.debug(f"强制终止进程 {process.pid} (SIGKILL)")
                     except (psutil.NoSuchProcess, psutil.AccessDenied):
                         continue
+                    except Exception as e:
+                        logger.warning(f"强制终止进程 {process.pid} 时出错: {e}")
                 
                 # 等待强制终止完成
                 await asyncio.sleep(2)

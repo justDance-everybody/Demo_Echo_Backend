@@ -30,6 +30,7 @@ class UserCreate(BaseModel):
     username: str
     password: str
     email: Optional[str] = None
+    role: Optional[str] = "user"  # 添加角色字段，默认为普通用户
     
 class UserLogin(BaseModel):
     username: str
@@ -86,7 +87,8 @@ async def register(
     new_user = User(
         username=user_data.username,
         password_hash=hashed_password,
-        email=user_data.email
+        email=user_data.email,
+        role=user_data.role  # 设置用户角色
     )
     
     try:
