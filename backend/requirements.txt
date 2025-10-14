@@ -8,7 +8,7 @@ python-multipart==0.0.20        # 多部分表单数据解析（文件上传）
 click==8.2.1                   # 命令行接口创建工具
 watchfiles==1.1.0              # 文件监控（开发服务器需要）
 websockets==15.0.1             # WebSocket支持
-uvloop==0.21.0                 # 高性能事件循环（Unix系统）
+# uvloop==0.21.0                 # 高性能事件循环（Unix系统）
 httptools==0.6.4               # HTTP解析器（uvicorn依赖）
 
 # ==========================================
