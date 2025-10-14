@@ -1,0 +1,36 @@
+{
+  "name": "Coze智能机器人",
+  "version": "1.0.0",
+  "description": "基于Coze平台的智能对话机器人",
+  "type": "http",
+  "platform": "coze",
+  "api_key": "your_coze_api_key_here",
+  "base_url": "https://api.coze.com/open_api/v2",
+  "bot_id": "your_bot_id_here",
+  "app_config": {
+    "bot_id": "your_bot_id_here",
+    "timeout": 30
+  },
+  "request_schema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "用户的问题"
+      }
+    },
+    "required": ["query"]
+  },
+  "response_schema": {
+    "type": "object",
+    "properties": {
+      "messages": {
+        "type": "array",
+        "description": "机器人的回复消息"
+      }
+    }
+  },
+  "tags": ["coze", "bot", "ai"],
+  "is_public": true
+}
+

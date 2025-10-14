@@ -285,13 +285,46 @@ class PackageParserService:
         # 生成唯一的tool_id
         tool_id = f"{tool_data['name'].lower().replace(' ', '_')}_{uuid.uuid4().hex[:8]}"
         
-        # 构建默认的endpoint配置
-        default_endpoint = {
-            "url": tool_data.get('endpoint_url', ''),
-            "method": tool_data.get('method', 'POST'),
-            "headers": tool_data.get('headers', {}),
-            "timeout": tool_data.get('timeout', 30)
-        }
+        # 构建endpoint配置（根据工具类型和平台）
+        if 'endpoint' in tool_data:
+            # 使用manifest中提供的endpoint配置
+            endpoint = tool_data['endpoint']
+        else:
+            # 构建默认的endpoint配置
+            if tool_data['type'] == 'http':
+                # 检查是否指定了平台类型
+                platform = tool_data.get('platform', 'generic')
+                
+                if platform == 'dify':
+                    endpoint = {
+                        "platform": "dify",
+                        "api_key": tool_data.get('api_key', ''),
+                        "base_url": tool_data.get('base_url', 'https://api.dify.ai/v1'),
+                        "app_config": tool_data.get('app_config', {"response_mode": "blocking"})
+                    }
+                elif platform == 'coze':
+                    endpoint = {
+                        "platform": "coze",
+                        "api_key": tool_data.get('api_key', ''),
+                        "base_url": tool_data.get('base_url', 'https://api.coze.com/open_api/v2'),
+                        "app_config": tool_data.get('app_config', {"bot_id": tool_data.get('bot_id', '')})
+                    }
+                else:  # generic
+                    endpoint = {
+                        "platform": "generic",
+                        "api_key": tool_data.get('api_key', ''),
+                        "app_config": {
+                            "url": tool_data.get('endpoint_url', ''),
+                            "method": tool_data.get('method', 'POST'),
+                            "headers": tool_data.get('headers', {}),
+                            "timeout": tool_data.get('timeout', 30)
+                        }
+                    }
+            else:  # MCP工具
+                endpoint = {
+                    "server_name": tool_data.get('server_name', ''),
+                    "script_path": tool_data.get('script_path', '')
+                }
         
         # 构建工具创建数据
         create_data = DeveloperToolCreate(
@@ -301,7 +334,7 @@ class PackageParserService:
             type=tool_data['type'],
             version=tool_data.get('version', '1.0.0'),
             tags=tool_data.get('tags', []),
-            endpoint=tool_data.get('endpoint', default_endpoint),
+            endpoint=endpoint,
             request_schema=tool_data.get('request_schema', {}),
             response_schema=tool_data.get('response_schema', {}),
             server_name=tool_data.get('server_name', ''),

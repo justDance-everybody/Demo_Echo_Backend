@@ -137,6 +137,23 @@ class DeveloperToolService:
                 detail=f"工具ID '{tool_data.tool_id}' 已存在"
             )
         
+        # 验证工具数据
+        validation_result = await self.validate_tool_data(tool_data)
+        if not validation_result["valid"]:
+            logger.warning(f"工具数据验证失败 - 错误: {validation_result['errors']}")
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={
+                    "message": "工具配置验证失败",
+                    "errors": validation_result["errors"],
+                    "warnings": validation_result.get("warnings", [])
+                }
+            )
+        
+        # 如果有警告，记录日志
+        if validation_result.get("warnings"):
+            logger.warning(f"工具数据验证警告 - 警告: {validation_result['warnings']}")
+        
         # 创建新工具
         new_tool = Tool(
             tool_id=tool_data.tool_id,
@@ -254,8 +271,42 @@ class DeveloperToolService:
                 detail="无权限更新此工具"
             )
         
-        # 更新工具字段
+        # 如果更新了 endpoint 或 type，需要验证
         update_data = tool_data.dict(exclude_unset=True)
+        if "endpoint" in update_data or "type" in update_data:
+            # 构建完整的工具数据用于验证（合并现有数据和更新数据）
+            validation_data = DeveloperToolCreate(
+                tool_id=tool.tool_id,
+                name=update_data.get("name", tool.name),
+                type=update_data.get("type", tool.type),
+                description=update_data.get("description", tool.description),
+                endpoint=update_data.get("endpoint", tool.endpoint),
+                request_schema=update_data.get("request_schema", tool.request_schema),
+                response_schema=update_data.get("response_schema", tool.response_schema),
+                server_name=update_data.get("server_name", tool.server_name),
+                is_public=update_data.get("is_public", tool.is_public),
+                version=update_data.get("version", tool.version),
+                tags=update_data.get("tags", tool.tags)
+            )
+            
+            # 执行验证
+            validation_result = await self.validate_tool_data(validation_data)
+            if not validation_result["valid"]:
+                logger.warning(f"工具更新验证失败 - 错误: {validation_result['errors']}")
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail={
+                        "message": "工具配置验证失败",
+                        "errors": validation_result["errors"],
+                        "warnings": validation_result.get("warnings", [])
+                    }
+                )
+            
+            # 如果有警告，记录日志
+            if validation_result.get("warnings"):
+                logger.warning(f"工具更新验证警告 - 警告: {validation_result['warnings']}")
+        
+        # 更新工具字段
         for field, value in update_data.items():
             setattr(tool, field, value)
         
@@ -340,15 +391,34 @@ class DeveloperToolService:
             errors.append("工具ID长度至少为3个字符")
         
         # 验证工具类型
-        valid_types = ["mcp", "http", "api"]
+        valid_types = ["mcp", "http"]
         if tool_data.type not in valid_types:
             errors.append(f"工具类型必须是以下之一: {', '.join(valid_types)}")
         
         # 验证端点配置
         if not tool_data.endpoint:
             errors.append("端点配置不能为空")
-        elif tool_data.type == "http" and "url" not in tool_data.endpoint:
-            errors.append("HTTP类型工具必须包含url字段")
+        elif tool_data.type == "http":
+            # HTTP工具需要验证platform字段
+            platform = tool_data.endpoint.get("platform")
+            if not platform:
+                errors.append("HTTP类型工具必须包含platform字段")
+            elif platform not in ["dify", "coze", "generic"]:
+                errors.append(f"不支持的HTTP平台类型: {platform}，必须是dify、coze或generic之一")
+            
+            # 验证API密钥
+            if not tool_data.endpoint.get("api_key"):
+                warnings.append("建议提供api_key以确保API调用成功")
+            
+            # 根据平台类型验证特定字段
+            if platform == "coze":
+                app_config = tool_data.endpoint.get("app_config", {})
+                if not app_config.get("bot_id"):
+                    errors.append("Coze平台工具必须在app_config中提供bot_id")
+            elif platform == "generic":
+                app_config = tool_data.endpoint.get("app_config", {})
+                if not app_config.get("url"):
+                    errors.append("通用HTTP工具必须在app_config中提供url")
         
         # 验证请求模式
         if not tool_data.request_schema:

@@ -1,0 +1,35 @@
+{
+  "name": "Dify智能助手",
+  "version": "1.0.0",
+  "description": "基于Dify平台的AI对话助手",
+  "type": "http",
+  "platform": "dify",
+  "api_key": "app-your_dify_api_key_here",
+  "base_url": "https://api.dify.ai/v1",
+  "app_config": {
+    "response_mode": "blocking",
+    "timeout": 30
+  },
+  "request_schema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "用户的问题或请求"
+      }
+    },
+    "required": ["query"]
+  },
+  "response_schema": {
+    "type": "object",
+    "properties": {
+      "answer": {
+        "type": "string",
+        "description": "AI的回答"
+      }
+    }
+  },
+  "tags": ["dify", "chat", "ai"],
+  "is_public": true
+}
+

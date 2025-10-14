@@ -8,7 +8,7 @@ class Tool(Base):
     __tablename__ = "tools"
     
     id = Column(Integer, primary_key=True, autoincrement=True)
-    tool_id = Column(String(64), nullable=False)
+    tool_id = Column(String(64), nullable=False, unique=True, index=True)
     name = Column(String(128), nullable=False)
     type = Column(Enum('mcp', 'http', name='tool_type'), nullable=False)
     description = Column(String(512), nullable=True)

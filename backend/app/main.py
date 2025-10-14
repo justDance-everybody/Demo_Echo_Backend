@@ -1,7 +1,14 @@
 import os
 import sys
 import json
+import signal
+import asyncio
+import atexit
 from pathlib import Path
+
+# 设置UTF-8编码（解决Windows中文显示问题）
+if sys.platform == "win32":
+    os.environ["PYTHONIOENCODING"] = "utf-8"
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, APIRouter, Request, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,6 +26,74 @@ from pathlib import Path
 
 # 设置模板目录
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
+
+# 全局关闭事件
+shutdown_event = asyncio.Event()
+is_shutting_down = False
+
+# 信号处理器
+def signal_handler(signum, frame):
+    """处理中断信号，优雅关闭应用"""
+    global is_shutting_down
+    if is_shutting_down:
+        logger.warning("已在关闭过程中，忽略重复信号")
+        return
+    
+    is_shutting_down = True
+    logger.info(f"收到信号 {signum}，正在优雅关闭应用...")
+    
+    # 设置关闭事件
+    if not shutdown_event.is_set():
+        shutdown_event.set()
+    
+    # 清理MCP资源
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            loop.create_task(cleanup_mcp_resources())
+    except Exception as e:
+        logger.error(f"清理MCP资源时出错: {e}")
+
+async def cleanup_mcp_resources():
+    """清理MCP相关资源"""
+    try:
+        logger.info("正在清理MCP资源...")
+        await mcp_manager.stop_monitoring()
+        await mcp_manager.stop_all_servers()
+        logger.info("✅ MCP资源清理完成")
+    except Exception as e:
+        logger.error(f"❌ 清理MCP资源时出错: {e}")
+
+# 注册信号处理器
+if hasattr(signal, 'SIGINT'):
+    signal.signal(signal.SIGINT, signal_handler)
+if hasattr(signal, 'SIGTERM'):
+    signal.signal(signal.SIGTERM, signal_handler)
+
+# 注册atexit处理器（最后的保障）
+def emergency_cleanup():
+    """紧急清理处理器"""
+    global is_shutting_down
+    if not is_shutting_down:
+        logger.warning("程序异常退出，执行紧急清理")
+        try:
+            # 同步方式清理，因为atexit不支持async
+            import subprocess
+            import psutil
+            
+            # 清理可能的孤儿进程
+            for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+                try:
+                    cmdline = ' '.join(proc.info['cmdline'] or [])
+                    if any(keyword in cmdline.lower() for keyword in ['mcp', 'npx', 'playwright']):
+                        logger.info(f"紧急清理进程: PID={proc.info['pid']}, CMD={cmdline[:100]}")
+                        proc.terminate()
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    pass
+        except Exception as e:
+            logger.error(f"紧急清理失败: {e}")
+
+atexit.register(emergency_cleanup)
 
 # 配置日志
 LOGS_DIR = Path(settings.LOG_FILE).parent
@@ -88,9 +163,17 @@ async def lifespan(app: FastAPI):
     """
     应用生命周期管理
     """
+    global is_shutting_down
+    
     # 应用启动时执行
     logger.info("应用启动中...")
-    init_db()  # 初始化数据库
+    
+    try:
+        init_db()  # 初始化数据库
+        logger.info("✅ 数据库初始化完成")
+    except Exception as e:
+        logger.error(f"❌ 数据库初始化失败: {e}")
+        raise
     
     # 启动MCP服务器管理器
     try:
@@ -101,15 +184,66 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"❌ MCP服务器管理器启动失败: {e}")
     
-    yield
-    
-    # 应用关闭时执行
-    logger.info("应用关闭中...")
     try:
-        await mcp_manager.stop_monitoring()
-        logger.info("✅ MCP服务器监控已停止")
-    except Exception as e:
-        logger.error(f"❌ 停止MCP服务器监控时发生错误: {e}")
+        yield
+    finally:
+        # 应用关闭时执行
+        logger.info("应用关闭中...")
+        is_shutting_down = True
+        
+        # 设置关闭事件（如果还没设置）
+        if not shutdown_event.is_set():
+            shutdown_event.set()
+        
+        # 优雅关闭MCP服务器管理器
+        shutdown_tasks = []
+        
+        try:
+            logger.info("正在停止MCP服务器监控...")
+            stop_monitor_task = asyncio.create_task(mcp_manager.stop_monitoring())
+            shutdown_tasks.append(stop_monitor_task)
+        except Exception as e:
+            logger.error(f"创建停止监控任务失败: {e}")
+        
+        try:
+            logger.info("正在停止所有MCP服务器...")
+            stop_servers_task = asyncio.create_task(mcp_manager.stop_all_servers())
+            shutdown_tasks.append(stop_servers_task)
+        except Exception as e:
+            logger.error(f"创建停止服务器任务失败: {e}")
+        
+        # 等待所有关闭任务完成，设置超时
+        if shutdown_tasks:
+            try:
+                logger.info(f"等待 {len(shutdown_tasks)} 个关闭任务完成...")
+                await asyncio.wait_for(
+                    asyncio.gather(*shutdown_tasks, return_exceptions=True),
+                    timeout=30.0  # 30秒超时
+                )
+                logger.info("✅ 所有关闭任务已完成")
+            except asyncio.TimeoutError:
+                logger.warning("⚠️ 关闭任务超时，执行强制清理")
+                # 取消未完成的任务
+                for task in shutdown_tasks:
+                    if not task.done():
+                        task.cancel()
+            except Exception as e:
+                logger.error(f"❌ 执行关闭任务时发生错误: {e}")
+        
+        # 最终清理
+        try:
+            logger.info("执行最终进程清理...")
+            await asyncio.wait_for(
+                mcp_manager.cleanup_orphaned_mcp_processes(),
+                timeout=10.0  # 10秒超时
+            )
+            logger.info("✅ 最终清理完成")
+        except asyncio.TimeoutError:
+            logger.warning("⚠️ 最终清理超时")
+        except Exception as e:
+            logger.error(f"❌ 最终清理时发生错误: {e}")
+        
+        logger.info("✅ 应用关闭完成")
 
 # 创建应用
 app = FastAPI(
