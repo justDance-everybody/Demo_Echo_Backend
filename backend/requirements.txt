@@ -1,25 +1,113 @@
-fastapi==0.115.12
-uvicorn[standard]==0.34.2
-pydantic==2.11.3
-pydantic-settings==2.9.1
-SQLAlchemy==2.0.40
-pymysql==1.1.1
-python-dotenv==1.1.0
-loguru==0.7.3
-openai==1.75.0
-anthropic==0.49.0
-httpx==0.28.1
-httpx-sse==0.4.0
-aiohttp==3.11.18
-passlib==1.7.4
-python-jose==3.4.0
-bcrypt==4.3.0
-python-multipart==0.0.20
-pytest==8.3.5
-pytest-asyncio==0.26.0
-alembic==1.15.2
-aiomysql==0.2.0
-tqdm==4.67.1
-mcp==1.0.0
-psutil==7.0.0
-aiosqlite==0.21.0
+# ==========================================
+# 核心Web框架和服务器
+# ==========================================
+fastapi==0.115.12              # 现代高性能Web框架
+uvicorn[standard]==0.34.2       # ASGI服务器（包含WebSocket支持）
+starlette==0.46.2              # ASGI框架（FastAPI依赖）
+python-multipart==0.0.20        # 多部分表单数据解析（文件上传）
+click==8.2.1                   # 命令行接口创建工具
+watchfiles==1.1.0              # 文件监控（开发服务器需要）
+websockets==15.0.1             # WebSocket支持
+# uvloop==0.21.0                 # 高性能事件循环（Unix系统）
+httptools==0.6.4               # HTTP解析器（uvicorn依赖）
+
+# ==========================================
+# 数据验证和配置
+# ==========================================
+pydantic==2.11.3               # 数据验证和解析
+pydantic_core==2.33.1          # Pydantic核心库（Rust实现）
+annotated-types==0.7.0          # 类型注解支持
+pydantic-settings==2.9.1       # 设置管理
+
+# ==========================================
+# 数据库和ORM
+# ==========================================
+SQLAlchemy>=1.4.0              # SQL工具包和ORM（最低版本要求）
+greenlet==3.2.4                # 轻量级协程（SQLAlchemy依赖）
+alembic==1.15.2                # 数据库迁移工具
+pymysql==1.1.1                 # MySQL客户端（同步）
+aiomysql==0.2.0                # MySQL客户端（异步）
+aiosqlite==0.21.0              # SQLite客户端（异步）
+
+# ==========================================
+# 环境配置和日志
+# ==========================================
+python-dotenv==1.1.0           # 环境变量管理
+loguru==0.7.3                  # 现代日志库
+
+# ==========================================
+# AI和语言模型
+# ==========================================
+openai==1.75.0                 # OpenAI Python客户端
+anthropic==0.49.0              # Anthropic Claude客户端
+
+# ==========================================
+# HTTP客户端
+# ==========================================
+httpx==0.28.1                  # 现代HTTP客户端（异步支持）
+httpcore==1.0.9                # HTTP核心库（httpx依赖）
+h11==0.16.0                    # HTTP/1.1协议实现
+httpx-sse==0.4.0               # Server-sent events支持
+aiohttp==3.11.18               # 异步HTTP客户端/服务器
+aiohappyeyeballs==2.6.1        # 异步DNS解析优化
+aiosignal==1.4.0               # 异步信号处理
+frozenlist==1.7.0              # 不可变列表（aiohttp依赖）
+multidict==6.6.4               # 多值字典（aiohttp依赖）
+yarl==1.20.1                   # URL解析库（aiohttp依赖）
+propcache==0.3.2               # 属性缓存（aiohttp依赖）
+requests==2.32.3               # 传统HTTP客户端（用于控制台脚本）
+certifi==2025.8.3              # CA证书包
+charset-normalizer==3.4.3      # 字符编码检测
+urllib3==2.5.0                 # HTTP库（requests依赖）
+idna==3.10                     # 国际化域名支持
+
+# ==========================================
+# 身份验证和安全
+# ==========================================
+passlib==1.7.4                 # 密码哈希库
+python-jose==3.4.0             # JSON Web Token实现
+ecdsa==0.19.1                  # 椭圆曲线数字签名算法
+rsa==4.9.1                     # RSA加密算法
+pyasn1==0.4.8                  # ASN.1编码解码
+six==1.17.0                    # Python 2/3兼容库
+bcrypt==4.3.0                  # 现代密码哈希
+
+# ==========================================
+# 测试框架
+# ==========================================
+pytest==8.3.5                  # Python测试框架
+pytest-asyncio==0.26.0         # 异步代码测试支持
+iniconfig==2.1.0               # 配置文件解析（pytest依赖）
+pluggy==1.6.0                  # 插件系统（pytest依赖）
+
+# ==========================================
+# 工具和实用程序
+# ==========================================
+tqdm==4.67.1                   # 进度条
+psutil==7.0.0                  # 系统和进程实用程序
+mcp>=1.13.0                    # Model Context Protocol客户端（最低版本要求）
+packaging>=20.0                # 包版本解析和比较（最低版本要求）
+distro==1.9.0                  # Linux发行版信息检测
+attrs==25.3.0                  # 类装饰器库
+anyio==4.10.0                  # 异步I/O抽象层
+sniffio==1.3.1                 # 异步库检测
+jiter==0.10.0                  # 快速JSON迭代器
+
+# ==========================================
+# 模板引擎（FastAPI文档需要）
+# ==========================================
+jinja2==3.1.4                  # 模板引擎（Swagger UI需要）
+Mako==1.3.10                   # 模板引擎（Alembic需要）
+MarkupSafe==3.0.2              # 安全的字符串处理（模板引擎依赖）
+
+# ==========================================
+# 其他依赖包
+# ==========================================
+PyYAML==6.0.2                  # YAML文件解析
+sse-starlette==3.0.2           # Server-Sent Events支持
+typing-inspection==0.4.1       # 类型检查工具
+typing_extensions==4.15.0      # 类型扩展
+jsonschema==4.25.1             # JSON Schema验证
+jsonschema-specifications==2025.4.1  # JSON Schema规范
+referencing==0.36.2            # JSON引用解析
+rpds-py==0.27.1                # 不可变数据结构

@@ -34,7 +34,7 @@ load_dotenv(os.path.join(os.path.dirname(__file__), 'backend', '.env'))
 class EchoAIConsole:
     """Echo AI 交互式控制台 / Echo AI Interactive Console"""
     
-    def __init__(self, base_url: str = "http://localhost:3000"):
+    def __init__(self, base_url: str = "http://localhost:3000", auto_language: str = None):
         self.base_url = base_url
         self.api_prefix = "/api/v1"
         self.access_token = None
@@ -310,6 +310,9 @@ class EchoAIConsole:
                     return 'zh'
                 elif choice == '2':
                     return 'en'
+                elif choice.lower() in ['/quit', '/exit', 'quit', 'exit']:
+                    print("\nGoodbye! / 再见! 👋")
+                    sys.exit(0)
                 else:
                     print("Invalid choice. Please enter 1 or 2. / 无效选择，请输入 1 或 2。")
             except (EOFError, KeyboardInterrupt):
@@ -758,7 +761,8 @@ class EchoAIConsole:
         
         else:
             # 发送给AI处理
-            self.interpret_intent(user_input)
+            result = self.interpret_intent(user_input)
+            # interpret_intent已经处理了结果显示，这里不需要额外处理
     
     def run(self) -> None:
         """运行交互式控制台"""

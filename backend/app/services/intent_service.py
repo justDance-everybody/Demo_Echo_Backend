@@ -119,16 +119,21 @@ class IntentService:
             messages = [{"role": "user", "content": prompt_prefix + query}]
 
             logger.debug(f"{log_prefix}调用 LLM 进行意图分析和工具决策...")
-            response = await openai_client.client.chat.completions.create(
-                model=settings.LLM_MODEL,
-                messages=messages,
-                tools=(
-                    available_tools if available_tools else None
-                ),  # 如果列表为空，不传 tools 参数或传 None
-                tool_choice="auto",  # 让模型自己决定是否调用工具
-                temperature=settings.LLM_TEMPERATURE,  # 从配置加载
-                max_tokens=settings.LLM_MAX_TOKENS,  # 从配置加载
-            )
+            
+            # 构建API调用参数
+            api_params = {
+                "model": settings.LLM_MODEL,
+                "messages": messages,
+                "temperature": settings.LLM_TEMPERATURE,
+                "max_tokens": settings.LLM_MAX_TOKENS,
+            }
+            
+            # 只有在有可用工具时才添加 tools 和 tool_choice 参数
+            if available_tools:
+                api_params["tools"] = available_tools
+                api_params["tool_choice"] = "auto"  # 让模型自己决定是否调用工具
+            
+            response = await openai_client.client.chat.completions.create(**api_params)
 
             response_message = response.choices[0].message
             tool_calls = getattr(response_message, "tool_calls", None)

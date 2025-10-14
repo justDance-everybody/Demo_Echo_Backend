@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, JSON, Enum, DateTime, Integer, Boolean, Float, ForeignKey
+from sqlalchemy import Column, String, JSON, Enum, DateTime, Integer, Boolean, Float, ForeignKey, BigInteger
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.utils.db import Base
@@ -18,7 +18,7 @@ class Tool(Base):
     server_name = Column(String(64), nullable=True) # 对于MCP工具，存储其所属服务器的名称 (对应 config/mcp_servers.json 中的 key)
     
     # 开发者相关字段
-    developer_id = Column(Integer, ForeignKey('users.id'), nullable=True)  # 开发者用户ID，外键关联User表
+    developer_id = Column(BigInteger, ForeignKey('users.id'), nullable=True)  # 开发者用户ID，外键关联User表
     is_public = Column(Boolean, default=True, nullable=False)  # 是否公开可用
     status = Column(Enum('active', 'inactive', 'pending', name='tool_status'), default='active', nullable=False)  # 工具状态
     version = Column(String(32), default='1.0.0', nullable=False)  # 工具版本

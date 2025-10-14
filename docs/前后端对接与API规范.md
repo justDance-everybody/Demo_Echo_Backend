@@ -15,20 +15,26 @@
 **重要**: 请根据开发环境选择正确的服务地址：
 
 #### 本地开发环境
-- **API基础路径**: `http://localhost:3000/api/v1`
-- **API文档**: `http://localhost:3000/docs` (Swagger UI)
-- **健康检查**: `http://localhost:3000/health`
+- **API基础路径**: `http://{YOUR_HOST}:{YOUR_PORT}/api/v1` (默认: `http://localhost:3000/api/v1`)
+- **API文档**: `http://{YOUR_HOST}:{YOUR_PORT}/docs` (默认: `http://localhost:3000/docs`) (Swagger UI)
+- **健康检查**: `http://{YOUR_HOST}:{YOUR_PORT}/health` (默认: `http://localhost:3000/health`)
+
+**配置说明**:
+- `{YOUR_HOST}`: 服务器主机地址，本地开发通常为 `localhost`，生产环境为实际域名或IP
+- `{YOUR_PORT}`: 服务端口，默认为 `3000`，可通过环境变量 `SERVICE_PORT` 配置
 
 ### 服务状态确认
 
 **本地开发环境**:
 ```bash
-# 检查后端服务是否运行
-curl http://localhost:3000/health
+# 检查后端服务是否运行 (请替换为您的实际地址)
+curl http://{YOUR_HOST}:{YOUR_PORT}/health
+# 默认: curl http://localhost:3000/health
 # 期望响应: {"status":"ok","timestamp":1753900335.8781202}
 
 # 检查API文档是否可访问
-curl -I http://localhost:3000/docs
+curl -I http://{YOUR_HOST}:{YOUR_PORT}/docs
+# 默认: curl -I http://localhost:3000/docs
 # 期望响应: HTTP/1.1 200 OK
 
 # 检查后端配置文件中的端口设置
@@ -61,7 +67,8 @@ async function login(username, password) {
   
   // 根据环境选择API基础URL
   const API_BASE_URL = process.env.NODE_ENV === 'production' 
-    : 'http://localhost:3000';
+    ? process.env.REACT_APP_API_BASE_URL || 'https://your-production-domain.com'
+    : process.env.REACT_APP_API_BASE_URL || 'http://localhost:3000';
   
   const response = await fetch(`${API_BASE_URL}/api/v1/auth/token`, {
     method: 'POST',
@@ -90,7 +97,8 @@ async function apiCall(endpoint, options = {}) {
   
   // 根据环境选择API基础URL
   const API_BASE_URL = process.env.NODE_ENV === 'production' 
-    : 'http://localhost:3000';
+    ? process.env.REACT_APP_API_BASE_URL || 'https://your-production-domain.com'
+    : process.env.REACT_APP_API_BASE_URL || 'http://localhost:3000';
   
   const defaultOptions = {
     headers: {
@@ -211,179 +219,109 @@ tool_id: str = Field(..., alias="toolId", description="工具ID")
 
 ## 🔌 核心API接口
 
-### 1. 意图解析接口
+### 完整接口列表
 
+基于OpenAPI规范 (`http://{YOUR_HOST}:{YOUR_PORT}/docs`，默认: `http://localhost:3000/docs`)，系统提供以下接口：
+
+#### 🔐 认证接口
+- `POST /api/v1/auth/register` - 用户注册
+- `POST /api/v1/auth/token` - 用户登录 (表单格式)
+- `POST /api/v1/auth/login` - 用户登录 (兼容性)
+- `GET /api/v1/auth/me` - 获取当前用户信息
+
+#### 🧠 意图处理接口
+- `POST /api/v1/intent/interpret` - 意图识别和解析
+- `POST /api/v1/intent/confirm` - 确认执行工具调用
+
+#### 🛠️ 工具执行接口
+- `POST /api/v1/execute` - 执行指定工具
+- `GET /api/v1/tools` - 获取可用工具列表
+
+#### 👨‍💻 开发者接口 (需要developer+权限)
+- `GET/POST /api/v1/dev/tools` - 工具管理
+- `GET/PUT/DELETE /api/v1/dev/tools/{tool_id}` - 工具操作
+- `POST /api/v1/dev/tools/{tool_id}/test` - 工具测试
+- `POST /api/v1/dev/upload` - 工具包上传
+- `POST /api/v1/dev/upload/validate` - 工具包验证
+- `POST /api/v1/dev/tools/test/batch` - 批量测试工具
+
+#### 🖥️ MCP服务器管理接口
+- `GET /api/v1/mcp/health` - MCP服务器健康状态 (无需认证)
+- `GET /api/v1/mcp/status` - 所有MCP服务器状态
+- `GET /api/v1/mcp/status/{server_name}` - 指定服务器状态
+- `POST /api/v1/mcp/restart/{server_name}` - 重启服务器
+- `POST /api/v1/mcp/start/{server_name}` - 启动服务器
+- `POST /api/v1/mcp/stop/{server_name}` - 停止服务器
+- `POST /api/v1/mcp/cleanup/orphaned` - 清理遗留进程
+
+### 关键接口使用示例
+
+#### 1. 用户登录
+```javascript
+// 注意：使用表单格式，不是JSON
+const formData = new URLSearchParams();
+formData.append('username', 'testuser_5090');
+formData.append('password', '8lpcUY2BOt');
+
+const response = await fetch('/api/v1/auth/token', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  body: formData
+});
+```
+
+#### 2. 意图识别
 ```javascript
 // POST /api/v1/intent/interpret
-async function interpretIntent(query, session_id = null, user_id = 13) {
-  const response = await apiCall('/intent/interpret', {
-    method: 'POST',
-    body: JSON.stringify({
-      query: query,
-      session_id: session_id || generateUUID(),
-      user_id: user_id
-    })
-  });
-  
-  return response.json();
-  // 响应格式:
-  // {
-  //   "session_id": "uuid-string",
-  //   "type": "tool_call" | "direct_response",
-  //   "content": "回复内容或确认文本",
-  //   "tool_calls": [{
-  //     "tool_id": "tool_name",
-  //     "parameters": { /* 工具参数 */ }
-  //   }]
-  // }
-}
-
-// 用户确认执行接口
-// POST /api/v1/intent/confirm
-async function confirmExecution(session_id, user_input) {
-  const response = await apiCall('/intent/confirm', {
-    method: 'POST',
-    body: JSON.stringify({
-      session_id: session_id,
-      user_input: user_input  // 用户的自然语言输入，如"是"、"确认"、"y"等
-    })
-  });
-  
-  return response.json();
-  // 当前响应格式 (统一执行服务重构后的标准化格式):
-  // {
-  //   "session_id": "uuid-string",
-  //   "success": true,
-  //   "content": "执行结果内容",
-  //   "error": null
-  // }
-  //
-  // 注意: 该接口已从旧的复杂格式(包含execution_results数组)演进为
-  // 当前的简化格式，提供更清晰的成功/失败状态和错误处理
-}
+const response = await apiCall('/intent/interpret', {
+  method: 'POST',
+  body: JSON.stringify({
+    query: "帮我翻译hello world",
+    session_id: generateUUID(),
+    user_id: 13
+  })
+});
 ```
 
-### 2. 工具执行接口
-
+#### 3. 工具执行
 ```javascript
 // POST /api/v1/execute
-async function executeTask(session_id, tool_id, params, user_id = 13) {
-  const response = await apiCall('/execute', {
-    method: 'POST',
-    body: JSON.stringify({
-      session_id: session_id,
-      user_id: user_id,
-      tool_id: tool_id,
-      params: params
-    })
-  });
-  
-  return response.json();
-  // 响应格式:
-  // {
-  //   "result": { /* 工具执行结果 */ },
-  //   "tts": "翻译完成，结果是：你好",  // 适合语音播报的文本
-  //   "session_id": "uuid-string"
-  // }
-}
+const response = await apiCall('/execute', {
+  method: 'POST',
+  body: JSON.stringify({
+    session_id: "uuid-string",
+    user_id: 13,
+    tool_id: "translate_text",
+    params: { text: "hello", target_lang: "zh" }
+  })
+});
 ```
 
-### 3. 获取可用工具
+### 4. 开发者接口使用示例
 
 ```javascript
-// GET /api/v1/tools
-async function getTools() {
-  const response = await apiCall('/tools');
-  return response.json();
-  // 响应格式:
-  // {
-  //   "tools": [
-  //     {
-  //       "tool_id": "translate_text",
-  //       "name": "文本翻译",
-  //       "description": "支持多语言互译",
-  //       "type": "http",
-  //       "endpoint": { /* 配置信息 */ }
-  //     }
-  //   ]
-  // }
-}
-```
+// 获取开发者工具列表
+const tools = await apiCall('/dev/tools');
 
-### 4. 开发者Portal接口 (需要developer/admin权限)
+// 创建新工具
+const newTool = await apiCall('/dev/tools', {
+  method: 'POST',
+  body: JSON.stringify({
+    tool_id: 'my_tool',
+    name: '我的工具',
+    description: '工具描述',
+    // ... 其他字段
+  })
+});
 
-```javascript
-// 工具管理接口
-async function getDeveloperTools() {
-  const response = await apiCall('/dev/tools');
-  return response.json();
-}
+// 测试工具
+const testResult = await apiCall(`/dev/tools/${tool_id}/test`, {
+  method: 'POST',
+  body: JSON.stringify({ test_params: {} })
+});
 
-async function createTool(toolData) {
-  const response = await apiCall('/dev/tools', {
-    method: 'POST',
-    body: JSON.stringify(toolData)
-  });
-  return response.json();
-}
-
-async function updateTool(tool_id, toolData) {
-  const response = await apiCall(`/dev/tools/${tool_id}`, {
-    method: 'PUT',
-    body: JSON.stringify(toolData)
-  });
-  return response.json();
-}
-
-async function deleteTool(tool_id) {
-  const response = await apiCall(`/dev/tools/${tool_id}`, {
-    method: 'DELETE'
-  });
-  return response.json();
-}
-
-async function testTool(tool_id, testParams) {
-  const response = await apiCall(`/dev/tools/${tool_id}/test`, {
-    method: 'POST',
-    body: JSON.stringify(testParams)
-  });
-  return response.json();
-}
-
-// 应用管理接口
-async function getDeveloperApps() {
-  const response = await apiCall('/dev/apps');
-  return response.json();
-}
-
-async function createApp(appData) {
-  const response = await apiCall('/dev/apps', {
-    method: 'POST',
-    body: JSON.stringify(appData)
-  });
-  return response.json();
-}
-
-async function updateApp(app_id, appData) {
-  const response = await apiCall(`/dev/apps/${app_id}`, {
-    method: 'PUT',
-    body: JSON.stringify(appData)
-  });
-  return response.json();
-}
-
-async function publishApp(app_id) {
-  const response = await apiCall(`/dev/apps/${app_id}/publish`, {
-    method: 'POST'
-  });
-  return response.json();
-}
-
-// MCP服务器状态监控
-async function getMCPStatus() {
-  const response = await apiCall('/mcp/status');
-  return response.json();
-}
+// 获取MCP服务器状态
+const mcpStatus = await apiCall('/mcp/status');
 ```
 
 ## ⚙️ 环境配置
@@ -392,17 +330,24 @@ async function getMCPStatus() {
 
 **本地开发环境** (`.env.development`):
 ```bash
-# 本地开发环境配置
-REACT_APP_API_BASE_URL=http://localhost:3000
+# 本地开发环境配置 (请根据实际情况修改)
+REACT_APP_API_BASE_URL=http://{YOUR_HOST}:{YOUR_PORT}  # 默认: http://localhost:3000
 REACT_APP_API_PREFIX=/api/v1
 NODE_ENV=development
 ```
 
+**生产环境** (`.env.production`):
+```bash
+# 生产环境配置
+REACT_APP_API_BASE_URL=https://your-production-domain.com
+REACT_APP_API_PREFIX=/api/v1
+NODE_ENV=production
+```
 
 **通用配置** (`.env`):
 ```bash
 # 默认配置，可被环境特定配置覆盖
-REACT_APP_API_BASE_URL=http://localhost:3000
+REACT_APP_API_BASE_URL=http://localhost:3000  # 请根据实际部署情况修改
 REACT_APP_API_PREFIX=/api/v1
 ```
 
@@ -412,7 +357,7 @@ REACT_APP_API_PREFIX=/api/v1
 // services/apiClient.js
 class ApiClient {
   constructor() {
-    // 优先使用环境变量，本地开发默认使用localhost:3000
+    // 优先使用环境变量，请根据实际部署情况配置
     this.baseURL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3000';
     this.apiPrefix = process.env.REACT_APP_API_PREFIX || '/api/v1';
   }
@@ -575,7 +520,7 @@ async function getUserConfirmation() {
 
 **最佳实践**:
 - 服务启动后等待30-60秒再进行API测试
-- 使用健康检查接口确认服务完全就绪: `curl http://localhost:3000/health`
+- 使用健康检查接口确认服务完全就绪: `curl http://{YOUR_HOST}:{YOUR_PORT}/health` (默认: `curl http://localhost:3000/health`)
 - 避免在服务启动过程中频繁重启
 - 如遇到问题，先检查后端日志: `tail -f backend/logs/api.log`
 

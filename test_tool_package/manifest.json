@@ -1,0 +1,32 @@
+{
+  "name": "test_tool",
+  "version": "1.0.0",
+  "description": "测试工具包",
+  "type": "http",
+  "endpoint_url": "https://httpbin.org/post",
+  "method": "POST",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "timeout": 30,
+  "request_schema": {
+    "type": "object",
+    "properties": {
+      "message": {
+        "type": "string",
+        "description": "测试消息"
+      }
+    },
+    "required": ["message"]
+  },
+  "response_schema": {
+    "type": "object",
+    "properties": {
+      "json": {
+        "type": "object"
+      }
+    }
+  },
+  "server_name": "test_server",
+  "is_public": true
+}

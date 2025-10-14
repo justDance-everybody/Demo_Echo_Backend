@@ -13,12 +13,23 @@ from openai import AsyncOpenAI
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
-load_dotenv()
+# 优先加载当前目录的.env，如果不存在则从项目根目录加载
+current_dir_env = os.path.join(os.getcwd(), '.env')
+parent_dir_env = os.path.join(os.path.dirname(os.getcwd()), 'backend', '.env')
+
+if os.path.exists(current_dir_env):
+    load_dotenv(current_dir_env)
+elif os.path.exists(parent_dir_env):
+    load_dotenv(parent_dir_env)
+    print("使用后端配置文件中的LLM设置")
+else:
+    load_dotenv()  # 使用默认查找
+
 LLM_API_KEY = os.getenv("LLM_API_KEY")
-LLM_MODEL = os.getenv("LLM_MODEL")
+LLM_MODEL = os.getenv("LLM_MODEL") 
 LLM_API_BASE = os.getenv("LLM_API_BASE")
 if not all([LLM_API_KEY, LLM_MODEL, LLM_API_BASE]):
-    raise RuntimeError("缺少环境变量: LLM_API_KEY、LLM_MODEL 或 LLM_API_BASE")
+    raise RuntimeError("缺少环境变量: LLM_API_KEY、LLM_MODEL 或 LLM_API_BASE。请配置backend/.env或MCP_Client/.env")
 
 llm = AsyncOpenAI(api_key=LLM_API_KEY, base_url=LLM_API_BASE)
 
@@ -30,7 +41,8 @@ class MCPClient:
         self.tools: List = []
         path = os.getenv("MCP_SERVERS_PATH", "config/mcp_servers.json")
         with open(path, encoding='utf-8') as f:
-            self.server_configs = json.load(f).get("mcpServers", {})
+            config = json.load(f)
+            self.server_configs = config.get("mcpServers", {})
         print(f"已加载 {len(self.server_configs)} 个 MCP 服务器配置。")
 
     async def connect(self, name: str):
@@ -46,32 +58,15 @@ class MCPClient:
             args = [name]
             env = os.environ.copy()
         
-        # 检查是否已有同类进程运行，如果有则尝试复用连接，而非启动新进程
-        import psutil
-        existing_process = None
-        for proc in psutil.process_iter(['pid', 'cmdline']):
-            try:
-                cmdline = ' '.join(proc.info['cmdline']) if proc.info['cmdline'] else ''
-                if 'mcp-amap' in cmdline and proc.info['pid'] != os.getpid():
-                    existing_process = proc.info['pid']
-                    print(f"发现现有MCP服务器进程 (PID: {existing_process})，尝试复用连接")
-                    break
-            except (psutil.NoSuchProcess, psutil.AccessDenied):
-                continue
-        
-        print(f"连接到 MCP 服务器: {cmd} {' '.join(args)}" + (f" (复用进程 PID: {existing_process})" if existing_process else " (启动新进程)"))
+        print(f"连接到 MCP 服务器: {cmd} {' '.join(args)} (启动新进程)")
         
         import time
         start_time = time.time()
         
         try:
-            # 为不同服务器设置不同的超时时间
-            if name in ['web3-rpc', 'blockchain-rpc']:
-                step_timeout = 30.0  # 慢服务器使用30秒超时
-                total_timeout_desc = "30秒"
-            else:
-                step_timeout = 10.0  # 其他服务器使用10秒超时
-                total_timeout_desc = "10秒"
+            # 统一的超时时间配置
+            step_timeout = float(os.getenv('MCP_CONNECTION_TIMEOUT', '10.0'))  # 默认10秒，可通过环境变量配置
+            total_timeout_desc = f"{step_timeout}秒"
             
             print(f"🔧 开始连接步骤 1: stdio_client 连接... (超时: {step_timeout}秒)")
             reader, writer = await asyncio.wait_for(
@@ -105,14 +100,10 @@ class MCPClient:
             print(f"🎉 总连接时间: {step4_time - start_time:.2f}秒")
         except asyncio.TimeoutError:
             timeout_msg = f"连接到 MCP 服务器 {name} 超时 ({total_timeout_desc})"
-            if existing_process:
-                timeout_msg += f" (尝试复用进程 PID: {existing_process} 失败)"
             print(timeout_msg)
             raise RuntimeError(timeout_msg)
         except Exception as e:
             error_msg = f"连接到 MCP 服务器 {name} 失败: {e}"
-            if existing_process:
-                error_msg += f" (尝试复用进程 PID: {existing_process})"
             print(error_msg)
             raise RuntimeError(error_msg)
         self.tools = resp.tools
