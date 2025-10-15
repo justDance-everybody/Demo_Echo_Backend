@@ -7,12 +7,22 @@ from .tools import ToolItem
 class DeveloperToolCreate(BaseModel):
     """开发者工具创建请求模型"""
     
-    tool_id: str = Field(..., description="工具唯一标识")
-    name: str = Field(..., description="工具名称")
+    tool_id: Optional[str] = Field(None, description="工具唯一标识（可选，留空自动生成）")
+    name: str = Field(
+        ..., 
+        min_length=2,
+        max_length=30,
+        description="工具名称（2-30字），应简洁明了，如：'心理咨询助手'、'天气查询工具'"
+    )
     type: str = Field(..., description="工具类型，如 'mcp' 或 'http'")
-    description: Optional[str] = Field(None, description="工具描述")
+    description: str = Field(
+        ..., 
+        min_length=20,
+        max_length=200,
+        description="工具描述（20-200字）。必须包含：1) 工具功能 2) 适用场景 3) 触发关键词。例如：'专业心理咨询工具。当用户表达负面情绪（悲伤、焦虑、孤独）或需要情感支持时使用。适用：倾诉烦恼、寻求安慰、情绪低落等场景。'"
+    )
     endpoint: Dict[str, Any] = Field(..., description="工具端点配置")
-    request_schema: Dict[str, Any] = Field(..., description="请求参数的JSON Schema")
+    request_schema: Optional[Dict[str, Any]] = Field(None, description="请求参数的JSON Schema（HTTP工具可选，自动生成）")
     response_schema: Optional[Dict[str, Any]] = Field(None, description="响应的JSON Schema")
     server_name: Optional[str] = Field(None, description="MCP服务器名称")
     is_public: bool = Field(True, description="是否公开可用")
@@ -23,8 +33,18 @@ class DeveloperToolCreate(BaseModel):
 class DeveloperToolUpdate(BaseModel):
     """开发者工具更新请求模型"""
     
-    name: Optional[str] = Field(None, description="工具名称")
-    description: Optional[str] = Field(None, description="工具描述")
+    name: Optional[str] = Field(
+        None, 
+        min_length=2,
+        max_length=30,
+        description="工具名称（2-30字）"
+    )
+    description: Optional[str] = Field(
+        None, 
+        min_length=20,
+        max_length=200,
+        description="工具描述（20-200字）。应包含功能、适用场景和触发关键词。"
+    )
     endpoint: Optional[Dict[str, Any]] = Field(None, description="工具端点配置")
     request_schema: Optional[Dict[str, Any]] = Field(None, description="请求参数的JSON Schema")
     response_schema: Optional[Dict[str, Any]] = Field(None, description="响应的JSON Schema")
@@ -47,6 +67,7 @@ class DeveloperToolResponse(BaseModel):
     response_schema: Optional[Dict[str, Any]] = Field(None, description="响应的JSON Schema")
     server_name: Optional[str] = Field(None, description="MCP服务器名称")
     developer_id: Optional[int] = Field(None, description="开发者用户ID")
+    developer_username: Optional[str] = Field(None, description="开发者用户名")
     is_public: bool = Field(..., description="是否公开可用")
     status: str = Field(..., description="工具状态")
     version: str = Field(..., description="工具版本")
@@ -70,25 +91,6 @@ class DeveloperToolListResponse(BaseModel):
     
     class Config:
         from_attributes = True
-
-
-class ToolUploadRequest(BaseModel):
-    """工具包上传请求模型"""
-    
-    name: str = Field(..., description="工具包名称")
-    description: Optional[str] = Field(None, description="工具包描述")
-    version: str = Field("1.0.0", description="版本号")
-    tags: Optional[List[str]] = Field(None, description="标签")
-    is_public: bool = Field(True, description="是否公开")
-
-
-class ToolUploadResponse(BaseModel):
-    """工具包上传响应模型"""
-    
-    upload_id: str = Field(..., description="上传ID")
-    status: str = Field(..., description="上传状态")
-    message: str = Field(..., description="状态消息")
-    tools_created: Optional[List[str]] = Field(None, description="创建的工具ID列表")
 
 
 class ToolTestRequest(BaseModel):

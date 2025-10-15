@@ -73,7 +73,7 @@ class SecurityAuditMiddleware(BaseHTTPMiddleware):
         }
         
         # 对于敏感端点或未认证访问进行特别记录
-        sensitive_paths = ["/api/v1/execute", "/api/v1/tools"]
+        sensitive_paths = ["/api/v1/tools/execute", "/api/v1/tools", "/api/v1/dev/integrations"]
         if any(request.url.path.startswith(path) for path in sensitive_paths):
             if not has_auth:
                 logger.warning(f"🔒 未认证访问敏感端点: {json.dumps(log_data)}")
@@ -168,10 +168,10 @@ async def root():
 # 添加路由
 app.include_router(health_router)
 app.include_router(intent.router, prefix=settings.API_PREFIX, tags=["intent"])
-app.include_router(execute.router, prefix=settings.API_PREFIX, tags=["execute"])
 app.include_router(tools.router, prefix=settings.API_PREFIX, tags=["tools"])
+app.include_router(execute.router, prefix=f"{settings.API_PREFIX}/tools", tags=["tools"])
 app.include_router(auth.router, prefix=settings.API_PREFIX, tags=["auth"])
-app.include_router(dev_tools.router, prefix=settings.API_PREFIX, tags=["dev-tools"])
+app.include_router(dev_tools.router, prefix=settings.API_PREFIX)  # 使用 router 自己定义的 tags
 app.include_router(mcp_status.router, prefix=settings.API_PREFIX, tags=["mcp-status"])
 # app.include_router(dev_apps.router, prefix=settings.API_PREFIX, tags=["dev-apps"])  # 已关闭DEV-APPS功能
 # app.include_router(admin.router, prefix=settings.API_PREFIX, tags=["admin"])  # admin路由暂未实现
