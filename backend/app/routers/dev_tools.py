@@ -1,6 +1,6 @@
 from typing import List, Optional
 from datetime import datetime
-from fastapi import APIRouter, Depends, Query, UploadFile, File
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.utils.db import get_async_db_session
@@ -11,24 +11,21 @@ from app.schemas.dev_tools import (
     DeveloperToolUpdate,
     DeveloperToolResponse,
     DeveloperToolListResponse,
-    ToolUploadRequest,
-    ToolUploadResponse,
     ToolTestRequest,
     ToolTestResponse
 )
 from app.services.dev_tool_service import dev_tool_service
-from app.services.package_parser import package_parser_service
 
 # 创建路由器
 router = APIRouter(
     prefix="/dev",
-    tags=["dev-tools"],
+    tags=["developer-integrations"],
     responses={401: {"description": "未授权"}, 403: {"description": "权限不足"}},
 )
 
 
-@router.get("/tools", response_model=DeveloperToolListResponse)
-async def get_developer_tools(
+@router.get("/integrations", response_model=DeveloperToolListResponse)
+async def get_developer_integrations(
     page: int = Query(1, ge=1, description="页码"),
     page_size: int = Query(10, ge=1, le=100, description="每页大小"),
     status: Optional[str] = Query(None, description="工具状态筛选"),
@@ -63,8 +60,8 @@ async def get_developer_tools(
     )
 
 
-@router.post("/tools", response_model=DeveloperToolResponse)
-async def create_developer_tool(
+@router.post("/integrations", response_model=DeveloperToolResponse)
+async def create_developer_integration(
     tool_data: DeveloperToolCreate,
     current_user: User = Depends(get_developer_user),
     db: AsyncSession = Depends(get_async_db_session)
@@ -90,8 +87,8 @@ async def create_developer_tool(
     )
 
 
-@router.get("/tools/{tool_id}", response_model=DeveloperToolResponse)
-async def get_developer_tool(
+@router.get("/integrations/{tool_id}", response_model=DeveloperToolResponse)
+async def get_developer_integration(
     tool_id: str,
     current_user: User = Depends(get_developer_user),
     db: AsyncSession = Depends(get_async_db_session)
@@ -117,8 +114,8 @@ async def get_developer_tool(
     )
 
 
-@router.put("/tools/{tool_id}", response_model=DeveloperToolResponse)
-async def update_developer_tool(
+@router.put("/integrations/{tool_id}", response_model=DeveloperToolResponse)
+async def update_developer_integration(
     tool_id: str,
     tool_data: DeveloperToolUpdate,
     current_user: User = Depends(get_developer_user),
@@ -147,8 +144,8 @@ async def update_developer_tool(
     )
 
 
-@router.delete("/tools/{tool_id}")
-async def delete_developer_tool(
+@router.delete("/integrations/{tool_id}")
+async def delete_developer_integration(
     tool_id: str,
     current_user: User = Depends(get_developer_user),
     db: AsyncSession = Depends(get_async_db_session)
@@ -174,65 +171,8 @@ async def delete_developer_tool(
     )
 
 
-@router.post("/upload", response_model=ToolUploadResponse)
-async def upload_tool_package(
-    file: UploadFile = File(...),
-    current_user: User = Depends(get_developer_user),
-    db: AsyncSession = Depends(get_async_db_session)
-):
-    """
-    上传工具包文件
-    
-    Args:
-        file: 上传的文件
-        current_user: 当前开发者用户
-        db: 数据库会话
-        
-    Returns:
-        上传结果
-    """
-    try:
-        result = await package_parser_service.parse_and_create_tools(
-            file=file,
-            db=db,
-            current_user=current_user
-        )
-        
-        return ToolUploadResponse(
-            upload_id=f"upload_{current_user.id}_{int(datetime.now().timestamp())}",
-            status="completed" if result["success"] else "failed",
-            message=result["message"],
-            tools_created=[tool["tool_id"] for tool in result["tools"]] if result["success"] else None
-        )
-    except Exception as e:
-        return ToolUploadResponse(
-            upload_id=f"upload_{current_user.id}_{int(datetime.now().timestamp())}",
-            status="failed",
-            message=f"上传失败: {str(e)}",
-            tools_created=None
-        )
-
-
-@router.post("/upload/validate")
-async def validate_tool_package(
-    file: UploadFile = File(...),
-    current_user: User = Depends(get_developer_user)
-):
-    """
-    验证工具包格式
-    
-    Args:
-        file: 上传的文件
-        current_user: 当前开发者用户
-        
-    Returns:
-        验证结果
-    """
-    return await package_parser_service.validate_package(file=file)
-
-
-@router.post("/tools/{tool_id}/test", response_model=ToolTestResponse)
-async def test_developer_tool(
+@router.post("/integrations/{tool_id}/test", response_model=ToolTestResponse)
+async def test_developer_integration(
     tool_id: str,
     test_data: ToolTestRequest,
     current_user: User = Depends(get_developer_user),
@@ -266,8 +206,8 @@ async def test_developer_tool(
     )
 
 
-@router.post("/tools/test/batch")
-async def batch_test_tools(
+@router.post("/integrations/test/batch")
+async def batch_test_integrations(
     tool_ids: List[str],
     test_data: ToolTestRequest,
     current_user: User = Depends(get_developer_user),

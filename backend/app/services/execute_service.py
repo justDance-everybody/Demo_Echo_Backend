@@ -280,34 +280,50 @@ class ExecuteService:
                 async with httpx.AsyncClient(timeout=global_timeout) as client:  # 使用动态超时
                     try:
                         if platform == "dify":
-                            # --- 实现调用 Dify API 的逻辑 ---
-                            dify_url = (
-                                base_url or "https://api.dify.ai/v1"
-                            ) + "/chat-messages"
-                            headers = {
-                                "Authorization": f"Bearer {api_key}",
-                                "Content-Type": "application/json",
-                            }
-                            # 从输入参数中获取用户查询，假设 LLM 放入了 'query' 字段
+                            # --- 实现调用 Dify API 的逻辑（支持多种应用类型）---
+                            # 获取应用类型（默认 chat）
+                            app_type = tool.endpoint.get("app_type", "chat")
+                            base_url = base_url or "https://api.dify.ai/v1"
+                            
+                            # 从输入参数中获取用户查询
                             user_query = params.get("query", "")
                             if not user_query:
                                 logger.warning(
                                     f"调用 Dify 工具 '{tool_id}' 时缺少 'query' 参数"
                                 )
-
-                            dify_payload = {
-                                "inputs": {},  # 根据 Dify 文档，inputs 在有 conversation_id 时会被忽略
-                                "query": user_query,
-                                "user": user_id
-                                or "echo-backend-user",  # 使用传入的 user_id 或默认值
-                                "response_mode": app_config.get(
-                                    "response_mode", "blocking"
-                                ),  # 默认阻塞模式
-                                # MVP 暂时不传递 conversation_id，每次都是新会话
+                            
+                            headers = {
+                                "Authorization": f"Bearer {api_key}",
+                                "Content-Type": "application/json",
                             }
+                            
+                            # 根据应用类型构造不同的请求
+                            if app_type == "workflow":
+                                # Workflow 类型
+                                dify_url = f"{base_url}/workflows/run"
+                                dify_payload = {
+                                    "inputs": {"query": user_query},
+                                    "user": user_id or "echo-backend-user",
+                                    "response_mode": app_config.get("response_mode", "blocking")
+                                }
+                            else:
+                                # Chat App / Agent / Completion 类型（使用相似的请求格式）
+                                if app_type == "agent":
+                                    dify_url = f"{base_url}/agent/chat"
+                                elif app_type == "completion":
+                                    dify_url = f"{base_url}/completion-messages"
+                                else:  # chat (默认)
+                                    dify_url = f"{base_url}/chat-messages"
+                                
+                                dify_payload = {
+                                    "inputs": {},
+                                    "query": user_query,
+                                    "user": user_id or "echo-backend-user",
+                                    "response_mode": app_config.get("response_mode", "blocking")
+                                }
 
                             logger.info(
-                                f"准备调用 Dify API: URL={dify_url}, Payload={dify_payload}"
+                                f"准备调用 Dify API: Type={app_type}, URL={dify_url}"
                             )
                             response = await client.post(
                                 dify_url, headers=headers, json=dify_payload
@@ -315,9 +331,14 @@ class ExecuteService:
                             response.raise_for_status()  # 检查 HTTP 错误 (4xx, 5xx)
 
                             api_result = response.json()
-                            raw_result = api_result.get(
-                                "answer", "Dify did not provide an answer."
-                            )
+                            
+                            # 根据应用类型提取答案
+                            if app_type == "workflow":
+                                # Workflow 响应格式: data.outputs.response
+                                raw_result = api_result.get("data", {}).get("outputs", {}).get("response", "Dify Workflow 未返回结果")
+                            else:
+                                # Chat/Agent/Completion 响应格式: answer
+                                raw_result = api_result.get("answer", "Dify 未返回结果")
                             # --- [修改开始] 调用 LLM 总结 ---
                             try:
                                 logger.debug(
