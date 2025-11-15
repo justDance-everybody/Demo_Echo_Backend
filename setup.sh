@@ -337,25 +337,39 @@ create_test_accounts() {
     # 从环境变量读取测试账户配置
     source .env
     
-    # 创建测试账户
-    local accounts=(
-        "${TEST_DEVELOPER_USERNAME:-devuser_5090} ${TEST_DEVELOPER_PASSWORD:-mryuWTGdMk} developer"
-        "${TEST_USER_USERNAME:-testuser_5090} ${TEST_USER_PASSWORD:-8lpcUY2BOt} user"
-        "${TEST_ADMIN_USERNAME:-adminuser_5090} ${TEST_ADMIN_PASSWORD:-SAKMRtxCjT} admin"
-    )
+    # ========== 创建测试账户部分已禁用 ==========
+    # 原因: scripts/create_admin.py 不存在
+    # 替代方案: 使用 backend/create_test_users.py 脚本手动创建测试账号
+    # 
+    # 使用方法:
+    #   cd backend && python create_test_users.py
+    #
+    # 测试账号信息:
+    #   - 普通用户: testuser_5090 / 8lpcUY2BOt
+    #   - 开发者: devuser_5090 / mryuWTGdMk
+    #   - 管理员: adminuser_5090 / SAKMRtxCjT
+    # ========== 以下代码已注释 ==========
     
-    for account in "${accounts[@]}"; do
-        read -r username password role <<< "$account"
-        log_message "INFO" "创建 $role 账户: $username"
-        
-        python scripts/create_admin.py "$username" "$password" "$role" 2>/dev/null
-        
-        if [ $? -eq 0 ]; then
-            log_message "SUCCESS" "账户 $username 创建成功"
-        else
-            log_message "WARNING" "账户 $username 可能已存在"
-        fi
-    done
+    # local accounts=(
+    #     "${TEST_DEVELOPER_USERNAME:-devuser_5090} ${TEST_DEVELOPER_PASSWORD:-mryuWTGdMk} developer"
+    #     "${TEST_USER_USERNAME:-testuser_5090} ${TEST_USER_PASSWORD:-8lpcUY2BOt} user"
+    #     "${TEST_ADMIN_USERNAME:-adminuser_5090} ${TEST_ADMIN_PASSWORD:-SAKMRtxCjT} admin"
+    # )
+    # 
+    # for account in "${accounts[@]}"; do
+    #     read -r username password role <<< "$account"
+    #     log_message "INFO" "创建 $role 账户: $username"
+    #     
+    #     python scripts/create_admin.py "$username" "$password" "$role" 2>/dev/null
+    #     
+    #     if [ $? -eq 0 ]; then
+    #         log_message "SUCCESS" "账户 $username 创建成功"
+    #     else
+    #         log_message "WARNING" "账户 $username 可能已存在"
+    #     fi
+    # done
+    
+    log_message "INFO" "测试账户需要手动创建，请运行: cd backend && python create_test_users.py"
     
     cd "$ROOT_DIR"
     return 0

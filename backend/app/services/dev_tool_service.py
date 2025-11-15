@@ -378,7 +378,90 @@ class DeveloperToolService:
         await db.commit()
         
         logger.info(f"成功删除工具: {tool_id}")
-        return {"message": f"工具 '{tool_id}' 已成功删除"}
+        return {"message": f"工具 {tool_id} 已成功删除"}
+
+    async def validate_and_test_config(
+        self,
+        db: AsyncSession,
+        config: dict, 
+        test_data: Optional[dict],
+        current_user: User
+    ) -> dict:
+        """
+        验证工具配置并执行一次性内存测试。
+
+        Args:
+            db: 数据库会话。
+            config: 要验证的工具配置字典。
+            test_data: 用于测试的输入数据。
+            current_user: 当前用户。
+
+        Returns:
+            包含测试结果的字典。
+        """
+        start_time = time.time()
+
+        # 1. 配置验证
+        try:
+            # 使用Pydantic模型进行验证
+            validated_config = DeveloperToolCreate(**config)
+        except ValidationError as e:
+            return {
+                "success": False,
+                "result": None,
+                "error": f"配置验证失败: {e.errors()}",
+                "execution_time": time.time() - start_time,
+                "timestamp": datetime.utcnow()
+            }
+
+        # 2. 连通性测试 (如果提供了测试数据)
+        if test_data:
+            try:
+                # 直接调用内存执行服务
+                execution_result = await execute_service.execute_tool_in_memory(
+                    db=db,
+                    tool_config=validated_config.dict(),
+                    test_data=test_data,
+                    current_user=current_user
+                )
+
+                success = execution_result.get("success", False)
+                error_message = execution_result.get("error")
+                
+                if not success:
+                    return {
+                        "success": False,
+                        "result": None,
+                        "error": f"连通性测试失败: {error_message}",
+                        "execution_time": time.time() - start_time,
+                        "timestamp": datetime.utcnow()
+                    }
+
+                return {
+                    "success": True,
+                    "result": execution_result.get("result"),
+                    "error": None,
+                    "execution_time": time.time() - start_time,
+                    "timestamp": datetime.utcnow()
+                }
+
+            except Exception as e:
+                return {
+                    "success": False,
+                    "result": None,
+                    "error": f"测试执行期间发生意外错误: {str(e)}",
+                    "execution_time": time.time() - start_time,
+                    "timestamp": datetime.utcnow()
+                }
+        
+        # 3. 如果没有提供测试数据，只返回配置验证成功的结果
+        return {
+            "success": True,
+            "result": {"message": "配置验证成功。未提供测试数据，跳过连通性测试。"},
+            "error": None,
+            "execution_time": time.time() - start_time,
+            "timestamp": datetime.utcnow()
+        }
 
     async def validate_tool_data(
         self,
@@ -478,7 +561,7 @@ class DeveloperToolService:
         self,
         db: AsyncSession,
         tool_id: str,
-        test_data: Any,
+        test_data: Dict[str, Any],
         current_user: User
     ) -> Dict[str, Any]:
         """
@@ -956,6 +1039,88 @@ class DeveloperToolService:
             created_at=tool.created_at,
             updated_at=tool.updated_at
         )
+
+    async def validate_and_test_config(self, db: AsyncSession, config: Dict[str, Any], test_data: Optional[Dict[str, Any]], current_user: User) -> Dict[str, Any]:
+        """
+        Validate and test a tool configuration without saving it to the database.
+        """
+        import time
+        import uuid
+        from app.services.execute_service import execute_service
+
+        start_time = time.time()
+        try:
+            # 1. 验证数据格式
+            tool_create_obj = DeveloperToolCreate(**config)
+            validation_result = await self.validate_tool_data(tool_create_obj)
+            if not validation_result["valid"]:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Configuration validation failed: {'; '.join(validation_result['errors'])}"
+                )
+
+            # 2. 模拟一个 Tool 对象
+            tool_for_testing = Tool(
+                tool_id=f"test-{uuid.uuid4()}",
+                name=tool_create_obj.name,
+                type=tool_create_obj.type,
+                endpoint=tool_create_obj.endpoint,
+                developer_id=current_user.id,
+                status='testing',
+                is_public=False,
+                request_schema=tool_create_obj.request_schema,
+                response_schema=tool_create_obj.response_schema
+            )
+
+            # 3. 如果是HTTP工具，则测试连通性
+            if tool_for_testing.type == 'http':
+                platform = tool_for_testing.endpoint.get('platform')
+                if platform == 'dify':
+                    await self._detect_dify_app_type(tool_for_testing.endpoint)
+                elif platform == 'coze':
+                    await self._test_platform_connectivity(tool_for_testing.endpoint, platform)
+
+            # 4. 如果提供了测试数据，则执行内存中的测试
+            if test_data:
+                execution_result = await execute_service.execute_tool_in_memory(
+                    db=db,
+                    tool=tool_for_testing,
+                    params=test_data,
+                    user_id=str(current_user.id)
+                )
+                return {
+                    "success": not execution_result.get('error'),
+                    "result": execution_result.get('data'),
+                    "error": execution_result.get('error'),
+                    "execution_time": time.time() - start_time,
+                    "timestamp": datetime.utcnow()
+                }
+            else:
+                # 如果没有测试数据，只返回验证成功的消息
+                return {
+                    "success": True,
+                    "result": {"message": "Configuration validation and connectivity test successful."},
+                    "error": None,
+                    "execution_time": time.time() - start_time,
+                    "timestamp": datetime.utcnow()
+                }
+
+        except HTTPException as e:
+            return {
+                "success": False,
+                "result": None,
+                "error": e.detail,
+                "execution_time": time.time() - start_time,
+                "timestamp": datetime.utcnow()
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "result": None,
+                "error": f"An unexpected error occurred: {str(e)}",
+                "execution_time": time.time() - start_time,
+                "timestamp": datetime.utcnow()
+            }
 
 
 # 创建开发者工具服务实例

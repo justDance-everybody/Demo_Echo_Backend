@@ -97,7 +97,8 @@ fetch('/api/v1/tools', {
 | `/api/v1/dev/integrations/{id}` | GET | ✅ | 获取集成详情 |
 | `/api/v1/dev/integrations/{id}` | PUT | ✅ | 更新集成 |
 | `/api/v1/dev/integrations/{id}` | DELETE | ✅ | 删除集成 |
-| `/api/v1/dev/integrations/{id}/test` | POST | ✅ | 测试集成 |
+| `/api/v1/dev/integrations/{id}/test` | POST | ✅ | 测试已保存的集成 |
+| `/api/v1/dev/integrations/validate-and-test` | POST | ✅ | **【新】**预提交验证与测试<br>**注意**：目前 Dify 集成仅支持“工作流(Workflow)”模式。 |
 
 ---
 
@@ -147,47 +148,44 @@ graph TB
 
 ### 场景二：开发者上传 API 集成
 
-**业务目标**：开发者提交 Dify/Coze API 配置，系统自动验证并注册
+**业务目标**：开发者在提交 API 配置前，进行实时验证和连通性测试，提升开发体验。
 
 ```mermaid
 graph TB
-    A[👨‍💻 开发者填写表单] -->|前端收集| B[📋 表单数据<br/>name, type, description<br/>endpoint配置]
-    B -->|提交| C[📤 POST /dev/integrations]
+    subgraph "开发与测试阶段"
+        A[👨‍💻 开发者填写表单] -->|前端实时收集| B(📋 表单数据<br/>name, type, endpoint...)
+        B -->|数据变化时触发| C[📤 POST /dev/integrations/validate-and-test]
+        C -->|后端| D{实时验证}
+        D -->|✅ 验证通过| E[✨ 前端UI显示<br/>"验证通过"]
+        D -->|❌ 验证失败| F[⚠️ 前端UI显示<br/>具体的错误信息]
+    end
     
-    C -->|后端| D[🔍 验证 API Key 格式<br/>dify: app-*<br/>coze: pat-*]
-    D -->|✅ 格式正确| E[🌐 连通性测试<br/>发送测试消息]
-    D -->|❌ 格式错误| F[❌ 422 错误<br/>返回具体原因]
-    
-    E -->|✅ 连接成功| G[⚙️ 自动生成<br/>tool_id<br/>request_schema]
-    E -->|❌ 连接失败| H[❌ 400 错误<br/>返回失败原因]
-    
-    G --> I[💾 保存到数据库<br/>status: active]
-    I --> J[📥 返回集成信息<br/>含 tool_id]
-    
-    H --> K[📥 前端显示错误]
-    F --> K
-    J --> L[✅ 前端显示成功]
-    
-    L -.可选.-> M[🧪 POST /dev/integrations/{id}/test<br/>测试集成]
+    subgraph "最终提交阶段"
+        G[👨‍💻 点击“提交”按钮] --> H[📤 POST /dev/integrations]
+        H -->|后端| I[💾 保存到数据库<br/>status: active]
+        I --> J[✅ 返回成功信息]
+    end
     
     style A fill:#e1f5ff
-    style J fill:#e8f5e9
-    style K fill:#ffebee
-    style D fill:#fff3e0
-    style E fill:#fff3e0
+    style G fill:#e1f5ff
+    style C fill:#fff3e0
+    style H fill:#fff3e0
+    style E fill:#e8f5e9
+    style F fill:#ffebee
 ```
 
 **关键接口与参数**：
 
-| 步骤 | 接口 | 关键参数 | 后端自动处理 |
-|------|------|----------|--------------|
-| 1️⃣ 创建集成 | `POST /dev/integrations` | `name`, `type: "http"`, `endpoint: { platform, api_key }` | ✅ 格式验证<br/>✅ 连通性测试<br/>✅ 生成 tool_id |
-| 2️⃣ 测试集成 | `POST /dev/integrations/{id}/test` | `test_data: { query }` | 实际调用 API |
+| 步骤 | 接口 | 关键参数 | 说明 |
+|------|------|----------|------|
+| 1️⃣ **预提交测试** | `POST /dev/integrations/validate-and-test` | `integration_config`, `test_data` | **核心功能**：用于在保存前验证配置和测试连通性。 |
+| 2️⃣ 创建集成 | `POST /dev/integrations` | `name`, `type`, `endpoint`... | 当所有测试通过后，最终提交保存。 |
+| 3️⃣ 测试已保存的集成 | `POST /dev/integrations/{id}/test` | `test_data: { query }` | 用于测试已经保存在数据库中的工具。 |
 
 **Endpoint 配置示例**：
 
 ```javascript
-// Dify 平台
+// Dify 平台 (注意：目前仅支持工作流 Workflow 模式)
 { platform: "dify", api_key: "app-xxxxx" }
 
 // Coze 平台  
@@ -229,7 +227,7 @@ graph TB
 | 角色 | 默认用户名 | 默认密码 |
 |------|-----------|---------|
 | 普通用户 | `testuser_5090` | `8lpcUY2BOt` |
-| 开发者 | `devuser_5090` | `mryuWTGdMk` |
+| 开发者 | `devuser_5090` | `` |
 | 管理员 | `adminuser_5090` | `SAKMRtxCjT` |
 
 ---

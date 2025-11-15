@@ -93,6 +93,12 @@ class DeveloperToolListResponse(BaseModel):
         from_attributes = True
 
 
+class ToolValidateRequest(BaseModel):
+    """预提交测试请求模型"""
+    integration_config: Dict[str, Any] = Field(..., description="工具的完整配置")
+    test_data: Optional[Dict[str, Any]] = Field(None, description="可选的测试数据")
+
+
 class ToolTestRequest(BaseModel):
     """工具测试请求模型"""
     
@@ -162,3 +168,79 @@ class DeveloperAppListResponse(BaseModel):
     
     class Config:
         from_attributes = True
+
+
+class DeveloperToolBase(BaseModel):
+    """开发者工具基础模型"""
+    name: str = Field(..., min_length=2, max_length=50, description="工具名称")
+    type: str = Field(..., description="工具类型 (mcp, http)")
+    description: Optional[str] = Field(None, max_length=500, description="工具描述")
+    endpoint: Dict[str, Any] = Field(..., description="工具端点配置")
+    request_schema: Optional[Dict[str, Any]] = Field(None, description="请求参数的JSON Schema")
+    response_schema: Optional[Dict[str, Any]] = Field(None, description="响应数据的JSON Schema")
+    is_public: bool = Field(False, description="是否公开")
+    version: str = Field("1.0.0", description="工具版本")
+    tags: Optional[List[str]] = Field(None, description="工具标签")
+    
+    class Config:
+        orm_mode = True
+        
+        
+class DeveloperToolCreate(DeveloperToolBase):
+    """开发者工具创建模型"""
+    tool_id: Optional[str] = Field(None, min_length=3, max_length=50, description="自定义工具ID")
+    server_name: Optional[str] = Field(None, description="MCP服务器名称")
+
+
+class DeveloperToolUpdate(BaseModel):
+    """开发者工具更新模型"""
+    name: Optional[str] = Field(None, min_length=2, max_length=50)
+    description: Optional[str] = Field(None, max_length=500)
+    endpoint: Optional[Dict[str, Any]] = None
+    request_schema: Optional[Dict[str, Any]] = None
+    response_schema: Optional[Dict[str, Any]] = None
+    is_public: Optional[bool] = None
+    version: Optional[str] = None
+    tags: Optional[List[str]] = None
+    status: Optional[str] = None
+
+
+class DeveloperToolResponse(DeveloperToolBase):
+    """开发者工具响应模型"""
+    tool_id: str
+    developer_id: int
+    developer_username: Optional[str] = None
+    status: str
+    download_count: int
+    rating: float
+    created_at: datetime
+    updated_at: datetime
+    server_name: Optional[str] = None
+
+
+class DeveloperToolListResponse(BaseModel):
+    """开发者工具列表响应模型"""
+    tools: List[DeveloperToolResponse]
+    total: int
+    page: int
+    page_size: int
+
+
+class ToolTestRequest(BaseModel):
+    """工具测试请求模型"""
+    test_data: Dict[str, Any]
+
+
+class ToolValidateRequest(BaseModel):
+    """预提交测试请求模型"""
+    integration_config: DeveloperToolCreate
+    test_data: Optional[Dict[str, Any]] = None
+
+
+class ToolTestResponse(BaseModel):
+    """工具测试响应模型"""
+    success: bool
+    result: Optional[Any] = None
+    error: Optional[str] = None
+    execution_time: float
+    timestamp: datetime
