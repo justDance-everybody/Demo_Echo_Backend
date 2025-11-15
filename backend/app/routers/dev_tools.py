@@ -12,7 +12,8 @@ from app.schemas.dev_tools import (
     DeveloperToolResponse,
     DeveloperToolListResponse,
     ToolTestRequest,
-    ToolTestResponse
+    ToolTestResponse,
+    ToolValidateRequest
 )
 from app.services.dev_tool_service import dev_tool_service
 
@@ -168,6 +169,51 @@ async def delete_developer_integration(
         db=db,
         tool_id=tool_id,
         current_user=current_user
+    )
+
+
+@router.post("/integrations/validate-and-test", response_model=ToolTestResponse)
+async def validate_and_test_integration(
+    request_data: ToolValidateRequest,  # 使用正确的模型
+    current_user: User = Depends(get_developer_user),
+    db: AsyncSession = Depends(get_async_db_session)
+):
+    """
+    验证工具配置并执行一次性测试（不保存到数据库）
+    """
+    # 注意：这里的 tool_data 和 test_data 已经被 Pydantic 模型解析
+    result = await dev_tool_service.validate_and_test_config(
+        db=db,
+        config=request_data.integration_config.dict(),  # 传递配置字典
+        test_data=request_data.test_data,
+        current_user=current_user
+    )
+    
+    return result
+
+
+@router.post("/integrations/validate-and-test", response_model=ToolTestResponse)
+async def validate_and_test_integration(
+    request_data: "ToolValidateRequest",
+    current_user: User = Depends(get_developer_user),
+    db: AsyncSession = Depends(get_async_db_session)
+):
+    """
+    验证工具配置并执行一次性测试（不保存到数据库）
+    """
+    result = await dev_tool_service.validate_and_test_config(
+        db=db,
+        tool_data=request_data.integration_config,
+        test_data=request_data.test_data,
+        current_user=current_user
+    )
+    
+    return ToolTestResponse(
+        success=result["success"],
+        result=result["result"],
+        error=result["error"],
+        execution_time=result["execution_time"],
+        timestamp=result["timestamp"]
     )
 
 
