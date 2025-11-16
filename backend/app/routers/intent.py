@@ -20,9 +20,13 @@ router = APIRouter(
 )
 
 
-@router.post("/interpret", 
-             response_model=InterpretSuccessResponse,
-             response_model_exclude_none=False)
+@router.post(
+    "/interpret",
+    response_model=InterpretSuccessResponse,
+    response_model_exclude_none=False,
+    summary="意图解析",
+    description="解析用户输入并给出下一步动作（直接回复或工具调用）。鉴权：需要 JWT。注意：请求体中的 user_id 将被服务端覆盖为当前登录用户。\n\n示例 cURL：\ncurl -X POST https://localhost:3000/api/v1/intent/interpret \\\n  -H 'Authorization: Bearer <JWT>' -H 'Content-Type: application/json' \\\n  -d '{\"query\":\"查天气\",\"session_id\":\"s1\",\"user_id\":1}'\n\n错误示例：\n- 401 未授权",
+)
 # @stable(tested=2025-04-30, test_script=backend/test_api.py)
 async def process_intent(
     request: IntentRequest = Body(...), 
@@ -47,9 +51,13 @@ async def process_intent(
     return await intent_controller.process_intent(request=request, db=db)
 
 
-@router.post("/confirm", 
-             response_model=ConfirmResponse,
-             response_model_exclude_none=False)
+@router.post(
+    "/confirm",
+    response_model=ConfirmResponse,
+    response_model_exclude_none=False,
+    summary="确认执行",
+    description="当需要用户确认时，提交确认以执行对应工具。鉴权：需要 JWT。\n\n示例 cURL：\ncurl -X POST https://localhost:3000/api/v1/intent/confirm \\\n  -H 'Authorization: Bearer <JWT>' -H 'Content-Type: application/json' \\\n  -d '{\"session_id\":\"s1\",\"user_input\":\"确认执行\"}'",
+)
 async def confirm_execution(
     request: ConfirmRequest = Body(...),
     db: AsyncSession = Depends(get_async_db_session),

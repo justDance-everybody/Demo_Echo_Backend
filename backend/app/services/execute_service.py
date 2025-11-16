@@ -871,6 +871,7 @@ class ExecuteService:
         platform = endpoint_config.get("platform")
         api_key = endpoint_config.get("api_key")
         base_url = endpoint_config.get("base_url")
+        app_type = endpoint_config.get("app_type")
 
         if not platform:
             return {"success": False, "error": "HTTP工具缺少 'platform' 配置"}
@@ -878,31 +879,85 @@ class ExecuteService:
         try:
             async with httpx.AsyncClient(timeout=30.0) as client:
                 if platform == "dify":
-                    if not base_url or not api_key:
-                        return {"success": False, "error": "Dify工具缺少 'base_url' 或 'api_key'"}
-                    
-                    # Hardcode Dify to workflow mode
-                    url = f"{base_url.rstrip('/')}/workflows/run"
+                    if not api_key:
+                        return {"success": False, "error": "Dify工具缺少 'api_key'"}
+                    base_url = (base_url or "https://api.dify.ai/v1").rstrip('/')
+
+                    headers = {
+                        'Authorization': f"Bearer {api_key}",
+                        'Content-Type': 'application/json'
+                    }
+
+                    # decide app_type: prefer provided, otherwise auto-detect
+                    if not app_type:
+                        from app.services.dev_tool_service import dev_tool_service
+                        try:
+                            detected = await dev_tool_service._detect_dify_app_type({
+                                "api_key": api_key,
+                                "base_url": base_url
+                            })
+                            app_type = detected
+                        except Exception as e:
+                            return {"success": False, "error": f"无法识别Dify应用类型: {str(e)}"}
+
+                    if app_type == "workflow":
+                        url = f"{base_url}/workflows/run"
+                        payload = {
+                            "inputs": test_data.get('inputs', {}),
+                            "response_mode": "blocking",
+                            "user": test_data.get('user', 'api-tester')
+                        }
+                    elif app_type == "agent":
+                        url = f"{base_url}/agent/chat"
+                        payload = {
+                            "inputs": test_data.get('inputs', {}),
+                            "query": test_data.get('query', ''),
+                            "response_mode": "blocking",
+                            "user": test_data.get('user', 'api-tester')
+                        }
+                    elif app_type == "completion":
+                        url = f"{base_url}/completion-messages"
+                        payload = {
+                            "inputs": test_data.get('inputs', {}),
+                            "response_mode": "blocking",
+                            "user": test_data.get('user', 'api-tester')
+                        }
+                    else:  # chat default
+                        url = f"{base_url}/chat-messages"
+                        payload = {
+                            "inputs": test_data.get('inputs', {}),
+                            "query": test_data.get('query', ''),
+                            "response_mode": "blocking",
+                            "user": test_data.get('user', 'api-tester')
+                        }
+
+                    response = await client.post(url, headers=headers, json=payload)
+                    response.raise_for_status()
+                    response_data = response.json()
+
+                    return {"success": True, "result": response_data}
+                
+                elif platform == "coze":
+                    if not api_key:
+                        return {"success": False, "error": "Coze工具缺少 'api_key'"}
+                    base_url = (base_url or "https://api.coze.com/open_api").rstrip('/')
+                    bot_id = (endpoint_config.get("app_config") or {}).get("bot_id")
+                    if not bot_id:
+                        return {"success": False, "error": "Coze工具缺少 'bot_id'"}
+                    url = f"{base_url}/v3/chat"
                     payload = {
-                        "inputs": test_data.get('inputs', {}),
-                        "response_mode": "blocking",
-                        "user": "api-tester"
+                        "bot_id": bot_id,
+                        "user": test_data.get('user', 'api-tester'),
+                        "query": test_data.get('query', ''),
+                        "stream": False
                     }
                     headers = {
                         'Authorization': f"Bearer {api_key}",
                         'Content-Type': 'application/json'
                     }
-                    
                     response = await client.post(url, headers=headers, json=payload)
                     response.raise_for_status()
-                    response_data = response.json()
-                    
-                    # Check if the response is from a workflow
-                    if 'workflow_run_id' not in response_data:
-                        raise ValueError("The connected Dify application does not appear to be a workflow. Please ensure you are using a Dify workflow application.")
-                    
-                    return {"success": True, "result": response_data}
-                
+                    return {"success": True, "result": response.json()}
                 else:
                     return {"success": False, "error": f"不支持在内存中测试的HTTP平台: {platform}"}
 

@@ -32,7 +32,12 @@ else
     SERVICE_PORT=3000
     SERVICE_HOST="0.0.0.0"
 fi
-HEALTH_CHECK_URL="http://${SERVICE_HOST}:${SERVICE_PORT}/health"
+if [ "$SERVICE_HOST" = "0.0.0.0" ] || [ -z "$SERVICE_HOST" ]; then
+    HEALTH_HOST="127.0.0.1"
+else
+    HEALTH_HOST="$SERVICE_HOST"
+fi
+HEALTH_CHECK_URL="http://${HEALTH_HOST}:${SERVICE_PORT}/health"
 CHECK_INTERVAL=30  # 检查间隔（秒）
 MAX_RESTART_ATTEMPTS=5  # 最大重启尝试次数
 RESTART_DELAY=10  # 重启延迟（秒）

@@ -21,8 +21,37 @@ class DeveloperToolCreate(BaseModel):
         max_length=200,
         description="工具描述（20-200字）。必须包含：1) 工具功能 2) 适用场景 3) 触发关键词。例如：'专业心理咨询工具。当用户表达负面情绪（悲伤、焦虑、孤独）或需要情感支持时使用。适用：倾诉烦恼、寻求安慰、情绪低落等场景。'"
     )
-    endpoint: Dict[str, Any] = Field(..., description="工具端点配置")
-    request_schema: Optional[Dict[str, Any]] = Field(None, description="请求参数的JSON Schema（HTTP工具可选，自动生成）")
+    endpoint: Dict[str, Any] = Field(
+        ..., 
+        description="工具端点配置：HTTP+dify需 platform='dify' 与以 'app-' 开头的 api_key，base_url 可选（默认 https://api.dify.ai/v1）；HTTP+coze需 platform='coze' 与以 'pat_' 开头的 api_key，默认 base_url=https://api.coze.com/open_api，且 app_config.bot_id 必填（数字）；MCP建议提供 server_name。",
+        json_schema_extra={
+            "examples": [
+                {
+                    "platform": "dify",
+                    "api_key": "app-xxxxx",
+                    "base_url": "https://api.dify.ai/v1",
+                    "app_config": {"response_mode": "blocking"}
+                },
+                {
+                    "platform": "coze",
+                    "api_key": "pat_xxxxx",
+                    "base_url": "https://api.coze.com/open_api",
+                    "app_config": {"bot_id": 123456789}
+                }
+            ]
+        }
+    )
+    request_schema: Optional[Dict[str, Any]] = Field(
+        None, 
+        description="请求参数的JSON Schema（HTTP工具未提供将自动生成最小Schema，仅包含 query:string）。",
+        json_schema_extra={
+            "example": {
+                "type": "object",
+                "properties": {"query": {"type": "string", "description": "用户查询内容"}},
+                "required": ["query"]
+            }
+        }
+    )
     response_schema: Optional[Dict[str, Any]] = Field(None, description="响应的JSON Schema")
     server_name: Optional[str] = Field(None, description="MCP服务器名称")
     is_public: bool = Field(True, description="是否公开可用")
@@ -95,7 +124,22 @@ class DeveloperToolListResponse(BaseModel):
 
 class ToolValidateRequest(BaseModel):
     """预提交测试请求模型"""
-    integration_config: Dict[str, Any] = Field(..., description="工具的完整配置")
+    integration_config: Dict[str, Any] = Field(
+        ..., 
+        description="工具的完整配置，格式同创建请求体。",
+        json_schema_extra={
+            "example": {
+                "name": "Dify集成测试工具",
+                "type": "http",
+                "description": "用于测试Dify应用提交与自适应类型的端到端工作",
+                "endpoint": {
+                    "platform": "dify",
+                    "api_key": "app-xxxxx",
+                    "base_url": "https://api.dify.ai/v1"
+                }
+            }
+        }
+    )
     test_data: Optional[Dict[str, Any]] = Field(None, description="可选的测试数据")
 
 
@@ -168,79 +212,3 @@ class DeveloperAppListResponse(BaseModel):
     
     class Config:
         from_attributes = True
-
-
-class DeveloperToolBase(BaseModel):
-    """开发者工具基础模型"""
-    name: str = Field(..., min_length=2, max_length=50, description="工具名称")
-    type: str = Field(..., description="工具类型 (mcp, http)")
-    description: Optional[str] = Field(None, max_length=500, description="工具描述")
-    endpoint: Dict[str, Any] = Field(..., description="工具端点配置")
-    request_schema: Optional[Dict[str, Any]] = Field(None, description="请求参数的JSON Schema")
-    response_schema: Optional[Dict[str, Any]] = Field(None, description="响应数据的JSON Schema")
-    is_public: bool = Field(False, description="是否公开")
-    version: str = Field("1.0.0", description="工具版本")
-    tags: Optional[List[str]] = Field(None, description="工具标签")
-    
-    class Config:
-        orm_mode = True
-        
-        
-class DeveloperToolCreate(DeveloperToolBase):
-    """开发者工具创建模型"""
-    tool_id: Optional[str] = Field(None, min_length=3, max_length=50, description="自定义工具ID")
-    server_name: Optional[str] = Field(None, description="MCP服务器名称")
-
-
-class DeveloperToolUpdate(BaseModel):
-    """开发者工具更新模型"""
-    name: Optional[str] = Field(None, min_length=2, max_length=50)
-    description: Optional[str] = Field(None, max_length=500)
-    endpoint: Optional[Dict[str, Any]] = None
-    request_schema: Optional[Dict[str, Any]] = None
-    response_schema: Optional[Dict[str, Any]] = None
-    is_public: Optional[bool] = None
-    version: Optional[str] = None
-    tags: Optional[List[str]] = None
-    status: Optional[str] = None
-
-
-class DeveloperToolResponse(DeveloperToolBase):
-    """开发者工具响应模型"""
-    tool_id: str
-    developer_id: int
-    developer_username: Optional[str] = None
-    status: str
-    download_count: int
-    rating: float
-    created_at: datetime
-    updated_at: datetime
-    server_name: Optional[str] = None
-
-
-class DeveloperToolListResponse(BaseModel):
-    """开发者工具列表响应模型"""
-    tools: List[DeveloperToolResponse]
-    total: int
-    page: int
-    page_size: int
-
-
-class ToolTestRequest(BaseModel):
-    """工具测试请求模型"""
-    test_data: Dict[str, Any]
-
-
-class ToolValidateRequest(BaseModel):
-    """预提交测试请求模型"""
-    integration_config: DeveloperToolCreate
-    test_data: Optional[Dict[str, Any]] = None
-
-
-class ToolTestResponse(BaseModel):
-    """工具测试响应模型"""
-    success: bool
-    result: Optional[Any] = None
-    error: Optional[str] = None
-    execution_time: float
-    timestamp: datetime

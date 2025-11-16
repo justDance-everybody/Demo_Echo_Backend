@@ -187,7 +187,12 @@ class DeveloperToolService:
             }
             logger.info("自动生成 request_schema")
         
-        # 5. 检查工具ID是否已存在
+        # 5. 为 MCP 工具自动生成最小 request_schema（DB 非空约束）
+        if tool_data.type == "mcp" and not tool_data.request_schema:
+            tool_data.request_schema = {"type": "object", "properties": {}, "additionalProperties": True}
+            logger.info("为 MCP 工具自动生成最小 request_schema")
+
+        # 6. 检查工具ID是否已存在
         existing_tool = await db.execute(
             select(Tool).where(Tool.tool_id == tool_data.tool_id)
         )
@@ -198,7 +203,7 @@ class DeveloperToolService:
                 detail=f"工具ID '{tool_data.tool_id}' 已存在"
             )
         
-        # 6. 创建新工具（测试通过后状态设为 active）
+        # 7. 创建新工具（测试通过后状态设为 active）
         new_tool = Tool(
             tool_id=tool_data.tool_id,
             name=tool_data.name,
@@ -602,6 +607,8 @@ class DeveloperToolService:
                 detail="无权限测试此工具"
             )
         
+        import time
+        start_time = time.time()
         try:
             # 导入执行服务
             from app.services.execute_service import ExecuteService
@@ -630,7 +637,7 @@ class DeveloperToolService:
                         "session_id": execute_result.session_id
                     },
                     "error": None,
-                    "execution_time": execute_result.execution_time,
+                    "execution_time": time.time() - start_time,
                     "timestamp": datetime.utcnow()
                 }
             else:
@@ -639,7 +646,7 @@ class DeveloperToolService:
                     "success": False,
                     "result": None,
                     "error": execute_result.error.get("message", "工具执行失败") if execute_result.error else "未知错误",
-                    "execution_time": execute_result.execution_time,
+                    "execution_time": time.time() - start_time,
                     "timestamp": datetime.utcnow()
                 }
                 
@@ -649,7 +656,7 @@ class DeveloperToolService:
                 "success": False,
                 "result": None,
                 "error": f"测试失败: {str(e)}",
-                "execution_time": 0.0,
+                "execution_time": time.time() - start_time,
                 "timestamp": datetime.utcnow()
             }
 
@@ -928,6 +935,7 @@ class DeveloperToolService:
         
         # 构造测试请求
         if platform == "dify":
+            base_url = (base_url or "https://api.dify.ai/v1").rstrip('/')
             test_url = f"{base_url}/chat-messages"
             headers = {
                 "Authorization": f"Bearer {api_key}",
@@ -940,6 +948,7 @@ class DeveloperToolService:
                 "inputs": {}
             }
         elif platform == "coze":
+            base_url = (base_url or "https://api.coze.com/open_api").rstrip('/')
             test_url = f"{base_url}/v3/chat"
             headers = {
                 "Authorization": f"Bearer {api_key}",
@@ -1084,13 +1093,13 @@ class DeveloperToolService:
             if test_data:
                 execution_result = await execute_service.execute_tool_in_memory(
                     db=db,
-                    tool=tool_for_testing,
-                    params=test_data,
-                    user_id=str(current_user.id)
+                    tool_config=tool_create_obj.dict(),
+                    test_data=test_data,
+                    current_user=current_user
                 )
                 return {
-                    "success": not execution_result.get('error'),
-                    "result": execution_result.get('data'),
+                    "success": bool(execution_result.get('success', False)),
+                    "result": execution_result.get('result') or execution_result.get('data'),
                     "error": execution_result.get('error'),
                     "execution_time": time.time() - start_time,
                     "timestamp": datetime.utcnow()
