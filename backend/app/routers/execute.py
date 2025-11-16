@@ -17,7 +17,7 @@ router = APIRouter()
     response_model=ExecuteResponse, 
     response_model_exclude_none=False,
     summary="执行指定工具",
-    description="使用给定参数执行指定工具并返回结果。"
+    description="使用给定参数执行指定工具并返回结果。鉴权：需要 JWT。\n\n请求体：tool_id（必填）、params（必填，HTTP 工具最小包含 query）、session_id（可选）、user_id（可选）。\n\n示例 cURL：\ncurl -X POST https://localhost:3000/api/v1/tools/execute \\\n  -H 'Authorization: Bearer <JWT>' -H 'Content-Type: application/json' \\\n  -d '{\"tool_id\":\"dify_xxx\",\"params\":{\"query\":\"你好\"}}'\n\n错误示例：\n- 404 工具不存在 - {\"error\":{\"code\":\"TOOL_NOT_FOUND\"}}",
 )
 # @stable(tested=2025-04-30, test_script=backend/test_api.py)
 async def execute_tool(

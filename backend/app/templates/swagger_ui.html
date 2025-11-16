@@ -24,7 +24,7 @@
     <!-- `SwaggerUIBundle` is now available on the page -->
     <script>
     const ui = SwaggerUIBundle({
-        url: '{{openapi_url}}',
+        url: (new URL('{{openapi_url}}', window.location.href)).href,
         dom_id: '#swagger-ui',
         presets: [
             SwaggerUIBundle.presets.apis,

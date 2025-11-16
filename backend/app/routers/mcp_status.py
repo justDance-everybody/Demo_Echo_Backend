@@ -13,9 +13,11 @@ from app.utils.security import get_current_user, get_admin_user
 
 router = APIRouter()
 
-@router.get("/mcp/health", 
-           summary="获取MCP服务器健康状态（无需认证）",
-           description="获取系统中所有MCP服务器的基本运行状态信息，无需认证。")
+@router.get(
+    "/mcp/health", 
+    summary="获取MCP服务器健康状态（无需认证）",
+    description="获取系统中所有MCP服务器的基本运行状态信息，无需认证。\n\n示例 cURL：\ncurl -X GET https://localhost:3000/api/v1/mcp/health"
+)
 async def get_mcp_servers_health() -> Dict[str, Any]:
     """
     获取所有MCP服务器健康状态（无需认证）
@@ -60,9 +62,11 @@ async def get_mcp_servers_health() -> Dict[str, Any]:
             "error": f"获取MCP服务器健康状态失败: {str(e)}"
         }
 
-@router.get("/mcp/status", 
-           summary="获取所有MCP服务器状态",
-           description="获取系统中所有MCP服务器的运行状态信息，包括运行状态、重启次数等。")
+@router.get(
+    "/mcp/status", 
+    summary="获取所有MCP服务器状态",
+    description="获取系统中所有MCP服务器的运行状态信息，包括运行状态、重启次数等。鉴权：需要 JWT。\n\n示例 cURL：\ncurl -X GET https://localhost:3000/api/v1/mcp/status -H 'Authorization: Bearer <JWT>'"
+)
 async def get_mcp_servers_status(
     current_user: dict = Depends(get_current_user)
 ) -> Dict[str, Any]:
@@ -107,9 +111,11 @@ async def get_mcp_servers_status(
         logger.error(f"获取MCP服务器状态失败: {e}")
         raise HTTPException(status_code=500, detail=f"获取MCP服务器状态失败: {str(e)}")
 
-@router.get("/mcp/status/{server_name}",
-           summary="获取指定MCP服务器状态",
-           description="获取指定名称的MCP服务器的详细状态信息。")
+@router.get(
+    "/mcp/status/{server_name}",
+    summary="获取指定MCP服务器状态",
+    description="获取指定名称的MCP服务器的详细状态信息。鉴权：需要 JWT。\n\n示例 cURL：\ncurl -X GET https://localhost:3000/api/v1/mcp/status/<server_name> -H 'Authorization: Bearer <JWT>'"
+)
 async def get_mcp_server_status(
     server_name: str,
     current_user: dict = Depends(get_current_user)
@@ -146,9 +152,11 @@ async def get_mcp_server_status(
         logger.error(f"获取MCP服务器 '{server_name}' 状态失败: {e}")
         raise HTTPException(status_code=500, detail=f"获取MCP服务器状态失败: {str(e)}")
 
-@router.post("/mcp/restart/{server_name}",
-            summary="重启MCP服务器",
-            description="重启指定的MCP服务器。需要管理员权限。")
+@router.post(
+    "/mcp/restart/{server_name}",
+    summary="重启MCP服务器",
+    description="重启指定的MCP服务器。需要管理员权限。\n\n示例 cURL：\ncurl -X POST https://localhost:3000/api/v1/mcp/restart/<server_name> -H 'Authorization: Bearer <JWT>'"
+)
 async def restart_mcp_server(
     server_name: str,
     current_user: dict = Depends(get_admin_user)
@@ -199,9 +207,11 @@ async def restart_mcp_server(
         logger.error(f"重启MCP服务器 '{server_name}' 时发生异常: {e}")
         raise HTTPException(status_code=500, detail=f"重启MCP服务器失败: {str(e)}")
 
-@router.post("/mcp/start/{server_name}",
-            summary="启动MCP服务器",
-            description="启动指定的MCP服务器。需要管理员权限。")
+@router.post(
+    "/mcp/start/{server_name}",
+    summary="启动MCP服务器",
+    description="启动指定的MCP服务器。需要管理员权限。\n\n示例 cURL：\ncurl -X POST https://localhost:3000/api/v1/mcp/start/<server_name> -H 'Authorization: Bearer <JWT>'"
+)
 async def start_mcp_server(
     server_name: str,
     current_user: dict = Depends(get_admin_user)
@@ -252,9 +262,11 @@ async def start_mcp_server(
         logger.error(f"启动MCP服务器 '{server_name}' 时发生异常: {e}")
         raise HTTPException(status_code=500, detail=f"启动MCP服务器失败: {str(e)}")
 
-@router.post("/mcp/stop/{server_name}",
-            summary="停止MCP服务器",
-            description="停止指定的MCP服务器。需要管理员权限。")
+@router.post(
+    "/mcp/stop/{server_name}",
+    summary="停止MCP服务器",
+    description="停止指定的MCP服务器。需要管理员权限。\n\n示例 cURL：\ncurl -X POST https://localhost:3000/api/v1/mcp/stop/<server_name> -H 'Authorization: Bearer <JWT>'"
+)
 async def stop_mcp_server(
     server_name: str,
     current_user: dict = Depends(get_admin_user)

@@ -152,7 +152,7 @@ async def custom_swagger_ui_html(request: Request):
         {
             "request": request,
             "title": settings.APP_NAME,
-            "openapi_url": app.openapi_url
+            "openapi_url": "/openapi.json"
         }
     )
 

@@ -25,7 +25,12 @@ router = APIRouter(
 )
 
 
-@router.get("/integrations", response_model=DeveloperToolListResponse)
+@router.get(
+    "/integrations",
+    response_model=DeveloperToolListResponse,
+    summary="获取开发者工具列表",
+    description="分页获取当前开发者的工具列表。\n\n鉴权：需要开发者或管理员角色（Authorization: Bearer <JWT>）。\n\n查询参数：page（默认1）、page_size（默认10，最大100）、status、is_public、search。",
+)
 async def get_developer_integrations(
     page: int = Query(1, ge=1, description="页码"),
     page_size: int = Query(10, ge=1, le=100, description="每页大小"),
@@ -61,23 +66,51 @@ async def get_developer_integrations(
     )
 
 
-@router.post("/integrations", response_model=DeveloperToolResponse)
+@router.post(
+    "/integrations",
+    response_model=DeveloperToolResponse,
+    summary="创建开发者工具",
+    description="创建新的开发者工具（支持 Dify 与 Coze 平台）",
+    responses={
+        401: {"description": "未授权"},
+        403: {"description": "权限不足"},
+        400: {"description": "请求错误"},
+        409: {"description": "冲突（tool_id已存在）"}
+    }
+)
 async def create_developer_integration(
     tool_data: DeveloperToolCreate,
     current_user: User = Depends(get_developer_user),
     db: AsyncSession = Depends(get_async_db_session)
 ):
     """
-    创建新的开发者工具
-    
-    Args:
-        tool_data: 工具创建数据
-        current_user: 当前开发者用户
-        db: 数据库会话
-        
+    创建新的开发者工具（仅支持 Dify 与 Coze 平台）。
+
+    鉴权：需要开发者或管理员角色。
+
+    字段说明：
+    - name（必填，2-30字）
+    - type（必填，枚举：mcp/http；此端点仅支持 http 下的 Dify/Coze）
+    - description（必填，20-200字）
+    - endpoint（必填，平台配置如下）
+      - Dify：platform='dify'（必填）、api_key 以 'app-' 开头（必填）、base_url（可选，默认 https://api.dify.ai/v1）、app_type（可选，自动探测）、app_config.response_mode（默认 'blocking'）
+      - Coze：platform='coze'（必填）、api_key 以 'pat_' 开头（必填）、base_url（可选，默认 https://api.coze.com/open_api）、app_config.bot_id（必填，数字）
+    - request_schema（可选，HTTP 未提供将自动生成最小 schema）
+    - response_schema（可选）
+    - is_public（默认 true）
+    - version（默认 1.0.0）
+    - tags（可选）
+    - tool_id（可选，未提供自动生成）
+
+    示例 cURL：
+    curl -X POST https://localhost:3000/api/v1/dev/integrations \
+      -H 'Authorization: Bearer <JWT>' \
+      -H 'Content-Type: application/json' \
+      -d '{"name":"Dify集成测试工具","type":"http","description":"用于测试Dify对话型应用提交","endpoint":{"platform":"dify","api_key":"app-xxxx","base_url":"https://api.dify.ai/v1"},"request_schema":{"type":"object","properties":{"query":{"type":"string"}},"required":["query"]}}'
+
     Returns:
         创建的工具信息
-        
+
     Raises:
         HTTPException: 如果工具ID已存在
     """
@@ -88,7 +121,12 @@ async def create_developer_integration(
     )
 
 
-@router.get("/integrations/{tool_id}", response_model=DeveloperToolResponse)
+@router.get(
+    "/integrations/{tool_id}",
+    response_model=DeveloperToolResponse,
+    summary="获取工具详情",
+    description="获取指定工具的详细信息。鉴权：需要开发者或管理员角色。",
+)
 async def get_developer_integration(
     tool_id: str,
     current_user: User = Depends(get_developer_user),
@@ -115,7 +153,12 @@ async def get_developer_integration(
     )
 
 
-@router.put("/integrations/{tool_id}", response_model=DeveloperToolResponse)
+@router.put(
+    "/integrations/{tool_id}",
+    response_model=DeveloperToolResponse,
+    summary="更新开发者工具",
+    description="更新指定工具的配置与元信息。鉴权：需要开发者或管理员角色。",
+)
 async def update_developer_integration(
     tool_id: str,
     tool_data: DeveloperToolUpdate,
@@ -145,7 +188,11 @@ async def update_developer_integration(
     )
 
 
-@router.delete("/integrations/{tool_id}")
+@router.delete(
+    "/integrations/{tool_id}",
+    summary="删除开发者工具",
+    description="删除指定工具。鉴权：需要开发者或管理员角色。",
+)
 async def delete_developer_integration(
     tool_id: str,
     current_user: User = Depends(get_developer_user),
@@ -172,19 +219,43 @@ async def delete_developer_integration(
     )
 
 
-@router.post("/integrations/validate-and-test", response_model=ToolTestResponse)
+@router.post(
+    "/integrations/validate-and-test",
+    response_model=ToolTestResponse,
+    summary="预提交验证与一次性测试",
+    description="验证配置并进行一次性连通性测试（不入库）",
+    responses={
+        401: {"description": "未授权"},
+        403: {"description": "权限不足"},
+        400: {"description": "配置或连通性验证失败"},
+        500: {"description": "服务器错误"}
+    }
+)
 async def validate_and_test_integration(
     request_data: ToolValidateRequest,  # 使用正确的模型
     current_user: User = Depends(get_developer_user),
     db: AsyncSession = Depends(get_async_db_session)
 ):
     """
-    验证工具配置并执行一次性测试（不保存到数据库）
+    验证集成配置并进行一次性连通性测试（不入库）。
+
+    鉴权：需要开发者或管理员角色。
+
+    请求体：
+    - integration_config（必填，与创建一致）
+    - test_data（可选，Dify Chat 使用 {query:"..."}；Workflow 使用 {inputs:{...}}）
+
+    示例 cURL：
+    curl -X POST https://localhost:3000/api/v1/dev/integrations/validate-and-test \
+      -H 'Authorization: Bearer <JWT>' \
+      -H 'Content-Type: application/json' \
+      -d '{"integration_config": {"name":"Dify测试","type":"http","description":"...","endpoint":{"platform":"dify","api_key":"app-xxxx","base_url":"https://api.dify.ai/v1"}},"test_data": {"query":"你好"}}'
     """
     # 注意：这里的 tool_data 和 test_data 已经被 Pydantic 模型解析
+    config_payload = request_data.integration_config
     result = await dev_tool_service.validate_and_test_config(
         db=db,
-        config=request_data.integration_config.dict(),  # 传递配置字典
+        config=config_payload,
         test_data=request_data.test_data,
         current_user=current_user
     )
@@ -192,32 +263,19 @@ async def validate_and_test_integration(
     return result
 
 
-@router.post("/integrations/validate-and-test", response_model=ToolTestResponse)
-async def validate_and_test_integration(
-    request_data: "ToolValidateRequest",
-    current_user: User = Depends(get_developer_user),
-    db: AsyncSession = Depends(get_async_db_session)
-):
-    """
-    验证工具配置并执行一次性测试（不保存到数据库）
-    """
-    result = await dev_tool_service.validate_and_test_config(
-        db=db,
-        tool_data=request_data.integration_config,
-        test_data=request_data.test_data,
-        current_user=current_user
-    )
-    
-    return ToolTestResponse(
-        success=result["success"],
-        result=result["result"],
-        error=result["error"],
-        execution_time=result["execution_time"],
-        timestamp=result["timestamp"]
-    )
 
 
-@router.post("/integrations/{tool_id}/test", response_model=ToolTestResponse)
+@router.post(
+    "/integrations/{tool_id}/test",
+    response_model=ToolTestResponse,
+    summary="测试已创建的工具",
+    description="对已创建的工具进行一次性测试",
+    responses={
+        401: {"description": "未授权"},
+        403: {"description": "权限不足"},
+        404: {"description": "工具不存在"}
+    }
+)
 async def test_developer_integration(
     tool_id: str,
     test_data: ToolTestRequest,
@@ -225,14 +283,19 @@ async def test_developer_integration(
     db: AsyncSession = Depends(get_async_db_session)
 ):
     """
-    测试指定的开发者工具
-    
-    Args:
-        tool_id: 工具ID
-        test_data: 测试数据
-        current_user: 当前开发者用户
-        db: 数据库会话
-        
+    对已创建的工具进行一次性测试。
+
+    鉴权：需要开发者或管理员角色。
+
+    请求体：
+    - test_data（必填）：如 Dify Chat 使用 {query:"..."}
+
+    示例 cURL：
+    curl -X POST https://localhost:3000/api/v1/dev/integrations/<tool_id>/test \
+      -H 'Authorization: Bearer <JWT>' \
+      -H 'Content-Type: application/json' \
+      -d '{"test_data": {"query": "你好"}}'
+
     Returns:
         测试结果
     """
