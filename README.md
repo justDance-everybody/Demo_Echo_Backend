@@ -103,6 +103,31 @@ curl http://localhost:3000/health
 | `/api/v1/dev/integrations` | GET/POST/PUT/DELETE | 开发者 API 集成 | ✅ (developer) |
 | `/api/v1/mcp/status` | GET | MCP 服务器状态 | ✅ |
 
+### /api/v1/intent/confirm 使用与播报口径
+
+- 路径与鉴权：`POST /api/v1/intent/confirm`，需要 JWT；`session_id` 必填；`user_id` 由鉴权自动确定（无需在请求体传）。
+- 请求体：
+  - `session_id: string`
+  - `user_input: string`（如“确认执行”、“取消”等，用于表达确认或拒绝）
+- 响应模型（固定）：
+  - `session_id: string`
+  - `success: boolean`
+  - `content: string | null`（成功时用于语音播报的纯正文）
+  - `error: string | null`（失败/超时的原因简述）
+- 播报规则（前端）：
+  - 成功：仅播报 `content`。该字段为纯正文，不包含说明性前缀/道歉/技术细节或工具名称；多工具结果用换行分隔；区块链地址统一缩写（如 `0x123456…5678`）。
+  - 失败/超时：仅播报 `error` 的简述版本（限制长度、去技术细节）。
+- 行为说明：
+  - 聚合层仅依赖各工具的 `data.tts_message` 生成 `content`；如缺失则统一用抽取与忠实改写补齐，避免直接返回第三方的 `answer/message/str(data)`。
+  - 未确认/拒绝时，不执行工具，直接返回提示文本到 `content`（如“请重新告诉我您需要什么帮助”）。
+- 示例：
+  - 未确认/拒绝：`{"session_id":"s1","success":true,"content":"请重新告诉我您需要什么帮助","error":null}`
+  - 成功（多工具）：`{"session_id":"s1","success":true,"content":"天气晴，22℃\n\n账户余额 123.45 USDT (地址 0x123456…5678)","error":null}`
+  - 失败：`{"session_id":"s1","success":false,"content":null,"error":"执行过程中出现错误: …"}`
+  - 超时：`{"session_id":"s1","success":false,"content":null,"error":"确认执行超时 (180秒)"}`
+
+> 前端集成建议：只读取 `content` 或 `error` 进行播报，无需解析工具专属字段；使用 `session_id` 做会话关联即可。
+
 ### 📦 开发者 API 集成
 
 第三方开发者可以通过表单方式集成 Dify/Coze 平台的 API 服务。
@@ -253,7 +278,7 @@ pip install git+https://github.com/modelcontextprotocol/python-sdk.git
 需要更多信息？查看完整文档：
 
 - **[后端开发文档](./docs/后端开发文档.md)** - 详细的开发指南和配置说明
-- **[前后端对接与API规范](./docs/前后端对接与API规范.md)** - API 接口详细说明
+- **[前后端对接与API规范](./docs/前后端对接与API规范.md)** - API 接口详细说明（含 `/api/v1/intent/confirm` 使用、播报口径与地址缩写说明）
 - **[业务场景测试用例](./docs/业务场景测试用例.md)** - 测试用例和验收标准
 - **[生产部署指南](./docs/生产部署指南.md)** - systemd、supervisor、Docker 部署
 - **[故障排查手册](./docs/故障排查手册.md)** - 常见问题和解决方案

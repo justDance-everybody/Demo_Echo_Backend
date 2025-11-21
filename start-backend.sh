@@ -20,7 +20,7 @@ SERVICE_NAME="AI Assistant Backend"
 BACKEND_DIR="$(pwd)/backend"
 
 # 从.env文件读取端口配置，默认3000
-env_file="$(pwd)/backend/.env"
+env_file="$(pwd)/.env"
 if [ -f "$env_file" ]; then
     SERVICE_PORT=$(grep "^PORT=" "$env_file" | cut -d'=' -f2)
 fi
@@ -74,7 +74,7 @@ validate_environment() {
     fi
     
     # 从.env文件读取虚拟环境路径
-    local env_file="$(pwd)/backend/.env"
+    local env_file="$(pwd)/.env"
     if [ -f "$env_file" ]; then
         local venv_path=$(grep "^VIRTUAL_ENV_PATH=" "$env_file" | cut -d'=' -f2)
         if [ -z "$venv_path" ]; then
@@ -84,7 +84,7 @@ validate_environment() {
         
         log_message "INFO" "使用端口: $SERVICE_PORT"
     else
-        log_message "ERROR" "backend/.env 文件不存在"
+        log_message "ERROR" ".env 文件不存在"
         return 1
     fi
     

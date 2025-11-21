@@ -98,7 +98,7 @@ fetch('/api/v1/tools', {
 | `/api/v1/dev/integrations/{id}` | PUT | ✅ | 更新集成 |
 | `/api/v1/dev/integrations/{id}` | DELETE | ✅ | 删除集成 |
 | `/api/v1/dev/integrations/{id}/test` | POST | ✅ | 测试已保存的集成 |
-| `/api/v1/dev/integrations/validate-and-test` | POST | ✅ | **【新】**预提交验证与测试<br>**注意**：目前 Dify 集成仅支持“工作流(Workflow)”模式。 |
+| `/api/v1/dev/integrations/validate-and-test` | POST | ✅ | **【新】**预提交验证与测试<br>**注意**：Dify 支持 `chat`/`workflow`/`agent`/`completion` 四种应用类型；`base_url` 必须包含 `/v1`；未提供 `endpoint.app_type` 时系统尝试自动探测。 |
 
 ---
 
@@ -185,8 +185,8 @@ graph TB
 **Endpoint 配置示例**：
 
 ```javascript
-// Dify 平台 (注意：目前仅支持工作流 Workflow 模式)
-{ platform: "dify", api_key: "app-xxxxx" }
+// Dify 平台
+{ platform: "dify", api_key: "app-xxxxx", base_url: "https://api.dify.ai/v1", app_type: "chat", app_config: { response_mode: "blocking" } }
 
 // Coze 平台  
 { platform: "coze", api_key: "pat-xxxxx", app_config: { bot_id: "123456" } }
@@ -211,6 +211,158 @@ graph TB
 
 ---
 
+## 🔧 开发者集成端到端指南（Dify/Coze）
+
+### 前置条件与安全
+- Dify：`api_key` 以 `app-` 开头；`base_url` 建议使用 `https://api.dify.ai/v1`；应用需已发布；`endpoint.app_type` 可显式指定为 `chat`/`workflow`/`agent`/`completion`。
+- Coze：`api_key` 以 `pat_` 开头；`base_url` 默认 `https://api.coze.com/open_api`；`app_config.bot_id` 必填且为数字。
+- 错误透明化：
+  - 创建阶段自动探测失败返回 `detail.attempts`（含端点、状态码、截断后的响应体）。
+  - 执行/验证阶段失败返回 `error.details`（原始上游响应文本，截断）。
+
+### 获取令牌
+```bash
+curl -X POST http://localhost:3000/api/v1/auth/token \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  -d 'username=devuser_5090&password=mryuWTGdMk'
+```
+返回示例：`{"access_token":"...","token_type":"bearer","role":"developer"}`
+
+### 创建集成（Dify）
+- Chat（显式 `app_type`，推荐）：
+```bash
+curl -X POST http://localhost:3000/api/v1/dev/integrations \
+  -H 'Authorization: Bearer <JWT>' -H 'Content-Type: application/json' \
+  -d '{
+    "name":"Dify Chat 示例","type":"http","description":"...",
+    "endpoint":{
+      "platform":"dify","api_key":"app-xxxx","base_url":"https://api.dify.ai/v1",
+      "app_type":"chat","app_config":{"response_mode":"blocking"}
+    },
+    "request_schema":{"type":"object","properties":{"query":{"type":"string"}},"required":["query"]}
+  }'
+```
+- Workflow：
+```bash
+curl -X POST http://localhost:3000/api/v1/dev/integrations \
+  -H 'Authorization: Bearer <JWT>' -H 'Content-Type: application/json' \
+  -d '{
+    "name":"Dify Workflow 示例","type":"http","description":"...",
+    "endpoint":{
+      "platform":"dify","api_key":"app-xxxx","base_url":"https://api.dify.ai/v1",
+      "app_type":"workflow","app_config":{"response_mode":"blocking"}
+    }
+  }'
+```
+- Agent：
+```bash
+curl -X POST http://localhost:3000/api/v1/dev/integrations \
+  -H 'Authorization: Bearer <JWT>' -H 'Content-Type: application/json' \
+  -d '{
+    "name":"Dify Agent 示例","type":"http","description":"...",
+    "endpoint":{
+      "platform":"dify","api_key":"app-xxxx","base_url":"https://api.dify.ai/v1",
+      "app_type":"agent","app_config":{"response_mode":"blocking"}
+    }
+  }'
+```
+- Completion：
+```bash
+curl -X POST http://localhost:3000/api/v1/dev/integrations \
+  -H 'Authorization: Bearer <JWT>' -H 'Content-Type: application/json' \
+  -d '{
+    "name":"Dify Completion 示例","type":"http","description":"...",
+    "endpoint":{
+      "platform":"dify","api_key":"app-xxxx","base_url":"https://api.dify.ai/v1",
+      "app_type":"completion","app_config":{"response_mode":"blocking"}
+    }
+  }'
+```
+
+### 创建集成（Coze）
+```bash
+curl -X POST http://localhost:3000/api/v1/dev/integrations \
+  -H 'Authorization: Bearer <JWT>' -H 'Content-Type: application/json' \
+  -d '{
+    "name":"Coze 示例","type":"http","description":"...",
+    "endpoint":{
+      "platform":"coze","api_key":"pat_xxxx","base_url":"https://api.coze.com/open_api",
+      "app_config":{"bot_id":123456789}
+    }
+  }'
+```
+
+### 预提交验证与一次性测试
+- Dify Chat：
+```bash
+curl -X POST http://localhost:3000/api/v1/dev/integrations/validate-and-test \
+  -H 'Authorization: Bearer <JWT>' -H 'Content-Type: application/json' \
+  -d '{
+    "integration_config": {"name":"Dify Chat 示例","type":"http","description":"...","endpoint":{
+      "platform":"dify","api_key":"app-xxxx","base_url":"https://api.dify.ai/v1","app_type":"chat"
+    }},
+    "test_data": {"query":"你好"}
+  }'
+```
+- Dify Workflow：
+```bash
+curl -X POST http://localhost:3000/api/v1/dev/integrations/validate-and-test \
+  -H 'Authorization: Bearer <JWT>' -H 'Content-Type: application/json' \
+  -d '{
+    "integration_config": {"name":"Dify Workflow 示例","type":"http","description":"...","endpoint":{
+      "platform":"dify","api_key":"app-xxxx","base_url":"https://api.dify.ai/v1","app_type":"workflow"
+    }},
+    "test_data": {"inputs": {"k1":"v1"}}
+  }'
+```
+- Coze：
+```bash
+curl -X POST http://localhost:3000/api/v1/dev/integrations/validate-and-test \
+  -H 'Authorization: Bearer <JWT>' -H 'Content-Type: application/json' \
+  -d '{
+    "integration_config": {"name":"Coze 示例","type":"http","description":"...","endpoint":{
+      "platform":"coze","api_key":"pat_xxxx","base_url":"https://api.coze.com/open_api","app_config":{"bot_id":123456789}
+    }},
+    "test_data": {"query":"你好"}
+  }'
+```
+
+成功响应将包含：`success: true` 与 `result`；失败响应将包含：`error` 或 `error.details`（上游错误文本）。
+
+### 测试已创建的集成
+```bash
+curl -X POST http://localhost:3000/api/v1/dev/integrations/<tool_id>/test \
+  -H 'Authorization: Bearer <JWT>' -H 'Content-Type: application/json' \
+  -d '{"test_data": {"query": "你好"}}'
+```
+返回示例：`data.original_dify_response` 或 `data.original_coze_response`。
+
+### 探测失败与错误透明化示例
+- 创建时自动探测失败：
+```json
+{
+  "detail": {
+    "message": "无法识别 Dify 应用类型。请检查 API Key 是否有效，或应用是否已发布。",
+    "attempts": [
+      {"endpoint":"chat-messages","status":401,"body":"{\"code\":\"unauthorized\"...}"},
+      {"endpoint":"workflows/run","status":400,"body":"{\"code\":\"not_workflow_app\"...}"}
+    ]
+  }
+}
+```
+- 执行阶段失败：
+```json
+{
+  "error": {
+    "code": "DIFY_HTTP_ERROR",
+    "message": "调用 dify API 失败 (Status: 400)",
+    "details": "{\"code\":\"app_unavailable\",\"message\":\"App unavailable...\"}"
+  }
+}
+```
+
+---
+
 ## 📐 开发规范
 
 ### 字段命名
@@ -227,7 +379,7 @@ graph TB
 | 角色 | 默认用户名 | 默认密码 |
 |------|-----------|---------|
 | 普通用户 | `testuser_5090` | `8lpcUY2BOt` |
-| 开发者 | `devuser_5090` | `` |
+| 开发者 | `devuser_5090` | `mryuWTGdMk` |
 | 管理员 | `adminuser_5090` | `SAKMRtxCjT` |
 
 ---

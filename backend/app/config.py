@@ -9,9 +9,8 @@ from pydantic import Field, Extra
 
 # # load_dotenv() # pydantic-settings 会自动加载 env_file 指定的文件
 
-# 获取 backend 目录的绝对路径
-BACKEND_DIR = Path(__file__).parent.parent
-DOTENV_PATH = BACKEND_DIR / ".env"
+# 统一从 Backend 根目录加载 .env
+DOTENV_PATH = Path(__file__).resolve().parents[2] / ".env"
 
 logger.info(f"尝试加载 .env 文件: {DOTENV_PATH}, 是否存在: {DOTENV_PATH.exists()}")
 
@@ -23,7 +22,7 @@ class Settings(BaseSettings):
     
     # 应用信息
     APP_NAME: str = Field(default="AI Assistant API", env="APP_NAME")
-    VERSION: str = Field(default="0.1.0", env="VERSION")
+    VERSION: str = Field(default="0.1.1", env="VERSION")
     API_PREFIX: str = Field(default="/api/v1", env="API_PREFIX")
     
     # 环境配置
@@ -51,6 +50,8 @@ class Settings(BaseSettings):
     # 新增 LLM 参数
     LLM_TEMPERATURE: float = Field(default=0.7, env="LLM_TEMPERATURE")
     LLM_MAX_TOKENS: int = Field(default=1000, env="LLM_MAX_TOKENS")
+    # 执行总超时（秒）
+    EXECUTION_TIMEOUT: int = Field(default=180, env="EXECUTION_TIMEOUT")
     
     # MCP配置
     MCP_CLIENT_PATH: str = Field(default="../MCP_Client", env="MCP_CLIENT_PATH")

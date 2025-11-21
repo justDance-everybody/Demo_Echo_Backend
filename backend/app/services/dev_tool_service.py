@@ -14,6 +14,7 @@ from app.schemas.dev_tools import (
     DeveloperToolResponse,
     DeveloperToolListResponse
 )
+from app.services.execute_service import execute_service
 
 
 class DeveloperToolService:
@@ -153,16 +154,17 @@ class DeveloperToolService:
                 
                 # Dify 特殊处理：自动探测应用类型
                 if platform == "dify":
-                    # 自动探测应用类型（会自动测试连通性）
-                    detected_type = await self._detect_dify_app_type(tool_data.endpoint)
-                    tool_data.endpoint["app_type"] = detected_type
-                    
-                    # 设置 app_config
+                    explicit_type = tool_data.endpoint.get("app_type")
+                    if explicit_type:
+                        logger.info(f"使用显式 Dify 应用类型: {explicit_type}")
+                        tool_data.endpoint["app_type"] = explicit_type
+                    else:
+                        detected_type = await self._detect_dify_app_type(tool_data.endpoint)
+                        tool_data.endpoint["app_type"] = detected_type
+                        logger.info(f"✅ Dify 工具配置完成 - 应用类型: {detected_type}")
                     if "app_config" not in tool_data.endpoint:
                         tool_data.endpoint["app_config"] = {}
                     tool_data.endpoint["app_config"]["response_mode"] = "blocking"
-                    
-                    logger.info(f"✅ Dify 工具配置完成 - 应用类型: {detected_type}")
                 
                 # Coze 平台仍使用原有的连通性测试
                 elif platform == "coze":
@@ -432,11 +434,12 @@ class DeveloperToolService:
 
                 success = execution_result.get("success", False)
                 error_message = execution_result.get("error")
+                details = execution_result.get("details")
                 
                 if not success:
                     return {
                         "success": False,
-                        "result": None,
+                        "result": {"details": details},
                         "error": f"连通性测试失败: {error_message}",
                         "execution_time": time.time() - start_time,
                         "timestamp": datetime.utcnow()
@@ -610,11 +613,8 @@ class DeveloperToolService:
         import time
         start_time = time.time()
         try:
-            # 导入执行服务
-            from app.services.execute_service import ExecuteService
-            
-            # 创建执行服务实例
-            execute_service = ExecuteService()
+            # 使用统一单例
+            from app.services.execute_service import execute_service
             
             # 调用执行服务测试工具
             execute_result = await execute_service.execute_tool(
@@ -821,97 +821,77 @@ class DeveloperToolService:
         
         logger.info(f"开始自动探测 Dify 应用类型: {api_key[:15]}...")
         
-        # 1. 尝试 Chat App
-        try:
-            url = f"{base_url}/chat-messages"
+        attempts = []
+        async def try_endpoint(path: str, payload: dict) -> Optional[str]:
+            url = f"{base_url}/{path}"
             headers = {
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json"
             }
-            payload = {
-                "query": test_query,
-                "user": "test-user",
-                "response_mode": "blocking",
-                "inputs": {}
-            }
-            
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                response = await client.post(url, headers=headers, json=payload)
-                if response.status_code == 200:
-                    logger.info("✅ 探测成功：Dify 应用类型为 Chat App")
-                    return "chat"
-        except Exception as e:
-            logger.debug(f"Chat App 探测失败: {e}")
-        
-        # 2. 尝试 Workflow
-        try:
-            url = f"{base_url}/workflows/run"
-            headers = {
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json"
-            }
-            payload = {
-                "inputs": {"query": test_query},
-                "user": "test-user",
-                "response_mode": "blocking"
-            }
-            
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                response = await client.post(url, headers=headers, json=payload)
-                if response.status_code == 200:
-                    logger.info("✅ 探测成功：Dify 应用类型为 Workflow")
-                    return "workflow"
-        except Exception as e:
-            logger.debug(f"Workflow 探测失败: {e}")
-        
-        # 3. 尝试 Agent
-        try:
-            url = f"{base_url}/agent/chat"
-            headers = {
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json"
-            }
-            payload = {
-                "query": test_query,
-                "user": "test-user",
-                "response_mode": "blocking",
-                "inputs": {}
-            }
-            
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                response = await client.post(url, headers=headers, json=payload)
-                if response.status_code == 200:
-                    logger.info("✅ 探测成功：Dify 应用类型为 Agent")
-                    return "agent"
-        except Exception as e:
-            logger.debug(f"Agent 探测失败: {e}")
-        
-        # 4. 尝试 Completion
-        try:
-            url = f"{base_url}/completion-messages"
-            headers = {
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json"
-            }
-            payload = {
-                "inputs": {},
-                "user": "test-user",
-                "response_mode": "blocking"
-            }
-            
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                response = await client.post(url, headers=headers, json=payload)
-                if response.status_code == 200:
-                    logger.info("✅ 探测成功：Dify 应用类型为 Completion")
-                    return "completion"
-        except Exception as e:
-            logger.debug(f"Completion 探测失败: {e}")
-        
-        # 所有端点都失败
+            try:
+                async with httpx.AsyncClient(timeout=10.0) as client:
+                    response = await client.post(url, headers=headers, json=payload)
+                    if response.status_code == 200:
+                        return "success"
+                    body = response.text or ""
+                    attempts.append({
+                        "endpoint": path,
+                        "status": response.status_code,
+                        "body": body[:500]
+                    })
+            except Exception as e:
+                attempts.append({
+                    "endpoint": path,
+                    "status": None,
+                    "body": str(e)[:500]
+                })
+            return None
+        r = await try_endpoint("chat-messages", {
+            "query": test_query,
+            "user": "test-user",
+            "response_mode": "blocking",
+            "inputs": {}
+        })
+        if r:
+            logger.info("✅ 探测成功：Dify 应用类型为 Chat App")
+            return "chat"
+        r = await try_endpoint("workflows/run", {
+            "inputs": {"query": test_query},
+            "user": "test-user",
+            "response_mode": "blocking"
+        })
+        if r:
+            logger.info("✅ 探测成功：Dify 应用类型为 Workflow")
+            return "workflow"
+        # 如果返回的是参数错误，仍可判定为 workflow（路由正确但缺少业务必填项）
+        for att in attempts:
+            if att.get("endpoint") == "workflows/run" and att.get("status") == 400 and "invalid_param" in (att.get("body") or ""):
+                logger.info("✅ 探测识别：Dify 应用类型为 Workflow（缺少业务必填项）")
+                return "workflow"
+        r = await try_endpoint("agent/chat", {
+            "query": test_query,
+            "user": "test-user",
+            "response_mode": "blocking",
+            "inputs": {}
+        })
+        if r:
+            logger.info("✅ 探测成功：Dify 应用类型为 Agent")
+            return "agent"
+        r = await try_endpoint("completion-messages", {
+            "inputs": {},
+            "user": "test-user",
+            "response_mode": "blocking"
+        })
+        if r:
+            logger.info("✅ 探测成功：Dify 应用类型为 Completion")
+            return "completion"
         logger.error("❌ 无法探测 Dify 应用类型，所有端点都失败")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="无法识别 Dify 应用类型。请检查 API Key 是否有效，或应用是否已发布。"
+            detail={
+                "message": "无法识别 Dify 应用类型。请检查 API Key 是否有效，或应用是否已发布。",
+                "attempts": attempts
+            }
         )
 
     async def _test_platform_connectivity(self, endpoint: dict, platform: str):

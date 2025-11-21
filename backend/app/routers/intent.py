@@ -55,8 +55,8 @@ async def process_intent(
     "/confirm",
     response_model=ConfirmResponse,
     response_model_exclude_none=False,
-    summary="确认执行",
-    description="当需要用户确认时，提交确认以执行对应工具。鉴权：需要 JWT。\n\n示例 cURL：\ncurl -X POST https://localhost:3000/api/v1/intent/confirm \\\n  -H 'Authorization: Bearer <JWT>' -H 'Content-Type: application/json' \\\n  -d '{\"session_id\":\"s1\",\"user_input\":\"确认执行\"}'",
+    summary="确认执行与播报",
+    description="当需要用户确认时，提交确认以执行对应工具并返回用于语音播报的纯正文。鉴权：需要 JWT。\n\n请求体：\n- session_id: string（必填）\n- user_input: string（如\"确认执行\"或\"取消\"）\n\n响应模型（固定）：\n- session_id: string\n- success: boolean\n- content: string|null（成功时用于播报的纯正文，不含说明性前缀/道歉/技术细节；多工具用换行；区块链地址将统一缩写，如 0x123456…5678）\n- error: string|null（失败或超时原因的简述）\n\n前端播报：\n- 成功：仅播报 content；为空则使用通用文案\"操作执行成功\"。\n- 失败/超时：仅播报 error 的简述版本。\n\n示例 cURL：\ncurl -X POST https://localhost:3000/api/v1/intent/confirm \\\n  -H 'Authorization: Bearer <JWT>' -H 'Content-Type: application/json' \\\n  -d '{\"session_id\":\"s1\",\"user_input\":\"确认执行\"}'\n\n示例响应：\n- 未确认/拒绝：{\"session_id\":\"s1\",\"success\":true,\"content\":\"请重新告诉我您需要什么帮助\",\"error\":null}\n- 成功（多工具）：{\"session_id\":\"s1\",\"success\":true,\"content\":\"天气晴，22℃\\n\\n账户余额 123.45 USDT (地址 0x123456…5678)\",\"error\":null}\n- 失败：{\"session_id\":\"s1\",\"success\":false,\"content\":null,\"error\":\"执行过程中出现错误: …\"}\n- 超时：{\"session_id\":\"s1\",\"success\":false,\"content\":null,\"error\":\"确认执行超时 (180秒)\"}",
 )
 async def confirm_execution(
     request: ConfirmRequest = Body(...),

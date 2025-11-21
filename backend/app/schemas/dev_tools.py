@@ -23,13 +23,35 @@ class DeveloperToolCreate(BaseModel):
     )
     endpoint: Dict[str, Any] = Field(
         ..., 
-        description="工具端点配置：HTTP+dify需 platform='dify' 与以 'app-' 开头的 api_key，base_url 可选（默认 https://api.dify.ai/v1）；HTTP+coze需 platform='coze' 与以 'pat_' 开头的 api_key，默认 base_url=https://api.coze.com/open_api，且 app_config.bot_id 必填（数字）；MCP建议提供 server_name。",
+        description="工具端点配置：HTTP+dify需 platform='dify' 与以 'app-' 开头的 api_key，base_url 建议包含 '/v1'（默认 https://api.dify.ai/v1）；可选 app_type（chat/workflow/agent/completion），未提供时系统尝试自动探测；HTTP+coze需 platform='coze' 与以 'pat_' 开头的 api_key，默认 base_url=https://api.coze.com/open_api，且 app_config.bot_id 必填（数字）；MCP建议提供 server_name。",
         json_schema_extra={
             "examples": [
                 {
                     "platform": "dify",
                     "api_key": "app-xxxxx",
                     "base_url": "https://api.dify.ai/v1",
+                    "app_type": "chat",
+                    "app_config": {"response_mode": "blocking"}
+                },
+                {
+                    "platform": "dify",
+                    "api_key": "app-xxxxx",
+                    "base_url": "https://api.dify.ai/v1",
+                    "app_type": "workflow",
+                    "app_config": {"response_mode": "blocking"}
+                },
+                {
+                    "platform": "dify",
+                    "api_key": "app-xxxxx",
+                    "base_url": "https://api.dify.ai/v1",
+                    "app_type": "agent",
+                    "app_config": {"response_mode": "blocking"}
+                },
+                {
+                    "platform": "dify",
+                    "api_key": "app-xxxxx",
+                    "base_url": "https://api.dify.ai/v1",
+                    "app_type": "completion",
                     "app_config": {"response_mode": "blocking"}
                 },
                 {
@@ -150,6 +172,48 @@ class ToolTestRequest(BaseModel):
     tool_config: Optional[Dict[str, Any]] = Field(None, description="工具配置（测试未保存工具）")
     test_data: Dict[str, Any] = Field(..., description="测试数据")
     timeout: Optional[int] = Field(30, description="超时时间（秒）")
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "tool_id": "dify_17200000_abcd1234",
+                    "test_data": {"query": "你好", "inputs": {}},
+                    "timeout": 30
+                },
+                {
+                    "tool_config": {
+                        "name": "Dify工作流测试",
+                        "type": "http",
+                        "description": "...",
+                        "endpoint": {
+                            "platform": "dify",
+                            "api_key": "app-xxxxx",
+                            "base_url": "https://api.dify.ai/v1",
+                            "app_type": "workflow",
+                            "app_config": {"response_mode": "blocking"}
+                        }
+                    },
+                    "test_data": {"inputs": {"k1": "v1"}},
+                    "timeout": 30
+                },
+                {
+                    "tool_config": {
+                        "name": "Coze测试",
+                        "type": "http",
+                        "description": "...",
+                        "endpoint": {
+                            "platform": "coze",
+                            "api_key": "pat_xxxxx",
+                            "base_url": "https://api.coze.com/open_api",
+                            "app_config": {"bot_id": 123456789}
+                        }
+                    },
+                    "test_data": {"query": "你好"},
+                    "timeout": 30
+                }
+            ]
+        }
+    }
 
 
 class ToolTestResponse(BaseModel):

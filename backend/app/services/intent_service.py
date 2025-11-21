@@ -4,7 +4,7 @@ from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from loguru import logger
-from app.utils.openai_client import openai_client
+from app.utils.openai_client import get_openai_client
 from app.models.tool import Tool
 from app.config import settings
 
@@ -133,7 +133,15 @@ class IntentService:
                 api_params["tools"] = available_tools
                 api_params["tool_choice"] = "auto"  # 让模型自己决定是否调用工具
             
-            response = await openai_client.client.chat.completions.create(**api_params)
+            client = get_openai_client()
+            if not client:
+                # LLM不可用时，直接返回无工具回复
+                return {
+                    "type": "direct_response",
+                    "content": "我可以处理您的请求，当前未连接到LLM服务，您可以直接告诉我需要调用的工具或继续输入问题。",
+                    "session_id": session_id,
+                }
+            response = await client.client.chat.completions.create(**api_params)
 
             response_message = response.choices[0].message
             tool_calls = getattr(response_message, "tool_calls", None)
@@ -294,12 +302,14 @@ class IntentService:
             )
             
             # 调用LLM生成确认文本
+            client = get_openai_client()
+            if not client:
+                return "您确认要执行这个操作吗？"
             messages = [
-                {"role": "system", "content": openai_client.tool_confirmation_prompt},
+                {"role": "system", "content": client.tool_confirmation_prompt},
                 {"role": "user", "content": prompt}
             ]
-            
-            response = await openai_client.client.chat.completions.create(
+            response = await client.client.chat.completions.create(
                 model=settings.LLM_MODEL,
                 messages=messages,
                 temperature=0.3,  # 低温度，保持回复的一致性
@@ -479,30 +489,31 @@ class IntentService:
                 detailed_results = []
                 
                 for result in results:
-                    # 添加调试日志
                     logger.debug(f"[Session: {session_id}] 处理工具结果: tool_id={result.tool_id}, success={result.success}, data={result.data}")
-                    
                     if result.data:
-                        # 优先使用tts_message，如果没有则尝试其他字段
-                        if result.data.get("tts_message"):
-                            content_parts.append(result.data["tts_message"])
-                            logger.debug(f"[Session: {session_id}] 使用 tts_message: {result.data['tts_message']}")
-                        elif result.data.get("original_dify_response"):
-                            # 对于Dify工具，提取answer字段
-                            dify_answer = result.data["original_dify_response"].get("answer", "")
-                            if dify_answer:
-                                content_parts.append(dify_answer)
-                                logger.debug(f"[Session: {session_id}] 使用 dify_answer: {dify_answer}")
-                        elif result.data.get("message"):
-                            content_parts.append(str(result.data["message"]))
-                            logger.debug(f"[Session: {session_id}] 使用 message: {result.data['message']}")
+                        tts = result.data.get("tts_message")
+                        if tts:
+                            content_parts.append(tts)
+                            logger.debug(f"[Session: {session_id}] 使用 tts_message: {tts}")
                         else:
-                            # 如果都没有，尝试将整个data转换为字符串
-                            data_str = str(result.data)
-                            content_parts.append(data_str)
-                            logger.warning(f"[Session: {session_id}] 使用整个data作为内容: {data_str}")
-                        
-                        # 保存详细结果用于调试
+                            # 当缺失 tts_message 时，使用执行层的提取与改写方法生成
+                            try:
+                                from app.services.execute_service import ExecuteService
+                                es = ExecuteService()
+                                speakable = es._extract_speakable_text(result.data)
+                                try:
+                                    safe_tts = await es._faithful_tts({}, speakable)
+                                    content_parts.append(safe_tts)
+                                    logger.debug(f"[Session: {session_id}] 补齐 tts_message: {safe_tts}")
+                                except Exception:
+                                    # LLM 不可用或改写失败时，直接使用提取后的可播报文本
+                                    content_parts.append(speakable)
+                                    logger.debug(f"[Session: {session_id}] 使用提取后的文本作为播报: {speakable}")
+                            except Exception as e:
+                                # 仅在无法提取时，最后兜底为字符串化
+                                data_str = str(result.data)
+                                content_parts.append(data_str)
+                                logger.warning(f"[Session: {session_id}] 兜底使用字符串化数据: {data_str}，原因: {e}")
                         detailed_results.append({
                             "tool_id": result.tool_id,
                             "success": result.success,
