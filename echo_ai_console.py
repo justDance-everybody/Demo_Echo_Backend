@@ -28,7 +28,7 @@ import readline  # 启用命令行历史记录
 from dotenv import load_dotenv
 
 # 加载环境变量
-load_dotenv(os.path.join(os.path.dirname(__file__), 'backend', '.env'))
+load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
 
 
 class EchoAIConsole:

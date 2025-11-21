@@ -11,7 +11,7 @@ WorkingDirectory=%h/project/Backend
 Environment=SERVICE_PORT=3000
 Environment=SERVICE_HOST=0.0.0.0
 Environment=PYTHONPATH=%h/project/Backend/backend
-Environment=PATH=%h/project/Backend/backend/.venv/bin:/usr/local/bin:/usr/bin:/bin
+Environment=PATH=%h/project/Backend/.venv/bin:/usr/local/bin:/usr/bin:/bin
 ExecStart=%h/project/Backend/monitor_service.sh monitor
 ExecStop=%h/project/Backend/monitor_service.sh stop
 Restart=always

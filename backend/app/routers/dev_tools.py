@@ -70,7 +70,7 @@ async def get_developer_integrations(
     "/integrations",
     response_model=DeveloperToolResponse,
     summary="创建开发者工具",
-    description="创建新的开发者工具（支持 Dify 与 Coze 平台）",
+    description="创建新的开发者工具（支持 Dify 与 Coze 平台）。\n\n字段说明：\n- name：必填；2-30字。\n- type：必填；仅支持 'http' 或 'mcp'。\n- endpoint：HTTP 工具必填：\n  - Dify：platform='dify'、api_key 以 'app-' 开头、base_url 必须包含 '/v1'（默认 https://api.dify.ai/v1）；可选 app_type（'chat'|'workflow'|'agent'|'completion'），未提供时系统尝试自动探测；app_config.response_mode 默认 'blocking'。\n  - Coze：platform='coze'、api_key 以 'pat_' 开头、base_url（默认 https://api.coze.com/open_api）、app_config.bot_id 为数字。\n- request_schema / response_schema：可选；未提供的 HTTP 工具将自动生成最小请求 schema（仅含 query:string）。\n\n注意：\n- 自动探测失败时将返回统一提示与结构化 attempts（包含各端点的 status 与截断 body）。如需绕过探测，请显式提供 endpoint.app_type。\n\n示例：\n- Dify Chat：endpoint={platform:'dify', api_key:'app-xxxx', base_url:'https://api.dify.ai/v1', app_type:'chat'}，请求数据应包含 query。\n- Dify Workflow：endpoint={..., app_type:'workflow'}，请求数据使用 inputs。\n- Dify Agent/Completion：分别使用 agent/chat 与 completion-messages 的格式。",
     responses={
         401: {"description": "未授权"},
         403: {"description": "权限不足"},
@@ -223,7 +223,7 @@ async def delete_developer_integration(
     "/integrations/validate-and-test",
     response_model=ToolTestResponse,
     summary="预提交验证与一次性测试",
-    description="验证配置并进行一次性连通性测试（不入库）",
+    description="验证配置并进行一次性连通性测试（不入库）。\n\n请求体：\n- integration_config：同创建接口体；当提供 endpoint.app_type 时将按该类型执行；未提供则尝试自动探测。\n- test_data：Dify 按 app_type 区分：\n  - chat / agent：{\"query\":\"...\", \"inputs\":{}}\n  - workflow / completion：{\"inputs\":{...}}\n\n错误返回：\n- 探测失败：detail 包含 attempts 列表（endpoint、status、body[<=500]）。\n- 执行失败：error.details 含上游响应文本（截断）。",
     responses={
         401: {"description": "未授权"},
         403: {"description": "权限不足"},

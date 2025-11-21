@@ -135,7 +135,11 @@ class UnifiedExecutionService:
     def __init__(self):
         self.execute_service = ExecuteService()
         self.intent_service = IntentService()
-        self.execution_timeout = 120  # 120秒超时
+        try:
+            from app.config import settings
+            self.execution_timeout = int(getattr(settings, 'EXECUTION_TIMEOUT', 180))
+        except Exception:
+            self.execution_timeout = 180
     
     @asynccontextmanager
     async def get_session_manager(self, db: AsyncSession):
@@ -279,7 +283,7 @@ class UnifiedExecutionService:
                 return False
             
             # 如果不是简单关键词，使用大模型分析
-            from app.utils.openai_client import openai_client
+            from app.utils.openai_client import get_openai_client
             from app.config import settings
             
             # 构建提示词，让大模型判断用户意图
@@ -305,7 +309,10 @@ class UnifiedExecutionService:
                 {"role": "user", "content": prompt}
             ]
             
-            response = await openai_client.client.chat.completions.create(
+            client = get_openai_client()
+            if not client:
+                return False
+            response = await client.client.chat.completions.create(
                 model=settings.LLM_MODEL,
                 messages=messages,
                 temperature=0.1,  # 低温度确保一致性
@@ -413,6 +420,14 @@ class UnifiedExecutionService:
                                 if content_parts:
                                     content = "\n\n".join(content_parts)
                                     logger.info(f"[Session: {session_id}] 从 detailed_results 中提取到内容: {content}")
+
+                        try:
+                            from app.services.execute_service import ExecuteService
+                            es = ExecuteService()
+                            speakable = es._extract_speakable_text(content)
+                            content = await es._faithful_tts({}, speakable)
+                        except Exception:
+                            pass
                         
                         response_data = {
                             "session_id": session_id,

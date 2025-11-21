@@ -12,18 +12,18 @@ BACKEND_DIR="$SCRIPT_DIR"
 # 服务配置
 SERVICE_NAME="Backend API Service"
 # 从.env文件读取配置（统一使用APP_前缀的变量）
-if [ -f "${BACKEND_DIR}/backend/.env" ]; then
+if [ -f "${BACKEND_DIR}/.env" ]; then
     # 读取APP_PORT配置
-    if grep -q "^APP_PORT=" "${BACKEND_DIR}/backend/.env"; then
-        APP_PORT_FROM_FILE=$(grep "^APP_PORT=" "${BACKEND_DIR}/backend/.env" | cut -d'=' -f2 | tr -d ' ')
+    if grep -q "^APP_PORT=" "${BACKEND_DIR}/.env"; then
+        APP_PORT_FROM_FILE=$(grep "^APP_PORT=" "${BACKEND_DIR}/.env" | cut -d'=' -f2 | tr -d ' ')
         SERVICE_PORT="${APP_PORT_FROM_FILE:-3000}"
     else
         SERVICE_PORT=3000
     fi
     
     # 读取APP_HOST配置
-    if grep -q "^APP_HOST=" "${BACKEND_DIR}/backend/.env"; then
-        APP_HOST_FROM_FILE=$(grep "^APP_HOST=" "${BACKEND_DIR}/backend/.env" | cut -d'=' -f2 | tr -d ' ')
+    if grep -q "^APP_HOST=" "${BACKEND_DIR}/.env"; then
+        APP_HOST_FROM_FILE=$(grep "^APP_HOST=" "${BACKEND_DIR}/.env" | cut -d'=' -f2 | tr -d ' ')
         SERVICE_HOST="${APP_HOST_FROM_FILE:-0.0.0.0}"
     else
         SERVICE_HOST="0.0.0.0"
@@ -38,7 +38,7 @@ else
     HEALTH_HOST="$SERVICE_HOST"
 fi
 HEALTH_CHECK_URL="http://${HEALTH_HOST}:${SERVICE_PORT}/health"
-CHECK_INTERVAL=30  # 检查间隔（秒）
+CHECK_INTERVAL=180  # 检查间隔（秒）
 MAX_RESTART_ATTEMPTS=5  # 最大重启尝试次数
 RESTART_DELAY=10  # 重启延迟（秒）
 VENV_PATH="${BACKEND_DIR}/.venv"
@@ -46,6 +46,7 @@ LOG_DIR="${BACKEND_DIR}/logs"
 PID_FILE="${LOG_DIR}/backend.pid"
 MONITOR_LOG="${LOG_DIR}/monitor.log"
 SERVICE_LOG="${LOG_DIR}/service.log"
+LOCK_FILE="${LOG_DIR}/entrypoint.lock"
 
 # 创建日志目录
 mkdir -p "$LOG_DIR"
@@ -85,6 +86,23 @@ health_check() {
     fi
 }
 
+find_pid_by_port() {
+    local port=$1
+    local pid=""
+    if command -v lsof >/dev/null 2>&1; then
+        pid=$(lsof -t -i :$port -sTCP:LISTEN 2>/dev/null | head -n 1)
+    fi
+    if [ -z "$pid" ]; then
+        if command -v ss >/dev/null 2>&1; then
+            pid=$(ss -lntp 2>/dev/null | awk -v p=":$port" '$4 ~ p { match($0, /pid=([0-9]+)/, m); if (m[1]) { print m[1]; exit } }')
+        fi
+    fi
+    if [ -z "$pid" ]; then
+        pid=$(pgrep -f "uvicorn app.main:app" | head -n 1)
+    fi
+    echo "$pid"
+}
+
 # 启动服务
 start_service() {
     log_message "INFO" "正在启动 $SERVICE_NAME..."
@@ -97,11 +115,46 @@ start_service() {
         return 1
     fi
     
+    # 幂等判断：如果服务已运行且健康，直接返回成功
+    if check_service_running; then
+        if health_check; then
+            log_message "INFO" "检测到服务已运行且健康，跳过重复启动"
+            return 0
+        else
+            log_message "WARN" "检测到服务在运行但不健康，尝试重启"
+            restart_service
+            return $?
+        fi
+    fi
+
+    if health_check; then
+        local running_pid=$(find_pid_by_port "$SERVICE_PORT")
+        if [ -n "$running_pid" ]; then
+            echo $running_pid > "$PID_FILE"
+            log_message "INFO" "检测到健康但无PID，已接管现有进程，PID: $running_pid"
+            return 0
+        fi
+    fi
+
     # 激活虚拟环境
     source "$VENV_PATH/bin/activate"
     
     # 切换到backend目录并启动服务
     cd backend
+
+    if ! health_check; then
+        if command -v ss >/dev/null 2>&1; then
+            if ss -lnt | grep -q ":$SERVICE_PORT"; then
+                log_message "ERROR" "启动失败：端口 ${SERVICE_PORT} 已占用且服务不健康"
+                return 1
+            fi
+        elif command -v lsof >/dev/null 2>&1; then
+            if lsof -i :$SERVICE_PORT >/dev/null 2>&1; then
+                log_message "ERROR" "启动失败：端口 ${SERVICE_PORT} 已占用且服务不健康"
+                return 1
+            fi
+        fi
+    fi
     nohup python -m uvicorn app.main:app --host 0.0.0.0 --port $SERVICE_PORT > "$SERVICE_LOG" 2>&1 &
     
     local pid=$!
@@ -176,31 +229,36 @@ monitor_loop() {
                     log_message "INFO" "服务恢复正常，重置重启计数器"
                     restart_count=0
                 fi
-            else
-                # 健康检查失败
-                log_message "ERROR" "服务健康检查失败"
-                
-                # 检查是否超过最大重启次数
-                if [ $restart_count -ge $MAX_RESTART_ATTEMPTS ]; then
-                    local time_since_last_restart=$((current_time - last_restart_time))
-                    if [ $time_since_last_restart -lt 300 ]; then  # 5分钟内
-                        log_message "ERROR" "达到最大重启次数限制，等待5分钟后重置计数器"
-                        sleep 300
-                        restart_count=0
-                    fi
-                fi
-                
-                if [ $restart_count -lt $MAX_RESTART_ATTEMPTS ]; then
-                    restart_count=$((restart_count + 1))
-                    last_restart_time=$current_time
-                    log_message "WARN" "尝试重启服务 (第 $restart_count 次)"
-                    restart_service
+        else
+            # 健康检查失败
+            log_message "ERROR" "服务健康检查失败"
+            
+            # 检查是否超过最大重启次数
+            if [ $restart_count -ge $MAX_RESTART_ATTEMPTS ]; then
+                local time_since_last_restart=$((current_time - last_restart_time))
+                if [ $time_since_last_restart -lt 300 ]; then  # 5分钟内
+                    log_message "ERROR" "达到最大重启次数限制，等待5分钟后重置计数器"
+                    sleep 300
+                    restart_count=0
                 fi
             fi
-        else
-            # 服务未运行
-            log_message "ERROR" "服务进程不存在"
             
+            if [ $restart_count -lt $MAX_RESTART_ATTEMPTS ]; then
+                restart_count=$((restart_count + 1))
+                last_restart_time=$current_time
+                log_message "WARN" "尝试重启服务 (第 $restart_count 次)"
+                restart_service
+            fi
+        fi
+    else
+        if health_check; then
+            local running_pid=$(find_pid_by_port "$SERVICE_PORT")
+            if [ -n "$running_pid" ]; then
+                echo $running_pid > "$PID_FILE"
+                log_message "INFO" "检测到健康但无PID，已接管现有进程，PID: $running_pid"
+            fi
+        else
+            log_message "WARN" "服务进程不存在"
             if [ $restart_count -lt $MAX_RESTART_ATTEMPTS ]; then
                 restart_count=$((restart_count + 1))
                 last_restart_time=$current_time
@@ -208,8 +266,9 @@ monitor_loop() {
                 start_service
             fi
         fi
-        
-        sleep "$CHECK_INTERVAL"
+    fi
+    
+    sleep "$CHECK_INTERVAL"
     done
 }
 
@@ -231,9 +290,9 @@ WorkingDirectory=%h/project/Backend
 Environment=SERVICE_PORT=${SERVICE_PORT}
 Environment=SERVICE_HOST=${SERVICE_HOST}
 Environment=PYTHONPATH=%h/project/Backend/backend
-Environment=PATH=%h/project/Backend/backend/.venv/bin:/usr/local/bin:/usr/bin:/bin
-ExecStart=%h/project/Backend/monitor_service.sh monitor
-ExecStop=%h/project/Backend/monitor_service.sh stop
+Environment=PATH=%h/project/Backend/.venv/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=%h/project/Backend/entrypoint.sh start
+ExecStop=%h/project/Backend/entrypoint.sh stop
 Restart=always
 RestartSec=10
 TimeoutStartSec=60
@@ -262,7 +321,7 @@ generate_supervisor_config() {
     
     cat > "$config_file" << EOF
 [program:backend-api]
-command=%(here)s/../monitor_service.sh monitor
+command=%(here)s/../entrypoint.sh start
 directory=%(here)s/..
 user=$(whoami)
 group=$(id -gn)
@@ -280,7 +339,7 @@ stdout_logfile_backups=5
 stderr_logfile=%(here)s/../logs/supervisor-stderr.log
 stderr_logfile_maxbytes=50MB
 stderr_logfile_backups=5
-environment=SERVICE_PORT=${SERVICE_PORT},SERVICE_HOST=${SERVICE_HOST},PYTHONPATH=%(here)s/../backend,PATH="%(here)s/../backend/.venv/bin:/usr/local/bin:/usr/bin:/bin"
+environment=SERVICE_PORT=${SERVICE_PORT},SERVICE_HOST=${SERVICE_HOST},PYTHONPATH=%(here)s/../backend,PATH="%(here)s/../.venv/bin:/usr/local/bin:/usr/bin:/bin"
 priority=999
 redirect_stderr=false
 EOF
@@ -295,15 +354,44 @@ trap 'log_message "INFO" "收到停止信号，正在关闭监控..."; stop_serv
 
 # 主函数
 main() {
-    case "${1:-help}" in
+    # 进程互斥锁，避免并发执行导致冲突
+    exec 9>"$LOCK_FILE"
+    if ! flock -n 9; then
+        log_message "WARN" "已有入口脚本实例在运行，退出以避免并发冲突"
+        case "${1:-start}" in
+            start|monitor)
+                exit 1
+                ;;
+            *)
+                # 允许 status, stop, restart 等命令通过
+                :
+                ;;
+        esac
+    fi
+
+    case "${1:-start}" in
         start)
             start_service
+            log_message "INFO" "进入守护监控模式（后台）"
+            monitor_loop &
+            MONITOR_PID=$!
+            
+            # 在前台实时显示日志
+            trap 'log_message "INFO" "收到停止信号，正在关闭所有服务..."; kill $MONITOR_PID; stop_service; exit 0' SIGINT SIGTERM
+            tail -f "$MONITOR_LOG" "$SERVICE_LOG"
             ;;
         stop)
             stop_service
             ;;
         restart)
             restart_service
+            log_message "INFO" "重启完成，进入守护监控模式（后台）"
+            monitor_loop &
+            MONITOR_PID=$!
+            
+            # 在前台实时显示日志
+            trap 'log_message "INFO" "收到停止信号，正在关闭所有服务..."; kill $MONITOR_PID; stop_service; exit 0' SIGINT SIGTERM
+            tail -f "$MONITOR_LOG" "$SERVICE_LOG"
             ;;
         status)
             if check_service_running; then
@@ -315,6 +403,13 @@ main() {
                     exit 1
                 fi
             else
+                if health_check; then
+                    local running_pid=$(find_pid_by_port "$SERVICE_PORT")
+                    if [ -n "$running_pid" ]; then
+                        echo "服务正在运行且健康（外部进程 PID: $running_pid，未记录PID文件）"
+                        exit 0
+                    fi
+                fi
                 echo "服务未运行"
                 exit 1
             fi

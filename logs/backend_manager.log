@@ -3017,3 +3017,256 @@ xstat
 [2025-09-07 08:04:28] [INFO] API文档: http://localhost:3000/docs
 [2025-09-07 08:04:28] [INFO] 健康检查: http://localhost:3000/health
 [2025-09-07 08:04:28] [INFO] 正在检查MCP服务器状态...
+[2025-11-20 12:17:17] [INFO] 使用端口: 3000
+[2025-11-20 12:17:17] [INFO] 激活虚拟环境: /home/devbox/project/Backend/.venv
+[2025-11-20 12:17:17] [INFO] 检查系统依赖...
+[2025-11-20 12:17:17] [DEBUG] Original command: /usr/bin/rm /home/devbox/project:/tmp /home/devbox/project/.vscode:/home/devbox/project/.trae:/home/devbox/project/.git -rf /home/devbox/project/Backend/logs/check_temp_18401
+[2025-11-20 12:17:17] [DEBUG] Processing allowed path: /home/devbox/project
+[2025-11-20 12:17:17] [DEBUG] Processing allowed path: /tmp
+[2025-11-20 12:17:17] [DEBUG] Parsed allowed paths: /home/devbox/project /tmp
+[2025-11-20 12:17:17] [DEBUG] Processing denied path: /home/devbox/project/.vscode
+[2025-11-20 12:17:17] [DEBUG] Processing denied path: /home/devbox/project/.trae
+[2025-11-20 12:17:17] [DEBUG] Processing denied path: /home/devbox/project/.git
+[2025-11-20 12:17:17] [DEBUG] Parsed denied paths: /home/devbox/project/.vscode /home/devbox/project/.trae /home/devbox/project/.git
+[2025-11-20 12:17:17] [DEBUG] Skipping option parameter: -rf
+[2025-11-20 12:17:17] [DEBUG] Checking path: /home/devbox/project/Backend/logs/check_temp_18401
+[2025-11-20 12:17:17] [DEBUG] Checking against allowed path: /home/devbox/project
+[2025-11-20 12:17:17] [DEBUG] Case-sensitive path match found: /home/devbox/project/Backend/logs/check_temp_18401 matches /home/devbox/project
+[2025-11-20 12:17:17] [DEBUG] Checking against denied path: /home/devbox/project/.vscode
+[2025-11-20 12:17:17] [DEBUG] Checking against denied path: /home/devbox/project/.trae
+[2025-11-20 12:17:17] [DEBUG] Checking against denied path: /home/devbox/project/.git
+[2025-11-20 12:17:17] [INFO] Allow deletion: /home/devbox/project/Backend/logs/check_temp_18401
+[2025-11-20 12:17:17] [INFO] Executing command: /usr/bin/rm -rf /home/devbox/project/Backend/logs/check_temp_18401
+[2025-11-20 12:17:17] [SUCCESS] 依赖检查通过
+[2025-11-20 12:17:17] [INFO] 检查数据库连接...
+[2025-11-20 12:17:19] [SUCCESS] 数据库连接检查通过
+[2025-11-20 12:17:19] [INFO] 重启后端服务...
+[2025-11-20 12:17:19] [INFO] 停止后端服务...
+[2025-11-20 12:17:19] [INFO] 🔍 检查现有后端进程...
+[2025-11-20 12:17:20] [SUCCESS] ✅ 没有发现运行中的后端进程
+[2025-11-20 12:17:20] [DEBUG] Original command: /usr/bin/rm /home/devbox/project:/tmp /home/devbox/project/.vscode:/home/devbox/project/.trae:/home/devbox/project/.git -f /home/devbox/project/Backend/logs/backend.pid /home/devbox/project/Backend/logs/backend.lock
+[2025-11-20 12:17:20] [DEBUG] Processing allowed path: /home/devbox/project
+[2025-11-20 12:17:20] [DEBUG] Processing allowed path: /tmp
+[2025-11-20 12:17:20] [DEBUG] Parsed allowed paths: /home/devbox/project /tmp
+[2025-11-20 12:17:20] [DEBUG] Processing denied path: /home/devbox/project/.vscode
+[2025-11-20 12:17:20] [DEBUG] Processing denied path: /home/devbox/project/.trae
+[2025-11-20 12:17:20] [DEBUG] Processing denied path: /home/devbox/project/.git
+[2025-11-20 12:17:20] [DEBUG] Parsed denied paths: /home/devbox/project/.vscode /home/devbox/project/.trae /home/devbox/project/.git
+[2025-11-20 12:17:20] [DEBUG] Skipping option parameter: -f
+[2025-11-20 12:17:20] [DEBUG] Checking path: /home/devbox/project/Backend/logs/backend.pid
+[2025-11-20 12:17:20] [DEBUG] Checking against allowed path: /home/devbox/project
+[2025-11-20 12:17:20] [DEBUG] Case-sensitive path match found: /home/devbox/project/Backend/logs/backend.pid matches /home/devbox/project
+[2025-11-20 12:17:20] [DEBUG] Checking against denied path: /home/devbox/project/.vscode
+[2025-11-20 12:17:20] [DEBUG] Checking against denied path: /home/devbox/project/.trae
+[2025-11-20 12:17:20] [DEBUG] Checking against denied path: /home/devbox/project/.git
+[2025-11-20 12:17:20] [INFO] Allow deletion: /home/devbox/project/Backend/logs/backend.pid
+[2025-11-20 12:17:20] [DEBUG] Checking path: /home/devbox/project/Backend/logs/backend.lock
+[2025-11-20 12:17:20] [DEBUG] Checking against allowed path: /home/devbox/project
+[2025-11-20 12:17:20] [DEBUG] Case-sensitive path match found: /home/devbox/project/Backend/logs/backend.lock matches /home/devbox/project
+[2025-11-20 12:17:20] [DEBUG] Checking against denied path: /home/devbox/project/.vscode
+[2025-11-20 12:17:20] [DEBUG] Checking against denied path: /home/devbox/project/.trae
+[2025-11-20 12:17:20] [DEBUG] Checking against denied path: /home/devbox/project/.git
+[2025-11-20 12:17:20] [INFO] Allow deletion: /home/devbox/project/Backend/logs/backend.lock
+[2025-11-20 12:17:20] [INFO] Executing command: /usr/bin/rm -f /home/devbox/project/Backend/logs/backend.pid /home/devbox/project/Backend/logs/backend.lock
+[2025-11-20 12:17:20] [SUCCESS] 后端服务已停止
+[2025-11-20 12:17:22] [INFO] 启动后端服务...
+[2025-11-20 12:17:22] [INFO] 🔍 检查现有后端进程...
+[2025-11-20 12:17:22] [SUCCESS] ✅ 没有发现运行中的后端进程
+[2025-11-20 12:17:22] [INFO] 启动命令: python -m uvicorn app.main:app --host 0.0.0.0 --port 3000 (使用虚拟环境: /home/devbox/project/Backend/.venv)
+[2025-11-20 12:17:22] [INFO] 日志文件: /home/devbox/project/Backend/backend/logs/backend_20251120_121722.log
+[2025-11-20 12:17:22] [INFO] 服务已启动 (PID: 18944)，等待初始化...
+[2025-11-20 12:17:22] [INFO] 等待服务启动...
+[2025-11-20 12:17:42] [SUCCESS] 后端服务启动成功！
+[2025-11-20 12:17:42] [INFO] 服务地址: http://localhost:3000
+[2025-11-20 12:17:42] [INFO] API文档: http://localhost:3000/docs
+[2025-11-20 12:17:42] [INFO] 健康检查: http://localhost:3000/health
+[2025-11-20 12:17:42] [INFO] 正在检查MCP服务器状态...
+[2025-11-20 12:17:45] [DEBUG] Original command: /usr/bin/rm /home/devbox/project:/tmp /home/devbox/project/.vscode:/home/devbox/project/.trae:/home/devbox/project/.git -f /home/devbox/project/Backend/logs/backend.lock
+[2025-11-20 12:17:45] [DEBUG] Processing allowed path: /home/devbox/project
+[2025-11-20 12:17:45] [DEBUG] Processing allowed path: /tmp
+[2025-11-20 12:17:45] [DEBUG] Parsed allowed paths: /home/devbox/project /tmp
+[2025-11-20 12:17:45] [DEBUG] Processing denied path: /home/devbox/project/.vscode
+[2025-11-20 12:17:45] [DEBUG] Processing denied path: /home/devbox/project/.trae
+[2025-11-20 12:17:45] [DEBUG] Processing denied path: /home/devbox/project/.git
+[2025-11-20 12:17:45] [DEBUG] Parsed denied paths: /home/devbox/project/.vscode /home/devbox/project/.trae /home/devbox/project/.git
+[2025-11-20 12:17:45] [DEBUG] Skipping option parameter: -f
+[2025-11-20 12:17:45] [DEBUG] Checking path: /home/devbox/project/Backend/logs/backend.lock
+[2025-11-20 12:17:45] [DEBUG] Checking against allowed path: /home/devbox/project
+[2025-11-20 12:17:45] [DEBUG] Case-sensitive path match found: /home/devbox/project/Backend/logs/backend.lock matches /home/devbox/project
+[2025-11-20 12:17:45] [DEBUG] Checking against denied path: /home/devbox/project/.vscode
+[2025-11-20 12:17:45] [DEBUG] Checking against denied path: /home/devbox/project/.trae
+[2025-11-20 12:17:45] [DEBUG] Checking against denied path: /home/devbox/project/.git
+[2025-11-20 12:17:45] [INFO] Allow deletion: /home/devbox/project/Backend/logs/backend.lock
+[2025-11-20 12:17:45] [INFO] Executing command: /usr/bin/rm -f /home/devbox/project/Backend/logs/backend.lock
+[2025-11-20 12:30:14] [INFO] 使用端口: 3000
+[2025-11-20 12:30:14] [INFO] 激活虚拟环境: /home/devbox/project/Backend/.venv
+[2025-11-20 12:30:14] [INFO] 检查系统依赖...
+[2025-11-20 12:30:15] [DEBUG] Original command: /usr/bin/rm /home/devbox/project:/tmp /home/devbox/project/.vscode:/home/devbox/project/.trae:/home/devbox/project/.git -rf /home/devbox/project/Backend/logs/check_temp_43611
+[2025-11-20 12:30:15] [DEBUG] Processing allowed path: /home/devbox/project
+[2025-11-20 12:30:15] [DEBUG] Processing allowed path: /tmp
+[2025-11-20 12:30:15] [DEBUG] Parsed allowed paths: /home/devbox/project /tmp
+[2025-11-20 12:30:15] [DEBUG] Processing denied path: /home/devbox/project/.vscode
+[2025-11-20 12:30:15] [DEBUG] Processing denied path: /home/devbox/project/.trae
+[2025-11-20 12:30:15] [DEBUG] Processing denied path: /home/devbox/project/.git
+[2025-11-20 12:30:15] [DEBUG] Parsed denied paths: /home/devbox/project/.vscode /home/devbox/project/.trae /home/devbox/project/.git
+[2025-11-20 12:30:15] [DEBUG] Skipping option parameter: -rf
+[2025-11-20 12:30:15] [DEBUG] Checking path: /home/devbox/project/Backend/logs/check_temp_43611
+[2025-11-20 12:30:15] [DEBUG] Checking against allowed path: /home/devbox/project
+[2025-11-20 12:30:15] [DEBUG] Case-sensitive path match found: /home/devbox/project/Backend/logs/check_temp_43611 matches /home/devbox/project
+[2025-11-20 12:30:15] [DEBUG] Checking against denied path: /home/devbox/project/.vscode
+[2025-11-20 12:30:15] [DEBUG] Checking against denied path: /home/devbox/project/.trae
+[2025-11-20 12:30:15] [DEBUG] Checking against denied path: /home/devbox/project/.git
+[2025-11-20 12:30:15] [INFO] Allow deletion: /home/devbox/project/Backend/logs/check_temp_43611
+[2025-11-20 12:30:15] [INFO] Executing command: /usr/bin/rm -rf /home/devbox/project/Backend/logs/check_temp_43611
+[2025-11-20 12:30:15] [SUCCESS] 依赖检查通过
+[2025-11-20 12:30:15] [INFO] 检查数据库连接...
+[2025-11-20 12:30:17] [SUCCESS] 数据库连接检查通过
+[2025-11-20 12:30:17] [INFO] 重启后端服务...
+[2025-11-20 12:30:17] [INFO] 停止后端服务...
+[2025-11-20 12:30:17] [INFO] 🔍 检查现有后端进程...
+[2025-11-20 12:30:17] [WARNING] 发现 2 个运行中的后端进程，正在清理...
+[2025-11-20 12:30:17] [INFO] 停止进程 PID=18944, CMD=bash -c              # ?????????????????????????????????????????????backend?????????????????????             if [ -n '/home/devbox/project/Backend/.venv' ]; then                 source '/home/devbox/project/Backend/.venv/bin/activate'             else                 # ?????????????????????????????????                 for venv_path in '/home/devbox/project/Backend/.venv' '/home/devbox/project/.venv' '/home/devbox/project/Backend/backend/.venv' '/home/devbox/project/Backend/backend/../.venv'; do                     if [ -f "$venv_path/bin/activate" ]; then                         source "$venv_path/bin/activate"                         break                     fi                 done             fi             cd '/home/devbox/project/Backend/backend' && source '/home/devbox/project/Backend/.venv/bin/activate' && python -m uvicorn app.main:app --host 0.0.0.0 --port 3000         
+[2025-11-20 12:30:18] [SUCCESS] 进程 18944 已停止
+[2025-11-20 12:30:18] [INFO] 停止进程 PID=18951, CMD=python -m uvicorn app.main:app --host 0.0.0.0 --port 3000
+[2025-11-20 12:30:19] [SUCCESS] 进程 18951 已停止
+[2025-11-20 12:30:21] [SUCCESS] ✅ 已清理 2 个后端进程
+[2025-11-20 12:30:21] [DEBUG] Original command: /usr/bin/rm /home/devbox/project:/tmp /home/devbox/project/.vscode:/home/devbox/project/.trae:/home/devbox/project/.git -f /home/devbox/project/Backend/logs/backend.pid /home/devbox/project/Backend/logs/backend.lock
+[2025-11-20 12:30:21] [DEBUG] Processing allowed path: /home/devbox/project
+[2025-11-20 12:30:21] [DEBUG] Processing allowed path: /tmp
+[2025-11-20 12:30:21] [DEBUG] Parsed allowed paths: /home/devbox/project /tmp
+[2025-11-20 12:30:21] [DEBUG] Processing denied path: /home/devbox/project/.vscode
+[2025-11-20 12:30:21] [DEBUG] Processing denied path: /home/devbox/project/.trae
+[2025-11-20 12:30:21] [DEBUG] Processing denied path: /home/devbox/project/.git
+[2025-11-20 12:30:21] [DEBUG] Parsed denied paths: /home/devbox/project/.vscode /home/devbox/project/.trae /home/devbox/project/.git
+[2025-11-20 12:30:21] [DEBUG] Skipping option parameter: -f
+[2025-11-20 12:30:21] [DEBUG] Checking path: /home/devbox/project/Backend/logs/backend.pid
+[2025-11-20 12:30:21] [DEBUG] Checking against allowed path: /home/devbox/project
+[2025-11-20 12:30:21] [DEBUG] Case-sensitive path match found: /home/devbox/project/Backend/logs/backend.pid matches /home/devbox/project
+[2025-11-20 12:30:21] [DEBUG] Checking against denied path: /home/devbox/project/.vscode
+[2025-11-20 12:30:21] [DEBUG] Checking against denied path: /home/devbox/project/.trae
+[2025-11-20 12:30:21] [DEBUG] Checking against denied path: /home/devbox/project/.git
+[2025-11-20 12:30:21] [INFO] Allow deletion: /home/devbox/project/Backend/logs/backend.pid
+[2025-11-20 12:30:21] [DEBUG] Checking path: /home/devbox/project/Backend/logs/backend.lock
+[2025-11-20 12:30:21] [DEBUG] Checking against allowed path: /home/devbox/project
+[2025-11-20 12:30:21] [DEBUG] Case-sensitive path match found: /home/devbox/project/Backend/logs/backend.lock matches /home/devbox/project
+[2025-11-20 12:30:21] [DEBUG] Checking against denied path: /home/devbox/project/.vscode
+[2025-11-20 12:30:21] [DEBUG] Checking against denied path: /home/devbox/project/.trae
+[2025-11-20 12:30:21] [DEBUG] Checking against denied path: /home/devbox/project/.git
+[2025-11-20 12:30:21] [INFO] Allow deletion: /home/devbox/project/Backend/logs/backend.lock
+[2025-11-20 12:30:21] [INFO] Executing command: /usr/bin/rm -f /home/devbox/project/Backend/logs/backend.pid /home/devbox/project/Backend/logs/backend.lock
+[2025-11-20 12:30:21] [SUCCESS] 后端服务已停止
+[2025-11-20 12:30:23] [INFO] 启动后端服务...
+[2025-11-20 12:30:23] [INFO] 🔍 检查现有后端进程...
+[2025-11-20 12:30:23] [SUCCESS] ✅ 没有发现运行中的后端进程
+[2025-11-20 12:30:23] [INFO] 启动命令: python -m uvicorn app.main:app --host 0.0.0.0 --port 3000 (使用虚拟环境: /home/devbox/project/Backend/.venv)
+[2025-11-20 12:30:23] [INFO] 日志文件: /home/devbox/project/Backend/backend/logs/backend_20251120_123023.log
+[2025-11-20 12:30:23] [INFO] 服务已启动 (PID: 44304)，等待初始化...
+[2025-11-20 12:30:23] [INFO] 等待服务启动...
+[2025-11-20 12:30:43] [SUCCESS] 后端服务启动成功！
+[2025-11-20 12:30:43] [INFO] 服务地址: http://localhost:3000
+[2025-11-20 12:30:43] [INFO] API文档: http://localhost:3000/docs
+[2025-11-20 12:30:43] [INFO] 健康检查: http://localhost:3000/health
+[2025-11-20 12:30:43] [INFO] 正在检查MCP服务器状态...
+[2025-11-20 12:30:46] [DEBUG] Original command: /usr/bin/rm /home/devbox/project:/tmp /home/devbox/project/.vscode:/home/devbox/project/.trae:/home/devbox/project/.git -f /home/devbox/project/Backend/logs/backend.lock
+[2025-11-20 12:30:46] [DEBUG] Processing allowed path: /home/devbox/project
+[2025-11-20 12:30:46] [DEBUG] Processing allowed path: /tmp
+[2025-11-20 12:30:47] [DEBUG] Parsed allowed paths: /home/devbox/project /tmp
+[2025-11-20 12:30:47] [DEBUG] Processing denied path: /home/devbox/project/.vscode
+[2025-11-20 12:30:47] [DEBUG] Processing denied path: /home/devbox/project/.trae
+[2025-11-20 12:30:47] [DEBUG] Processing denied path: /home/devbox/project/.git
+[2025-11-20 12:30:47] [DEBUG] Parsed denied paths: /home/devbox/project/.vscode /home/devbox/project/.trae /home/devbox/project/.git
+[2025-11-20 12:30:47] [DEBUG] Skipping option parameter: -f
+[2025-11-20 12:30:47] [DEBUG] Checking path: /home/devbox/project/Backend/logs/backend.lock
+[2025-11-20 12:30:47] [DEBUG] Checking against allowed path: /home/devbox/project
+[2025-11-20 12:30:47] [DEBUG] Case-sensitive path match found: /home/devbox/project/Backend/logs/backend.lock matches /home/devbox/project
+[2025-11-20 12:30:47] [DEBUG] Checking against denied path: /home/devbox/project/.vscode
+[2025-11-20 12:30:47] [DEBUG] Checking against denied path: /home/devbox/project/.trae
+[2025-11-20 12:30:47] [DEBUG] Checking against denied path: /home/devbox/project/.git
+[2025-11-20 12:30:47] [INFO] Allow deletion: /home/devbox/project/Backend/logs/backend.lock
+[2025-11-20 12:30:47] [INFO] Executing command: /usr/bin/rm -f /home/devbox/project/Backend/logs/backend.lock
+[2025-11-20 12:32:13] [INFO] 使用端口: 3000
+[2025-11-20 12:32:13] [INFO] 激活虚拟环境: /home/devbox/project/Backend/.venv
+[2025-11-20 12:32:13] [INFO] 检查系统依赖...
+[2025-11-20 12:32:13] [DEBUG] Original command: /usr/bin/rm /home/devbox/project:/tmp /home/devbox/project/.vscode:/home/devbox/project/.trae:/home/devbox/project/.git -rf /home/devbox/project/Backend/logs/check_temp_48177
+[2025-11-20 12:32:13] [DEBUG] Processing allowed path: /home/devbox/project
+[2025-11-20 12:32:14] [DEBUG] Processing allowed path: /tmp
+[2025-11-20 12:32:14] [DEBUG] Parsed allowed paths: /home/devbox/project /tmp
+[2025-11-20 12:32:14] [DEBUG] Processing denied path: /home/devbox/project/.vscode
+[2025-11-20 12:32:14] [DEBUG] Processing denied path: /home/devbox/project/.trae
+[2025-11-20 12:32:14] [DEBUG] Processing denied path: /home/devbox/project/.git
+[2025-11-20 12:32:14] [DEBUG] Parsed denied paths: /home/devbox/project/.vscode /home/devbox/project/.trae /home/devbox/project/.git
+[2025-11-20 12:32:14] [DEBUG] Skipping option parameter: -rf
+[2025-11-20 12:32:14] [DEBUG] Checking path: /home/devbox/project/Backend/logs/check_temp_48177
+[2025-11-20 12:32:14] [DEBUG] Checking against allowed path: /home/devbox/project
+[2025-11-20 12:32:14] [DEBUG] Case-sensitive path match found: /home/devbox/project/Backend/logs/check_temp_48177 matches /home/devbox/project
+[2025-11-20 12:32:14] [DEBUG] Checking against denied path: /home/devbox/project/.vscode
+[2025-11-20 12:32:14] [DEBUG] Checking against denied path: /home/devbox/project/.trae
+[2025-11-20 12:32:14] [DEBUG] Checking against denied path: /home/devbox/project/.git
+[2025-11-20 12:32:14] [INFO] Allow deletion: /home/devbox/project/Backend/logs/check_temp_48177
+[2025-11-20 12:32:14] [INFO] Executing command: /usr/bin/rm -rf /home/devbox/project/Backend/logs/check_temp_48177
+[2025-11-20 12:32:14] [SUCCESS] 依赖检查通过
+[2025-11-20 12:32:14] [INFO] 检查数据库连接...
+[2025-11-20 12:32:16] [SUCCESS] 数据库连接检查通过
+[2025-11-20 12:32:16] [INFO] 重启后端服务...
+[2025-11-20 12:32:16] [INFO] 停止后端服务...
+[2025-11-20 12:32:16] [INFO] 🔍 检查现有后端进程...
+[2025-11-20 12:32:16] [WARNING] 发现 2 个运行中的后端进程，正在清理...
+[2025-11-20 12:32:16] [INFO] 停止进程 PID=44304, CMD=bash -c              # ?????????????????????????????????????????????backend?????????????????????             if [ -n '/home/devbox/project/Backend/.venv' ]; then                 source '/home/devbox/project/Backend/.venv/bin/activate'             else                 # ?????????????????????????????????                 for venv_path in '/home/devbox/project/Backend/.venv' '/home/devbox/project/.venv' '/home/devbox/project/Backend/backend/.venv' '/home/devbox/project/Backend/backend/../.venv'; do                     if [ -f "$venv_path/bin/activate" ]; then                         source "$venv_path/bin/activate"                         break                     fi                 done             fi             cd '/home/devbox/project/Backend/backend' && source '/home/devbox/project/Backend/.venv/bin/activate' && python -m uvicorn app.main:app --host 0.0.0.0 --port 3000         
+[2025-11-20 12:32:17] [SUCCESS] 进程 44304 已停止
+[2025-11-20 12:32:17] [INFO] 停止进程 PID=44311, CMD=python -m uvicorn app.main:app --host 0.0.0.0 --port 3000
+[2025-11-20 12:32:18] [SUCCESS] 进程 44311 已停止
+[2025-11-20 12:32:20] [SUCCESS] ✅ 已清理 2 个后端进程
+[2025-11-20 12:32:20] [DEBUG] Original command: /usr/bin/rm /home/devbox/project:/tmp /home/devbox/project/.vscode:/home/devbox/project/.trae:/home/devbox/project/.git -f /home/devbox/project/Backend/logs/backend.pid /home/devbox/project/Backend/logs/backend.lock
+[2025-11-20 12:32:20] [DEBUG] Processing allowed path: /home/devbox/project
+[2025-11-20 12:32:20] [DEBUG] Processing allowed path: /tmp
+[2025-11-20 12:32:20] [DEBUG] Parsed allowed paths: /home/devbox/project /tmp
+[2025-11-20 12:32:20] [DEBUG] Processing denied path: /home/devbox/project/.vscode
+[2025-11-20 12:32:20] [DEBUG] Processing denied path: /home/devbox/project/.trae
+[2025-11-20 12:32:20] [DEBUG] Processing denied path: /home/devbox/project/.git
+[2025-11-20 12:32:20] [DEBUG] Parsed denied paths: /home/devbox/project/.vscode /home/devbox/project/.trae /home/devbox/project/.git
+[2025-11-20 12:32:20] [DEBUG] Skipping option parameter: -f
+[2025-11-20 12:32:20] [DEBUG] Checking path: /home/devbox/project/Backend/logs/backend.pid
+[2025-11-20 12:32:20] [DEBUG] Checking against allowed path: /home/devbox/project
+[2025-11-20 12:32:20] [DEBUG] Case-sensitive path match found: /home/devbox/project/Backend/logs/backend.pid matches /home/devbox/project
+[2025-11-20 12:32:20] [DEBUG] Checking against denied path: /home/devbox/project/.vscode
+[2025-11-20 12:32:20] [DEBUG] Checking against denied path: /home/devbox/project/.trae
+[2025-11-20 12:32:20] [DEBUG] Checking against denied path: /home/devbox/project/.git
+[2025-11-20 12:32:20] [INFO] Allow deletion: /home/devbox/project/Backend/logs/backend.pid
+[2025-11-20 12:32:20] [DEBUG] Checking path: /home/devbox/project/Backend/logs/backend.lock
+[2025-11-20 12:32:20] [DEBUG] Checking against allowed path: /home/devbox/project
+[2025-11-20 12:32:20] [DEBUG] Case-sensitive path match found: /home/devbox/project/Backend/logs/backend.lock matches /home/devbox/project
+[2025-11-20 12:32:20] [DEBUG] Checking against denied path: /home/devbox/project/.vscode
+[2025-11-20 12:32:20] [DEBUG] Checking against denied path: /home/devbox/project/.trae
+[2025-11-20 12:32:20] [DEBUG] Checking against denied path: /home/devbox/project/.git
+[2025-11-20 12:32:20] [INFO] Allow deletion: /home/devbox/project/Backend/logs/backend.lock
+[2025-11-20 12:32:20] [INFO] Executing command: /usr/bin/rm -f /home/devbox/project/Backend/logs/backend.pid /home/devbox/project/Backend/logs/backend.lock
+[2025-11-20 12:32:20] [SUCCESS] 后端服务已停止
+[2025-11-20 12:32:22] [INFO] 启动后端服务...
+[2025-11-20 12:32:22] [INFO] 🔍 检查现有后端进程...
+[2025-11-20 12:32:22] [SUCCESS] ✅ 没有发现运行中的后端进程
+[2025-11-20 12:32:22] [INFO] 启动命令: python -m uvicorn app.main:app --host 0.0.0.0 --port 3000 (使用虚拟环境: /home/devbox/project/Backend/.venv)
+[2025-11-20 12:32:22] [INFO] 日志文件: /home/devbox/project/Backend/backend/logs/backend_20251120_123222.log
+[2025-11-20 12:32:22] [INFO] 服务已启动 (PID: 48937)，等待初始化...
+[2025-11-20 12:32:22] [INFO] 等待服务启动...
+[2025-11-20 12:32:49] [SUCCESS] 后端服务启动成功！
+[2025-11-20 12:32:49] [INFO] 服务地址: http://localhost:3000
+[2025-11-20 12:32:49] [INFO] API文档: http://localhost:3000/docs
+[2025-11-20 12:32:49] [INFO] 健康检查: http://localhost:3000/health
+[2025-11-20 12:32:49] [INFO] 正在检查MCP服务器状态...
+[2025-11-20 12:32:54] [DEBUG] Original command: /usr/bin/rm /home/devbox/project:/tmp /home/devbox/project/.vscode:/home/devbox/project/.trae:/home/devbox/project/.git -f /home/devbox/project/Backend/logs/backend.lock
+[2025-11-20 12:32:54] [DEBUG] Processing allowed path: /home/devbox/project
+[2025-11-20 12:32:54] [DEBUG] Processing allowed path: /tmp
+[2025-11-20 12:32:54] [DEBUG] Parsed allowed paths: /home/devbox/project /tmp
+[2025-11-20 12:32:54] [DEBUG] Processing denied path: /home/devbox/project/.vscode
+[2025-11-20 12:32:54] [DEBUG] Processing denied path: /home/devbox/project/.trae
+[2025-11-20 12:32:54] [DEBUG] Processing denied path: /home/devbox/project/.git
+[2025-11-20 12:32:54] [DEBUG] Parsed denied paths: /home/devbox/project/.vscode /home/devbox/project/.trae /home/devbox/project/.git
+[2025-11-20 12:32:54] [DEBUG] Skipping option parameter: -f
+[2025-11-20 12:32:54] [DEBUG] Checking path: /home/devbox/project/Backend/logs/backend.lock
+[2025-11-20 12:32:54] [DEBUG] Checking against allowed path: /home/devbox/project
+[2025-11-20 12:32:54] [DEBUG] Case-sensitive path match found: /home/devbox/project/Backend/logs/backend.lock matches /home/devbox/project
+[2025-11-20 12:32:54] [DEBUG] Checking against denied path: /home/devbox/project/.vscode
+[2025-11-20 12:32:54] [DEBUG] Checking against denied path: /home/devbox/project/.trae
+[2025-11-20 12:32:54] [DEBUG] Checking against denied path: /home/devbox/project/.git
+[2025-11-20 12:32:54] [INFO] Allow deletion: /home/devbox/project/Backend/logs/backend.lock
+[2025-11-20 12:32:54] [INFO] Executing command: /usr/bin/rm -f /home/devbox/project/Backend/logs/backend.lock
