@@ -7,6 +7,7 @@ from loguru import logger
 from app.utils.openai_client import get_openai_client
 from app.models.tool import Tool
 from app.config import settings
+import copy
 
 
 class IntentService:
@@ -22,23 +23,59 @@ class IntentService:
         for tool in tools:
             try:
                 # request_schema 已经是 Python dict 了，直接使用
-                parameters = tool.request_schema
+                raw_params = tool.request_schema
                 # 确保 parameters 是 JSON Schema 对象格式 (使用 .get() 更安全)
                 if (
-                    not isinstance(parameters, dict)
-                    or parameters.get("type") != "object"
+                    not isinstance(raw_params, dict)
+                    or raw_params.get("type") != "object"
                 ):
                     logger.warning(
-                        f"工具 {tool.tool_id} 的 request_schema 格式无效 (非 object 类型)，已跳过：{parameters}"
+                        f"工具 {tool.tool_id} 的 request_schema 格式无效 (非 object 类型)，已跳过：{raw_params}"
                     )
                     continue
+
+                # 使用数据库原始 Schema，保持语义可见性与字段原样
+                def _trim_examples(obj: Any) -> Any:
+                    if isinstance(obj, dict):
+                        out = {}
+                        for k, v in obj.items():
+                            if k == "examples" and isinstance(v, list):
+                                out[k] = v[:2]
+                            else:
+                                out[k] = _trim_examples(v)
+                        return out
+                    elif isinstance(obj, list):
+                        return [_trim_examples(x) for x in obj]
+                    else:
+                        return obj
+
+                parameters = _trim_examples(copy.deepcopy(raw_params))
+
+                desc = tool.description or ""
+                if isinstance(desc, str) and len(desc) > 300:
+                    desc = desc[:300]
+                
+                # 添加response_schema到description，让LLM了解工具的输出格式
+                if tool.response_schema:
+                    try:
+                        # 处理response_schema可能是字符串"null"的情况
+                        response_data = tool.response_schema
+                        if isinstance(response_data, str):
+                            response_data = json.loads(response_data)
+                        
+                        # 只有当response_data是有效对象(不是None)时才添加
+                        if response_data is not None and response_data != "null":
+                            output_info = json.dumps(response_data, ensure_ascii=False)
+                            desc += f"\n【输出格式】{output_info}"
+                    except Exception as e:
+                        logger.debug(f"工具 {tool.tool_id} 的 response_schema 处理跳过: {e}")
 
                 formatted_tools.append(
                     {
                         "type": "function",
                         "function": {
-                            "name": tool.tool_id,  # 使用 tool_id 作为 function name
-                            "description": tool.description,
+                            "name": tool.tool_id,
+                            "description": desc,
                             "parameters": parameters,
                         },
                     }
@@ -90,29 +127,19 @@ class IntentService:
                 # 如果没有工具，可以直接让 LLM 回复，或者返回特定错误
                 # 这里我们选择让 LLM 尝试直接回复
 
-            # 改进的Prompt，更明确地指导工具使用
+            # 通用提示词，不包含任何具体工具名称，适配动态工具集
             prompt_prefix = (
-                "你是一个智能助手，拥有多种工具来帮助用户完成任务。请仔细分析用户的请求，理解其真实意图，并根据可用的工具决定是否需要调用工具。\n\n"
-                "**分析原则：**\n"
-                "1. 仔细理解用户请求的核心意图和所需信息类型\n"
-                "2. 查看可用工具的功能描述，找到最匹配用户需求的工具\n"
-                "3. 优先使用工具来获取实时信息、执行操作或处理数据\n"
-                "4. 对于以下情况，应该直接回复而不调用工具：\n"
-                "   - 纯粹的问候和闲聊\n"
-                "   - 询问助手自身能力（如\"你能做什么\"、\"你有什么功能\"）\n"
-                "   - 简单的常识问答（不需要实时数据）\n"
-                "   - 情感表达和一般性建议\n\n"
-                "**工具使用指导：**\n"
-                "- 搜索信息：使用browser_navigate工具访问搜索引擎（如Google、百度）\n"
-                "- 查询天气：使用maps_weather等地图天气工具\n"
-                "- 查询位置：使用maps_search等地图搜索工具\n"
-                "- 计算任务：使用calculator相关工具\n"
-                "- 文本处理：使用text_processor相关工具\n"
-                "- 加密货币：使用crypto相关工具\n\n"
-                "**重要提示：**\n"
-                "- 对于\"搜索\"、\"查找\"、\"了解\"等信息获取请求，应使用browser_navigate工具访问相应的搜索网站\n"
-                "- 对于天气查询，应使用maps_weather工具\n"
-                "- 对于位置查询，应使用maps_search工具\n\n"
+                "你是一个智能助手。根据用户请求，判断是否需要调用工具。\n\n"
+                "**工具选择原则**：\n"
+                "1. 仔细阅读每个工具的description，理解其功能\n"
+                "2. 检查工具的required参数，判断用户输入是否满足\n"
+                "3. 查看工具的【输出格式】，了解它返回什么数据\n\n"
+                "**链式调用逻辑**：\n"
+                "- 如果目标工具的必需参数在用户输入中不存在\n"
+                "- 查找能产生该参数的前置工具（通过对比输出格式和参数名）\n"
+                "- 一次返回完整工具链，按依赖顺序排列\n"
+                "- 确保链条末端是能直接满足用户需求的工具\n\n"
+                "**对于闲聊、问候、常识问答，直接回复，不调用工具。**\n\n"
                 "当决定调用工具时，请生成简洁的确认文本，以问句形式复述用户的核心需求。\n\n"
                 "用户请求："
             )
@@ -120,12 +147,48 @@ class IntentService:
 
             logger.debug(f"{log_prefix}调用 LLM 进行意图分析和工具决策...")
             
+            # 判断是否使用工具选择专用LLM配置
+            use_intent_llm = bool(settings.INTENT_LLM_MODEL and settings.INTENT_LLM_API_BASE)
+            
+            if use_intent_llm:
+                # 使用工具选择专用LLM配置
+                llm_model = settings.INTENT_LLM_MODEL
+                llm_temperature = settings.INTENT_LLM_TEMPERATURE
+                llm_max_tokens = settings.INTENT_LLM_MAX_TOKENS
+                logger.info(f"{log_prefix}使用工具选择专用LLM: {llm_model}")
+                
+                # 创建专用的OpenAI客户端
+                from openai import AsyncOpenAI
+                intent_api_key = settings.INTENT_LLM_API_KEY or settings.LLM_API_KEY
+                client_config = {
+                    "api_key": intent_api_key,
+                    "base_url": settings.INTENT_LLM_API_BASE,
+                    "timeout": float(settings.LLM_TIMEOUT),
+                }
+                llm_client = AsyncOpenAI(**client_config)
+            else:
+                # 使用默认LLM配置
+                llm_model = settings.LLM_MODEL
+                llm_temperature = settings.LLM_TEMPERATURE
+                llm_max_tokens = settings.LLM_MAX_TOKENS
+                logger.debug(f"{log_prefix}使用默认LLM: {llm_model}")
+                
+                client = get_openai_client()
+                if not client:
+                    # LLM不可用时，直接返回无工具回复
+                    return {
+                        "type": "direct_response",
+                        "content": "我可以处理您的请求，当前未连接到LLM服务，您可以直接告诉我需要调用的工具或继续输入问题。",
+                        "session_id": session_id,
+                    }
+                llm_client = client.client
+            
             # 构建API调用参数
             api_params = {
-                "model": settings.LLM_MODEL,
+                "model": llm_model,
                 "messages": messages,
-                "temperature": settings.LLM_TEMPERATURE,
-                "max_tokens": settings.LLM_MAX_TOKENS,
+                "temperature": llm_temperature,
+                "max_tokens": llm_max_tokens,
             }
             
             # 只有在有可用工具时才添加 tools 和 tool_choice 参数
@@ -133,18 +196,46 @@ class IntentService:
                 api_params["tools"] = available_tools
                 api_params["tool_choice"] = "auto"  # 让模型自己决定是否调用工具
             
-            client = get_openai_client()
-            if not client:
-                # LLM不可用时，直接返回无工具回复
-                return {
-                    "type": "direct_response",
-                    "content": "我可以处理您的请求，当前未连接到LLM服务，您可以直接告诉我需要调用的工具或继续输入问题。",
-                    "session_id": session_id,
-                }
-            response = await client.client.chat.completions.create(**api_params)
+            # ========== 详细调试日志：捕获LLM输入输出 ==========
+            logger.info(f"{log_prefix}========== LLM调用详情 ==========")
+            logger.info(f"{log_prefix}使用模型: {llm_model}")
+            logger.info(f"{log_prefix}Temperature: {llm_temperature}, Max Tokens: {llm_max_tokens}")
+            logger.info(f"{log_prefix}提示词内容:\n{messages[0]['content'][:500]}...")
+            logger.info(f"{log_prefix}可用工具数量: {len(available_tools) if available_tools else 0}")
+            if available_tools and len(available_tools) > 0:
+                # 只记录前3个工具的详细信息
+                for idx, tool in enumerate(available_tools[:3]):
+                    tool_name = tool.get('function', {}).get('name', 'unknown')
+                    tool_desc = tool.get('function', {}).get('description', '')[:100]
+                    tool_params = tool.get('function', {}).get('parameters', {})
+                    required_params = tool_params.get('required', [])
+                    logger.info(f"{log_prefix}  工具{idx+1}: {tool_name}")
+                    logger.info(f"{log_prefix}    描述: {tool_desc}...")
+                    logger.info(f"{log_prefix}    必需参数: {required_params}")
+                if len(available_tools) > 3:
+                    logger.info(f"{log_prefix}  ... 还有 {len(available_tools) - 3} 个工具")
+            logger.info(f"{log_prefix}========================================")
+            
+            response = await llm_client.chat.completions.create(**api_params)
+            
+            # ========== 记录LLM响应 ==========
+            logger.info(f"{log_prefix}========== LLM响应详情 ==========")
+            logger.info(f"{log_prefix}响应模型: {response.model if hasattr(response, 'model') else 'unknown'}")
+            logger.info(f"{log_prefix}响应ID: {response.id if hasattr(response, 'id') else 'unknown'}")
 
             response_message = response.choices[0].message
             tool_calls = getattr(response_message, "tool_calls", None)
+            
+            # 记录响应的基本信息
+            logger.info(f"{log_prefix}响应类型: {'tool_call' if tool_calls else 'direct_response'}")
+            if response_message.content:
+                logger.info(f"{log_prefix}响应内容: {response_message.content[:200]}")
+            if tool_calls:
+                logger.info(f"{log_prefix}工具调用数量: {len(tool_calls)}")
+                for idx, call in enumerate(tool_calls):
+                    logger.info(f"{log_prefix}  调用{idx+1}: {call.function.name}")
+                    logger.info(f"{log_prefix}    参数: {call.function.arguments[:200]}...")
+            logger.info(f"{log_prefix}========================================")
 
             if tool_calls:
                 # 改进确认文本生成：让LLM生成更自然的确认文本，不限制格式

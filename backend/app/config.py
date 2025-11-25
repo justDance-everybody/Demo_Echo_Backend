@@ -42,14 +42,21 @@ class Settings(BaseSettings):
     DATABASE_URL: str = Field(default=DEFAULT_SQLITE_URL, env="DATABASE_URL") 
     DATABASE_NAME: str = Field(default="ai_assistant", env="DATABASE_NAME")
     
-    # LLM配置 (使用通用名称)
+    # 默认LLM配置 (所有环节使用)
     LLM_API_KEY: str = Field(default="", env="LLM_API_KEY")
-    LLM_API_BASE: str = Field(default="", env="LLM_API_BASE")  # 移除硬编码的API地址
-    LLM_MODEL: str = Field(default="", env="LLM_MODEL")  # 移除硬编码的模型名称
+    LLM_API_BASE: str = Field(default="", env="LLM_API_BASE")
+    LLM_MODEL: str = Field(default="", env="LLM_MODEL")
     LLM_TIMEOUT: int = Field(default=60, env="LLM_TIMEOUT")
-    # 新增 LLM 参数
     LLM_TEMPERATURE: float = Field(default=0.7, env="LLM_TEMPERATURE")
     LLM_MAX_TOKENS: int = Field(default=1000, env="LLM_MAX_TOKENS")
+    
+    # 工具选择专用LLM配置 (可选，如不设置则使用默认配置)
+    INTENT_LLM_MODEL: str = Field(default="", env="INTENT_LLM_MODEL")
+    INTENT_LLM_API_BASE: str = Field(default="", env="INTENT_LLM_API_BASE")
+    INTENT_LLM_API_KEY: str = Field(default="", env="INTENT_LLM_API_KEY")
+    INTENT_LLM_TEMPERATURE: float = Field(default=0.1, env="INTENT_LLM_TEMPERATURE")
+    INTENT_LLM_MAX_TOKENS: int = Field(default=2000, env="INTENT_LLM_MAX_TOKENS")
+    
     # 执行总超时（秒）
     EXECUTION_TIMEOUT: int = Field(default=180, env="EXECUTION_TIMEOUT")
     
