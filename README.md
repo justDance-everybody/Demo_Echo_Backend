@@ -60,15 +60,18 @@ git clone <repo_url>
 cd Backend
 
 # 2. 配置环境变量
-cp backend/.env.example backend/.env
-vim backend/.env  # 编辑必要的配置
+# 入口脚本与后端代码统一从 Backend/.env 加载配置
+cp backend/.env.example .env
+vim .env  # 编辑必要的配置
 
 # 必须配置的环境变量:
-# DATABASE_URL=mysql+pymysql://root:password@localhost:3306/echo_ai_db
-# OPENAI_API_KEY=your-api-key
-# API_BASE=https://your-api-endpoint
-# LLM_MODEL=gpt-4o
-# JWT_SECRET_KEY=your-secret-key
+# DATABASE_URL=mysql+pymysql://root:password@localhost:3306/echo_ai_db  # 生产建议MySQL；开发默认SQLite
+# LLM_API_KEY=your-llm-api-key
+# LLM_API_BASE=https://your-llm-api-base   # 例如 OpenAI/SiliconFlow 等供应商
+# LLM_MODEL=gpt-4o                           # 或 Qwen 等模型
+# JWT_SECRET=your-secret-key
+# APP_PORT=3000                              # 入口脚本可读取（未设置则默认3000）
+# APP_HOST=0.0.0.0                           # 入口脚本可读取（未设置则默认0.0.0.0）
 
 # 3. 运行安装脚本（创建虚拟环境、安装依赖、初始化数据库）
 chmod +x setup.sh
@@ -205,10 +208,9 @@ curl -H "Authorization: Bearer <your_token>" \
 
 # 持续监控（自动重启）
 ./entrypoint.sh monitor
-
-# 查看日志
-./entrypoint.sh logs
 ```
+
+日志位置：后端与入口脚本日志位于 `Backend/logs/`；使用 `start`/`restart` 后，脚本会在前台实时输出服务与监控日志。
 
 ### 直接启动（开发模式）
 
@@ -232,7 +234,7 @@ sudo systemctl status mysql
 mysql -u root -p -e "SELECT VERSION();"
 
 # 检查 .env 中的 DATABASE_URL 配置
-cat backend/.env | grep DATABASE_URL
+cat .env | grep DATABASE_URL
 ```
 
 ### 2. 端口被占用
@@ -281,7 +283,7 @@ pip install git+https://github.com/modelcontextprotocol/python-sdk.git
 - **[前后端对接与API规范](./docs/前后端对接与API规范.md)** - API 接口详细说明（含 `/api/v1/intent/confirm` 使用、播报口径与地址缩写说明）
 - **[业务场景测试用例](./docs/业务场景测试用例.md)** - 测试用例和验收标准
 - **[生产部署指南](./docs/生产部署指南.md)** - systemd、supervisor、Docker 部署
-- **[故障排查手册](./docs/故障排查手册.md)** - 常见问题和解决方案
+- **[MCP 会话初始化问题 Debug 指南](./docs/MCP_会话初始化问题_Debug指南.md)**
 
 ---
 
