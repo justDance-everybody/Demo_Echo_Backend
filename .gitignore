@@ -138,3 +138,4 @@ token*
 *.m4a
 outputs/
 MCP_server/*/outputs/
+.tools_initialized

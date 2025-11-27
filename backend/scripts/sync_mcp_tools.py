@@ -16,7 +16,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # 添加项目根目录到Python路径
-sys.path.append(str(Path(__file__).parent.parent.parent))
+sys.path.append(str(Path(__file__).parent.parent))
 
 from app.models.tool import Tool
 from app.utils.db import get_async_db_session
@@ -130,7 +130,9 @@ class MCPToolSynchronizer:
                         import traceback
                         logger.error(f"详细错误信息: {traceback.format_exc()}")
                         result["tools_failed"] += 1
-                
+
+                # 提交数据库更改
+                await db.commit()
                 logger.info(f"服务器 {server_name} 工具同步完成: 新增 {result['tools_synced']} 个，更新 {result['tools_updated']} 个")
                 break
         

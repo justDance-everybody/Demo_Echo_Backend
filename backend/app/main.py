@@ -13,6 +13,10 @@ from app.routers import intent, execute, tools, auth, dev_tools, dev_apps, mcp_s
 from app.config import settings
 from app.utils.db import init_db
 from app.services.mcp_manager import mcp_manager
+from app.utils.db import init_db, get_async_db_session
+from app.models.user import User
+from app.utils.security import get_password_hash
+from sqlalchemy.future import select
 import time
 import json
 from pathlib import Path
@@ -101,6 +105,33 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"❌ MCP服务器管理器启动失败: {e}")
     
+    # 检查并创建测试管理员用户
+    if settings.TEST_ADMIN_USERNAME and settings.TEST_ADMIN_PASSWORD:
+        logger.info(f"检查测试管理员用户: {settings.TEST_ADMIN_USERNAME}")
+        try:
+            async for db in get_async_db_session():
+                stmt = select(User).where(User.username == settings.TEST_ADMIN_USERNAME)
+                result = await db.execute(stmt)
+                existing_user = result.scalar_one_or_none()
+                
+                if not existing_user:
+                    logger.info(f"创建测试管理员用户: {settings.TEST_ADMIN_USERNAME}")
+                    hashed_password = get_password_hash(settings.TEST_ADMIN_PASSWORD)
+                    new_user = User(
+                        username=settings.TEST_ADMIN_USERNAME,
+                        password_hash=hashed_password,
+                        role=settings.TEST_ADMIN_ROLE
+                    )
+                    db.add(new_user)
+                    # session 提交由 get_async_db_session 上下文管理器处理，但在这里我们可以显式commit以确保生效
+                    await db.commit()
+                    logger.info("✅ 测试管理员用户创建成功")
+                else:
+                    logger.info("✅ 测试管理员用户已存在")
+                break # 只需要一个session
+        except Exception as e:
+            logger.error(f"❌ 创建测试管理员用户失败: {e}")
+
     yield
     
     # 应用关闭时执行

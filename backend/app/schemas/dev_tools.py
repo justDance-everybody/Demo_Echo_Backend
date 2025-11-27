@@ -126,8 +126,8 @@ class DeveloperToolResponse(BaseModel):
     download_count: int = Field(..., description="下载次数")
     rating: Optional[float] = Field(None, description="用户评分")
     created_at: datetime = Field(..., description="创建时间")
-    updated_at: datetime = Field(..., description="更新时间")
-    
+    updated_at: Optional[datetime] = Field(None, description="更新时间")
+
     class Config:
         from_attributes = True
 

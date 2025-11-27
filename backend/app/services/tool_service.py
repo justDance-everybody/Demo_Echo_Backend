@@ -21,22 +21,28 @@ class ToolService:
     def _load_mcp_servers_config(self):
         """加载MCP服务器配置"""
         try:
+            # 获取项目根目录
+            # 当前文件在 backend/app/services/tool_service.py
+            # 需要向上移动3层到达 backend 目录，再上一层是项目根目录
+            current_file = Path(__file__)
+            project_root = current_file.parent.parent.parent.parent
+            
             # 查找MCP服务器配置文件
             config_paths = [
-                "/home/devbox/project/Backend/MCP_Client/config/mcp_servers.json",
-                "/home/devbox/project/Backend/backend/app/mcp_servers.json",
-                "/home/devbox/project/Backend/config/mcp_servers.json"
+                project_root / "MCP_Client" / "config" / "mcp_servers.json",
+                project_root / "backend" / "app" / "mcp_servers.json",
+                project_root / "config" / "mcp_servers.json"
             ]
             
             for config_path in config_paths:
-                if os.path.exists(config_path):
+                if config_path.exists():
                     with open(config_path, 'r', encoding='utf-8') as f:
                         config = json.load(f)
                         self._mcp_servers_config = config.get('mcpServers', {})
                         logger.info(f"成功加载MCP服务器配置: {config_path}")
                         return
             
-            logger.warning("未找到MCP服务器配置文件")
+            logger.warning(f"未找到MCP服务器配置文件，搜索路径: {[str(p) for p in config_paths]}")
             self._mcp_servers_config = {}
             
         except Exception as e:

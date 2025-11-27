@@ -5,6 +5,7 @@
       "description": "提供Web浏览和自动化功能",
       "command": "npx",
       "args": [
+        "-y",
         "@playwright/mcp@latest"
       ],
       "enabled": true
