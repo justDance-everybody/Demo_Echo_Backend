@@ -70,7 +70,7 @@ ecdsa==0.19.1                  # 椭圆曲线数字签名算法
 rsa==4.9.1                     # RSA加密算法
 pyasn1==0.4.8                  # ASN.1编码解码
 six==1.17.0                    # Python 2/3兼容库
-bcrypt==4.3.0                  # 现代密码哈希
+bcrypt==4.0.1                  # 现代密码哈希 (Pinned for passlib compatibility)
 
 # ==========================================
 # 测试框架
