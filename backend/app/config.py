@@ -9,9 +9,8 @@ from pydantic import Field, Extra
 
 # # load_dotenv() # pydantic-settings 会自动加载 env_file 指定的文件
 
-# 获取 backend 目录的绝对路径
-BACKEND_DIR = Path(__file__).parent.parent
-DOTENV_PATH = BACKEND_DIR / ".env"
+# 统一从 Backend 根目录加载 .env
+DOTENV_PATH = Path(__file__).resolve().parents[2] / ".env"
 
 logger.info(f"尝试加载 .env 文件: {DOTENV_PATH}, 是否存在: {DOTENV_PATH.exists()}")
 
@@ -23,7 +22,7 @@ class Settings(BaseSettings):
     
     # 应用信息
     APP_NAME: str = Field(default="AI Assistant API", env="APP_NAME")
-    VERSION: str = Field(default="0.1.0", env="VERSION")
+    VERSION: str = Field(default="0.1.1", env="VERSION")
     API_PREFIX: str = Field(default="/api/v1", env="API_PREFIX")
     
     # 环境配置
@@ -43,18 +42,28 @@ class Settings(BaseSettings):
     DATABASE_URL: str = Field(default=DEFAULT_SQLITE_URL, env="DATABASE_URL") 
     DATABASE_NAME: str = Field(default="ai_assistant", env="DATABASE_NAME")
     
-    # LLM配置 (使用通用名称)
+    # 默认LLM配置 (所有环节使用)
     LLM_API_KEY: str = Field(default="", env="LLM_API_KEY")
-    LLM_API_BASE: str = Field(default="", env="LLM_API_BASE")  # 移除硬编码的API地址
-    LLM_MODEL: str = Field(default="", env="LLM_MODEL")  # 移除硬编码的模型名称
+    LLM_API_BASE: str = Field(default="", env="LLM_API_BASE")
+    LLM_MODEL: str = Field(default="", env="LLM_MODEL")
     LLM_TIMEOUT: int = Field(default=60, env="LLM_TIMEOUT")
-    # 新增 LLM 参数
     LLM_TEMPERATURE: float = Field(default=0.7, env="LLM_TEMPERATURE")
     LLM_MAX_TOKENS: int = Field(default=1000, env="LLM_MAX_TOKENS")
+    
+    # 工具选择专用LLM配置 (可选，如不设置则使用默认配置)
+    INTENT_LLM_MODEL: str = Field(default="", env="INTENT_LLM_MODEL")
+    INTENT_LLM_API_BASE: str = Field(default="", env="INTENT_LLM_API_BASE")
+    INTENT_LLM_API_KEY: str = Field(default="", env="INTENT_LLM_API_KEY")
+    INTENT_LLM_TEMPERATURE: float = Field(default=0.1, env="INTENT_LLM_TEMPERATURE")
+    INTENT_LLM_MAX_TOKENS: int = Field(default=2000, env="INTENT_LLM_MAX_TOKENS")
+    
+    # 执行总超时（秒）
+    EXECUTION_TIMEOUT: int = Field(default=180, env="EXECUTION_TIMEOUT")
     
     # MCP配置
     MCP_CLIENT_PATH: str = Field(default="../MCP_Client", env="MCP_CLIENT_PATH")
     MCP_SERVERS_PATH: str = Field(default="../MCP_Client/config/mcp_servers.json", env="MCP_SERVERS_PATH")
+    MCP_TIMEOUT_MS: int = Field(default=30000, env="MCP_TIMEOUT_MS")  # MCP连接超时，毫秒
     
     # 日志配置
     LOG_LEVEL: str = Field(default="INFO", env="LOG_LEVEL")
@@ -74,6 +83,11 @@ class Settings(BaseSettings):
     JWT_SECRET: str = Field(default="", env="JWT_SECRET")  # 移除硬编码的密钥
     JWT_ALGORITHM: str = Field(default="HS256", env="JWT_ALGORITHM")
     JWT_EXPIRATION: int = Field(default=60 * 24 * 7, env="JWT_EXPIRATION") # 7天，单位:分钟
+
+    # 测试管理员账户配置
+    TEST_ADMIN_USERNAME: str = Field(default="", env="TEST_ADMIN_USERNAME")
+    TEST_ADMIN_PASSWORD: str = Field(default="", env="TEST_ADMIN_PASSWORD")
+    TEST_ADMIN_ROLE: str = Field(default="admin", env="TEST_ADMIN_ROLE")
     
     # 兼容旧配置 (或特定开关)
     USE_MOCK_RESPONSES_STR: str = Field(default="false", env="USE_MOCK_RESPONSES")

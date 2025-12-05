@@ -1,308 +1,305 @@
 # Echo 智能语音 AI-Agent 开放平台
 
-## 项目简介
-Echo是一个基于Python(FastAPI)后端和React前端的智能语音AI-Agent开放平台，支持语音全流程交互、意图识别、工具调用等功能。系统可集成MCP服务和各类HTTP API，实现丰富的技能服务。
+## 📖 项目简介
 
-## 主要特性
-- **语音全流程交互**：支持语音输入、意图识别、语音合成输出
-- **多种工具集成**：
-  - MCP服务集成（支持区块链、Web3等复杂场景）
-  - HTTP工具支持（Dify平台、Coze平台、通用HTTP API）
-- **意图识别与确认**：使用大语言模型(LLM)解析用户意图并生成确认提示
-- **安全认证**：JWT身份验证与权限管理
-- **多轮对话管理**：会话状态跟踪与上下文保持
-- **日志与监控**：详细操作记录，便于审计与排查
+Echo 是一个基于 Python (FastAPI) 的智能语音 AI-Agent 开放平台，支持语音全流程交互、意图识别、工具调用等功能。
 
-## 技术栈
-- **后端**：Python 3.9+, FastAPI, SQLAlchemy, Alembic, Pydantic
-- **前端**：React, Material UI, Web Speech API
-- **数据库**：MySQL
-- **AI服务**：兼容OpenAI API的LLM服务
-- **认证**：JWT
-- **部署**：Uvicorn, PM2
+### ✨ 主要特性
 
-## 项目结构
+- **🎙️ 语音全流程交互**：支持语音输入、意图识别、语音合成输出
+- **🛠️ 多种工具集成**：MCP 服务、HTTP API（Dify、Coze、自定义）
+- **🧠 智能意图识别**：使用 LLM 解析用户意图并生成确认提示
+- **🔐 安全认证**：JWT 身份验证与多角色权限管理
+- **💬 多轮对话管理**：会话状态跟踪与上下文保持
+
+### 🏗️ 技术栈
+
+- **后端**: Python 3.9+, FastAPI, SQLAlchemy, Alembic
+- **数据库**: MySQL / SQLite
+- **AI 服务**: 兼容 OpenAI API 的 LLM
+- **认证**: JWT
+- **部署**: Uvicorn
+
+### 📁 项目结构
+
 ```
-project/
-├── backend/               # 后端服务
-│   ├── alembic/           # 数据库迁移
-│   ├── app/               # 应用主目录
-│   │   ├── clients/       # 第三方客户端封装
-│   │   ├── controllers/   # 控制器
-│   │   ├── models/        # 数据库模型
-│   │   ├── routers/       # API路由
-│   │   ├── schemas/       # 数据验证模型
-│   │   ├── services/      # 业务逻辑
-│   │   ├── utils/         # 工具函数
-│   │   ├── config.py      # 配置管理
-│   │   └── main.py        # 应用入口
-│   ├── logs/              # 日志文件
-│   ├── scripts/           # 辅助脚本
-│   ├── tests/             # 测试代码
-│   ├── .env.example       # 环境变量示例
-│   └── requirements.txt   # 依赖包列表
-├── frontend/              # 前端项目
-│   ├── public/            # 静态资源
-│   ├── src/               # 源代码
-│   │   ├── components/    # UI组件
-│   │   ├── contexts/      # React上下文
-│   │   ├── hooks/         # 自定义钩子
-│   │   ├── pages/         # 页面组件
-│   │   ├── services/      # API服务
-│   │   ├── styles/        # 样式文件
-│   │   └── utils/         # 工具函数
-│   └── package.json       # 依赖配置
-├── MCP_Client/            # MCP客户端（Python）
-│   ├── config/            # MCP配置
-│   └── src/               # MCP客户端源码
-├── docs/                  # 项目文档
-├── logs/                  # 项目日志
-└── .env.example           # 环境变量示例
+Backend/
+├── backend/                 # 后端服务
+│   ├── alembic/            # 数据库迁移
+│   ├── app/                # 应用主目录
+│   │   ├── models/         # 数据库模型
+│   │   ├── routers/        # API 路由
+│   │   ├── services/       # 业务逻辑
+│   │   ├── schemas/        # 数据验证
+│   │   └── main.py         # 应用入口
+│   └── .env.example        # 环境变量示例
+├── MCP_Client/             # MCP 客户端
+├── docs/                   # 文档目录
+│   ├── 前后端对接与API规范.md
+│   ├── 业务场景测试用例.md
+│   ├── 生产部署指南.md    # 生产环境配置
+│   └── 故障排查手册.md    # 常见问题解决
+└── entrypoint.sh           # 服务管理脚本
 ```
-
-## 安装与配置
-
-### 依赖环境
-- Python 3.9+
-- Node.js 16+
-- MySQL 5.7+
-- (推荐)虚拟环境管理工具：venv, uv等
-
-### 后端安装与配置
-1. 克隆仓库并进入后端目录
-```bash
-git clone <repo_url>
-cd project/backend
-```
-
-2. 创建并激活虚拟环境
-```bash
-python -m venv venv
-source venv/bin/activate  # Linux/macOS
-# 或
-venv\Scripts\activate  # Windows
-```
-
-3. 安装依赖
-```bash
-pip install -r requirements.txt
-```
-
-4. 配置环境变量
-```bash
-cp .env.example .env
-# 编辑.env文件，设置数据库连接、API密钥等
-```
-
-5. 配置环境变量
-```bash
-# 编辑.env文件，设置必要的配置项
-vim .env
-```
-
-主要配置项包括：数据库连接、LLM API密钥、JWT密钥等。详细配置说明请参考：[后端开发文档](docs/后端开发文档.md)
-
-6. 数据库迁移
-```bash
-cd backend
-alembic upgrade head
-```
-
-### 前端安装与配置
-1. 进入前端目录
-```bash
-cd project/frontend
-```
-
-2. 安装依赖
-```bash
-npm install
-```
-
-3. 配置环境变量
-```bash
-cp .env.example .env
-# 编辑.env文件，设置API路径等
-```
-
-### MCP_Client 配置
-1. 进入MCP_Client目录
-```bash
-cd project/MCP_Client
-```
-
-2. 创建并激活虚拟环境
-```bash
-python -m venv .venv
-source .venv/bin/activate  # Linux/macOS
-# 或
-.venv\Scripts\activate  # Windows
-```
-
-3. 安装依赖
-```bash
-pip install openai python-dotenv
-pip install git+https://github.com/modelcontextprotocol/python-sdk.git
-```
-
-## 启动服务
-
-### 启动后端服务
-```bash
-cd backend
-# 开发模式（自动重载）
-uvicorn app.main:app --reload --host 0.0.0.0 --port 3000
-
-# 生产模式
-uvicorn app.main:app --host 0.0.0.0 --port 3000
-```
-
-### 使用PM2启动（生产环境推荐）
-```bash
-# 安装PM2 (需要Node.js)
-npm install -g pm2
-
-# 使用项目根目录的启动脚本
-cd project
-pm2 start ecosystem.config.js
-# 或使用start-pm2.sh脚本
-./start-pm2.sh
-```
-
-### 启动前端服务
-
-```bash
-# 开发模式（Mock数据，无需后端）
-./start-frontend.sh start dev
-
-# 生产模式（自动检测后端进程）
-./start-frontend.sh start prod
-
-# 查看状态和日志
-./start-frontend.sh status
-./start-frontend.sh logs
-
-# 停止服务
-./start-frontend.sh stop
-
-# 查看帮助
-./start-frontend.sh help
-```
-
-**核心特性：** 智能后端检测、自动端口分配、多模式启动、实时监控
-
-### 直接启动MCP_Client（可选）
-```bash
-cd MCP_Client
-# 启动并连接到指定MCP服务器
-python src/mcp/client/main.py <path_to_server_script>
-```
-
-## 核心API接口
-
-系统提供完整的RESTful API接口，支持意图解析、工具执行、用户认证等功能。
-
-- **API基础路径**: `http://localhost:3000/api/v1`
-- **API文档**: `http://localhost:3000/docs` (Swagger UI)
-- **认证方式**: JWT Bearer Token
-
-详细的API接口说明请参考：[前后端对接与API规范](docs/前后端对接与API规范.md)
-
-## 支持的工具类型
-
-系统支持两种主要类型的工具：
-
-### 1. MCP工具
-MCP (Model Context Protocol) 工具是基于自定义协议的脚本工具，能够执行区块链相关操作和其他复杂任务。
-
-- 要求配置 `server_name` 字段，指向对应的MCP服务器
-- 支持完整的参数传递和结果解析
-- 集成了多种MCP服务器，如Playwright、MiniMax API、地图API和Web3区块链API
-
-### 2. HTTP工具
-HTTP工具允许系统调用外部HTTP API来执行操作。目前支持以下平台类型：
-
-#### a. Dify
-- 调用Dify平台上的AI应用
-- 支持conversation_id管理
-- 响应通过LLM总结，生成适合语音播报的内容
-
-#### b. Coze
-- 调用Coze平台上的机器人
-- 要求在配置中提供bot_id
-- 响应同样经过LLM总结处理
-
-#### c. 通用HTTP
-- 支持配置和调用任意HTTP API
-- 支持GET, POST, PUT, PATCH, DELETE等多种HTTP方法
-- 灵活配置头信息、认证方式（Bearer、ApiKey、Basic）
-- 支持响应结果路径提取（使用result_path字段）
-- 支持URL参数格式化和有效载荷配置
-- 对响应结果进行LLM总结处理，生成简洁易懂的语音反馈
-
-## 统一API架构
-
-本项目采用了统一的API架构，提高了代码可维护性和一致性：
-
-1. **统一API入口**
-   - 所有API请求通过统一的路由处理
-   - 标准化的请求/响应格式
-   - 版本化API设计 (如 `/api/v1/...`)
-
-2. **标准响应格式**
-   ```json
-   {
-     "status": "success|error|waiting",
-     "data": { /* 响应数据 */ },
-     "message": "操作结果描述",
-     "timestamp": "2023-04-19T12:34:56.789Z"
-   }
-   ```
-
-## 开发指南
-
-详细的开发指南请参考：
-- [后端开发文档](docs/后端开发文档.md) - 后端开发者专用
-- [前后端对接与API规范](docs/前后端对接与API规范.md) - 前端开发者必读
-- [前端开发文档](docs/前端开发文档.md) - 前端开发指南
-
-## 测试与调试
-
-### 运行测试
-```bash
-cd backend
-pytest
-```
-
-### API调试
-- Swagger UI: http://localhost:3000/docs
-- ReDoc: http://localhost:3000/redoc
-
-## 贡献指南
-- Fork本仓库
-- 创建特性分支 (`git checkout -b feature/amazing-feature`)
-- 提交更改 (`git commit -m 'Add some amazing feature'`)
-- 推送分支 (`git push origin feature/amazing-feature`)
-- 创建Pull Request
-
-## 更新日志
-
-### 2025-05-14
-- 实现通用HTTP API工具支持，包括多种HTTP方法、认证方式和结果处理
-- 完善Dify和Coze平台工具的LLM结果总结功能
-- 添加单元测试覆盖工具执行服务
-
-### 2025-04-30
-- 实现意图识别和工具执行的核心功能
-- 完成MCP客户端集成，支持多种操作
-- 添加基础认证系统
-
-## 文档导航
-
-- [前后端对接与API规范](docs/前后端对接与API规范.md) - API接口详细说明和调用示例
-- [后端开发文档](docs/后端开发文档.md) - 后端架构、服务和开发指南
-- [前端开发文档](docs/前端开发文档.md) - 前端组件和开发规范
 
 ---
 
-> 文档更新时间：2025-05-14
+## 🚀 快速开始
+
+### 环境要求
+
+- Python 3.9+
+- MySQL 5.7+ 或 SQLite
+- Node.js 16+ (用于 MCP 服务)
+
+### 一键安装与启动
+
+```bash
+# 1. 克隆项目
+git clone <repo_url>
+cd Backend
+
+# 2. 配置环境变量
+# 入口脚本与后端代码统一从 Backend/.env 加载配置
+cp backend/.env.example .env
+vim .env  # 编辑必要的配置
+
+# 必须配置的环境变量:
+# DATABASE_URL=mysql+pymysql://root:password@localhost:3306/echo_ai_db  # 生产建议MySQL；开发默认SQLite
+# LLM_API_KEY=your-llm-api-key
+# LLM_API_BASE=https://your-llm-api-base   # 例如 OpenAI/SiliconFlow 等供应商
+# LLM_MODEL=gpt-4o                           # 或 Qwen 等模型
+# JWT_SECRET=your-secret-key
+# APP_PORT=3000                              # 入口脚本可读取（未设置则默认3000）
+# APP_HOST=0.0.0.0                           # 入口脚本可读取（未设置则默认0.0.0.0）
+
+# 3. 运行安装脚本（创建虚拟环境、安装依赖、初始化数据库）
+chmod +x setup.sh
+./setup.sh
+
+# 4. 启动服务
+./entrypoint.sh start
+
+# 5. 验证服务
+curl http://localhost:3000/health
+```
+
+### 访问服务
+
+- **API 文档**: http://localhost:3000/docs (Swagger UI)
+- **健康检查**: http://localhost:3000/health
+- **API 基础路径**: http://localhost:3000/api/v1
+
+---
+
+## 📡 API 接口概览
+
+### 核心接口
+
+| 接口 | 方法 | 说明 | 认证 |
+|------|------|------|------|
+| `/health` | GET | 健康检查 | ❌ |
+| `/api/v1/auth/token` | POST | 用户登录 | ❌ |
+| `/api/v1/intent/interpret` | POST | 意图识别 | ✅ |
+| `/api/v1/tools` | GET | 获取工具列表 | ✅ |
+| `/api/v1/tools/execute` | POST | 工具执行 | ✅ |
+| `/api/v1/dev/integrations` | GET/POST/PUT/DELETE | 开发者 API 集成 | ✅ (developer) |
+| `/api/v1/mcp/status` | GET | MCP 服务器状态 | ✅ |
+
+### /api/v1/intent/confirm 使用与播报口径
+
+- 路径与鉴权：`POST /api/v1/intent/confirm`，需要 JWT；`session_id` 必填；`user_id` 由鉴权自动确定（无需在请求体传）。
+- 请求体：
+  - `session_id: string`
+  - `user_input: string`（如“确认执行”、“取消”等，用于表达确认或拒绝）
+- 响应模型（固定）：
+  - `session_id: string`
+  - `success: boolean`
+  - `content: string | null`（成功时用于语音播报的纯正文）
+  - `error: string | null`（失败/超时的原因简述）
+- 播报规则（前端）：
+  - 成功：仅播报 `content`。该字段为纯正文，不包含说明性前缀/道歉/技术细节或工具名称；多工具结果用换行分隔；区块链地址统一缩写（如 `0x123456…5678`）。
+  - 失败/超时：仅播报 `error` 的简述版本（限制长度、去技术细节）。
+- 行为说明：
+  - 聚合层仅依赖各工具的 `data.tts_message` 生成 `content`；如缺失则统一用抽取与忠实改写补齐，避免直接返回第三方的 `answer/message/str(data)`。
+  - 未确认/拒绝时，不执行工具，直接返回提示文本到 `content`（如“请重新告诉我您需要什么帮助”）。
+- 示例：
+  - 未确认/拒绝：`{"session_id":"s1","success":true,"content":"请重新告诉我您需要什么帮助","error":null}`
+  - 成功（多工具）：`{"session_id":"s1","success":true,"content":"天气晴，22℃\n\n账户余额 123.45 USDT (地址 0x123456…5678)","error":null}`
+  - 失败：`{"session_id":"s1","success":false,"content":null,"error":"执行过程中出现错误: …"}`
+  - 超时：`{"session_id":"s1","success":false,"content":null,"error":"确认执行超时 (180秒)"}`
+
+> 前端集成建议：只读取 `content` 或 `error` 进行播报，无需解析工具专属字段；使用 `session_id` 做会话关联即可。
+
+### 📦 开发者 API 集成
+
+第三方开发者可以通过表单方式集成 Dify/Coze 平台的 API 服务。
+
+**字段要求**：
+- **名称** (2-30字)：简洁明了，如 "心理咨询助手"、"天气查询工具"
+- **描述** (20-200字)：必须包含 ①工具功能 ②适用场景 ③触发关键词示例
+
+**优秀示例**：
+```json
+{
+  "name": "心理咨询与情感陪伴助手",
+  "description": "专业的心理咨询与情感支持工具。当用户表达负面情绪（如悲伤、焦虑、孤独）或需要情感支持时使用。适用场景：用户倾诉烦恼、寻求安慰、情绪低落等。",
+  "type": "http",
+  "endpoint": {
+    "platform": "dify",
+    "api_key": "app-xxx"
+  }
+}
+```
+
+**常见错误**：
+- ❌ 名称: `Dify API` (技术术语) → ✅ `智能写作助手`
+- ❌ 描述: `调用 Dify 接口` (无场景) → ✅ `AI 写作辅助工具。当用户需要写作帮助（如「帮我写邮件」、「润色文字」）时使用...`
+
+**快速创建**：
+```bash
+curl -X POST "http://localhost:3000/api/v1/dev/integrations" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "您的工具名称",
+    "description": "详细描述（必须20字以上，包含场景和关键词）",
+    "type": "http",
+    "endpoint": {"platform": "dify", "api_key": "app-xxx"}
+  }'
+```
+
+> 💡 提示：高质量的描述能显著提升 AI 意图识别的准确率！
+
+### 快速测试
+
+```bash
+# 健康检查
+curl http://localhost:3000/health
+
+# 用户登录（获取 token）
+curl -X POST http://localhost:3000/api/v1/auth/token \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "username=testuser&password=yourpassword"
+
+# 获取工具列表
+curl -H "Authorization: Bearer <your_token>" \
+  http://localhost:3000/api/v1/tools
+```
+
+---
+
+## 🛠️ 服务管理
+
+### 使用管理脚本（推荐）
+
+```bash
+# 启动服务
+./entrypoint.sh start
+
+# 停止服务
+./entrypoint.sh stop
+
+# 重启服务
+./entrypoint.sh restart
+
+# 查看状态
+./entrypoint.sh status
+
+# 持续监控（自动重启）
+./entrypoint.sh monitor
+```
+
+日志位置：后端与入口脚本日志位于 `Backend/logs/`；使用 `start`/`restart` 后，脚本会在前台实时输出服务与监控日志。
+
+### 直接启动（开发模式）
+
+```bash
+cd backend
+source ../.venv/bin/activate
+python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 3000
+```
+
+---
+
+## 🔧 常见问题
+
+### 1. 数据库连接失败
+
+```bash
+# 检查 MySQL 服务状态
+sudo systemctl status mysql
+
+# 测试数据库连接
+mysql -u root -p -e "SELECT VERSION();"
+
+# 检查 .env 中的 DATABASE_URL 配置
+cat .env | grep DATABASE_URL
+```
+
+### 2. 端口被占用
+
+```bash
+# 查看端口占用
+lsof -i :3000
+
+# 杀死占用进程
+kill -9 $(lsof -t -i:3000)
+```
+
+### 3. MCP 工具同步失败
+
+```bash
+# 检查 Node.js 版本
+node --version  # 需要 16+
+
+# 重新安装 MCP 包
+npm install -g @playwright/mcp minimax-mcp-js @amap/amap-maps-mcp-server
+
+# 检查 MCP 配置
+cat MCP_Client/config/mcp_servers.json
+```
+
+### 4. 虚拟环境问题
+
+```bash
+# 删除旧环境
+rm -rf .venv
+
+# 重新创建
+python -m venv .venv
+source .venv/bin/activate
+pip install -r backend/requirements.txt
+pip install git+https://github.com/modelcontextprotocol/python-sdk.git
+```
+
+---
+
+## 📚 详细文档
+
+需要更多信息？查看完整文档：
+
+- **[后端开发文档](./docs/后端开发文档.md)** - 详细的开发指南和配置说明
+- **[前后端对接与API规范](./docs/前后端对接与API规范.md)** - API 接口详细说明（含 `/api/v1/intent/confirm` 使用、播报口径与地址缩写说明）
+- **[业务场景测试用例](./docs/业务场景测试用例.md)** - 测试用例和验收标准
+- **[生产部署指南](./docs/生产部署指南.md)** - systemd、supervisor、Docker 部署
+- **[MCP 会话初始化问题 Debug 指南](./docs/MCP_会话初始化问题_Debug指南.md)**
+
+---
+
+## 🎯 快速链接
+
+- **API 文档**: http://localhost:3000/docs
+- **健康检查**: http://localhost:3000/health
+- **GitHub**: [项目地址]
+- **问题反馈**: [Issues]
+
+---
+
+## 📄 许可证
+
+MIT License
+
+---
+
+**祝使用愉快！** 🎉

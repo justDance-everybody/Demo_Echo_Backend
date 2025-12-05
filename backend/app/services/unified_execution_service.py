@@ -58,7 +58,7 @@ class SessionManager:
             session = Session(
                 session_id=session_id,
                 user_id=user_id,
-                status="parsing",
+                status="interpreting",
                 created_at=datetime.utcnow()
             )
             self.db.add(session)
@@ -135,7 +135,11 @@ class UnifiedExecutionService:
     def __init__(self):
         self.execute_service = ExecuteService()
         self.intent_service = IntentService()
-        self.execution_timeout = 120  # 120秒超时
+        try:
+            from app.config import settings
+            self.execution_timeout = int(getattr(settings, 'EXECUTION_TIMEOUT', 180))
+        except Exception:
+            self.execution_timeout = 180
     
     @asynccontextmanager
     async def get_session_manager(self, db: AsyncSession):
@@ -192,7 +196,7 @@ class UnifiedExecutionService:
                     # 5. 检查execute_service的执行结果
                     if hasattr(result, 'success') and result.success:
                         # 执行成功
-                        await session_manager.update_session_status(session_id, "completed")
+                        await session_manager.update_session_status(session_id, "done")
                         await session_manager.log_operation(
                             session_id, "execute", "success", "工具执行成功"
                         )
@@ -279,7 +283,7 @@ class UnifiedExecutionService:
                 return False
             
             # 如果不是简单关键词，使用大模型分析
-            from app.utils.openai_client import openai_client
+            from app.utils.openai_client import get_openai_client
             from app.config import settings
             
             # 构建提示词，让大模型判断用户意图
@@ -305,7 +309,10 @@ class UnifiedExecutionService:
                 {"role": "user", "content": prompt}
             ]
             
-            response = await openai_client.client.chat.completions.create(
+            client = get_openai_client()
+            if not client:
+                return False
+            response = await client.client.chat.completions.create(
                 model=settings.LLM_MODEL,
                 messages=messages,
                 temperature=0.1,  # 低温度确保一致性
@@ -369,7 +376,7 @@ class UnifiedExecutionService:
                     )
                 
                 # 3. 用户确认执行，更新会话状态
-                await session_manager.update_session_status(session_id, "confirmed")
+                await session_manager.update_session_status(session_id, "executing")
                 
                 # 4. 调用intent_service执行确认的工具
                 try:
@@ -383,7 +390,7 @@ class UnifiedExecutionService:
                     )
                     
                     # 5. 更新会话状态为完成
-                    await session_manager.update_session_status(session_id, "completed")
+                    await session_manager.update_session_status(session_id, "done")
                     
                     # 6. 记录执行成功
                     await session_manager.log_operation(
@@ -413,6 +420,14 @@ class UnifiedExecutionService:
                                 if content_parts:
                                     content = "\n\n".join(content_parts)
                                     logger.info(f"[Session: {session_id}] 从 detailed_results 中提取到内容: {content}")
+
+                        try:
+                            from app.services.execute_service import ExecuteService
+                            es = ExecuteService()
+                            speakable = es._extract_speakable_text(content)
+                            content = await es._faithful_tts({}, speakable)
+                        except Exception:
+                            pass
                         
                         response_data = {
                             "session_id": session_id,
@@ -494,7 +509,7 @@ class UnifiedExecutionService:
             result = await db.execute(
                 select(Session).where(
                     Session.updated_at < cutoff_time,
-                    Session.status.in_(["completed", "error", "cancelled"])
+                    Session.status.in_(["done", "error", "cancelled"])
                 )
             )
             expired_sessions = result.scalars().all()

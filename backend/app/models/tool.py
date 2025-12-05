@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, JSON, Enum, DateTime, Integer, Boolean, Float, ForeignKey
+from sqlalchemy import Column, String, JSON, Enum, DateTime, Integer, Boolean, Float, ForeignKey, BigInteger
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.utils.db import Base
@@ -7,7 +7,7 @@ class Tool(Base):
     """工具模型"""
     __tablename__ = "tools"
     
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
     tool_id = Column(String(64), nullable=False)
     name = Column(String(128), nullable=False)
     type = Column(Enum('mcp', 'http', name='tool_type'), nullable=False)
@@ -18,7 +18,7 @@ class Tool(Base):
     server_name = Column(String(64), nullable=True) # 对于MCP工具，存储其所属服务器的名称 (对应 config/mcp_servers.json 中的 key)
     
     # 开发者相关字段
-    developer_id = Column(Integer, ForeignKey('users.id'), nullable=True)  # 开发者用户ID，外键关联User表
+    developer_id = Column(BigInteger, ForeignKey('users.id'), nullable=True)  # 开发者用户ID，外键关联User表
     is_public = Column(Boolean, default=True, nullable=False)  # 是否公开可用
     status = Column(Enum('active', 'inactive', 'pending', name='tool_status'), default='active', nullable=False)  # 工具状态
     version = Column(String(32), default='1.0.0', nullable=False)  # 工具版本
@@ -26,8 +26,8 @@ class Tool(Base):
     download_count = Column(Integer, default=0, nullable=False)  # 下载次数
     rating = Column(Float, nullable=True)  # 用户评分
     
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime, server_default=func.current_timestamp())
+    updated_at = Column(DateTime, nullable=True)
     
     # 关系定义
     developer = relationship("User", back_populates="tools")

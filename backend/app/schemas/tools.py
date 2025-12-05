@@ -10,6 +10,9 @@ class ToolItem(BaseModel):
     type: str = Field(..., description="工具类型，如 'mcp' 或 'http'")
     description: Optional[str] = Field(None, description="工具描述")
     source: Optional[str] = Field(None, description="工具来源，如 'MCP' 或 '开发者'")
+    # 新增MCP服务器相关字段
+    server_name: Optional[str] = Field(None, description="MCP服务器名称")
+    server_description: Optional[str] = Field(None, description="MCP服务器描述")
 
 
 class ToolsListResponse(BaseModel):
@@ -20,4 +23,4 @@ class ToolsListResponse(BaseModel):
     class Config:
         populate_by_name = True
         allow_population_by_field_name = True
-        alias_priority = 2  # 确保别名优先 
+        alias_priority = 2  # 确保别名优先
