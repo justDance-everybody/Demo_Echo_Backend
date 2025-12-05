@@ -73,18 +73,22 @@ fi
 # 5. 初始化数据库
 echo ""
 echo -e "${YELLOW}[4/5] 检查数据库...${NC}"
-if [ ! -f "backend/app.db" ]; then
-    echo -e "${YELLOW}正在初始化数据库...${NC}"
-    alembic -c backend/alembic.ini upgrade head
-    echo -e "${GREEN}✓ 数据库初始化完成${NC}"
+# 无论是 SQLite 还是 MySQL，都直接运行迁移以确保 Schema 是最新的
+echo -e "${YELLOW}正在检查并更新数据库结构...${NC}"
+if alembic -c backend/alembic.ini upgrade head; then
+    echo -e "${GREEN}✓ 数据库结构已更新${NC}"
 else
-    echo -e "${GREEN}✓ 数据库已存在${NC}"
+    echo -e "${RED}✗ 数据库迁移失败${NC}"
+    exit 1
 fi
 
 # 5. 初始化工具 (MCP & Dify)
 echo ""
 echo -e "${YELLOW}[4.5/5] 检查工具初始化...${NC}"
 TOOL_INIT_MARKER="backend/.tools_initialized"
+# 如果使用了 MySQL，建议清理一下旧的标记文件，或者您可以手动控制。
+# 这里我们保留标记文件逻辑，但如果迁移成功，通常意味着可以尝试同步工具。
+
 if [ ! -f "$TOOL_INIT_MARKER" ]; then
     echo -e "${YELLOW}首次启动，正在初始化工具（MCP同步 & Dify示例）...${NC}"
     
@@ -130,4 +134,5 @@ echo ""
 
 # 启动服务（从根目录）
 export PYTHONPATH=$PYTHONPATH:$(pwd)/backend
-python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 3000
+# 使用完整的模块路径 backend.app.main:app
+python -m uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 3000
