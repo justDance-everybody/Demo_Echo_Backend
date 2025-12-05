@@ -30,7 +30,7 @@ class AppTool(Base):
     """应用工具关联模型"""
     __tablename__ = "app_tools"
     
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
     app_id = Column(String(50), ForeignKey('apps.app_id'), nullable=False)
     tool_id = Column(String(64), ForeignKey('tools.tool_id'), nullable=False)
     order_index = Column(Integer, default=0, nullable=False)  # 工具在应用中的顺序

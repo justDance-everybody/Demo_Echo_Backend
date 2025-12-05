@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, JSON, DateTime, Boolean, SmallInteger, Enum
+from sqlalchemy import Column, Integer, String, JSON, DateTime, Boolean, SmallInteger, Enum, BigInteger
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.utils.db import Base
@@ -7,7 +7,7 @@ class User(Base):
     """用户模型"""
     __tablename__ = "users"
     
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
     username = Column(String(64), unique=True, nullable=False)
     password_hash = Column(String(128), nullable=True)  # 密码哈希字段，修改为nullable
     email = Column(String(120), nullable=True)  # 添加email字段

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, BigInteger
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.utils.db import Base
@@ -7,7 +7,7 @@ class Log(Base):
     """操作日志模型"""
     __tablename__ = "logs"
     
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
     session_id = Column(String(36), ForeignKey("sessions.session_id"), nullable=False)
     step = Column(String(32), nullable=False)  # interpret, execute, confirm等
     status = Column(String(32), nullable=False)  # success, error等
