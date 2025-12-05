@@ -141961,6 +141961,46 @@ function registerQueryMemeTokenDetails(server) {
   });
 }
 
+// src/tools/walletApprovalCheck.ts
+function registerWalletApprovalCheck(server) {
+  server.tool("Check_Wallet_Approval_Security", "Check token approval security risks (ERC-20 approvals) for a given BSC wallet address using GoPlus API. Useful for identifying risky or unlimited authorizations.", {
+    walletAddress: exports_external.string().describe("The wallet address to check (e.g. 0x...)")
+  }, async ({ walletAddress }) => {
+    try {
+      const chainId = "56";
+      const url2 = `https://api.gopluslabs.io/api/v2/token_approval_security/${chainId}?addresses=${walletAddress}`;
+      const token = process.env.GOPLUS_ACCESS_TOKEN;
+      const headers = {};
+      if (token) {
+        headers["Authorization"] = token;
+      }
+      const response = await fetch(url2, { headers });
+      if (!response.ok) {
+        throw new Error(`GoPlus API request failed with status: ${response.status} ${response.statusText}`);
+      }
+      const data = await response.json();
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(data, null, 2)
+          }
+        ]
+      };
+    } catch (error46) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Error checking wallet security: ${error46 instanceof Error ? error46.message : String(error46)}`
+          }
+        ],
+        isError: true
+      };
+    }
+  });
+}
+
 // src/main.ts
 import_dotenv4.default.config();
 async function main() {
@@ -141979,9 +142019,10 @@ async function main() {
   registerPancakeRemovePosition(server);
   registerGoplusSecurityCheck(server);
   registerQueryMemeTokenDetails(server);
+  registerWalletApprovalCheck(server);
   const transport = new StdioServerTransport;
   transport.onmessage = (message) => {
-    console.log("\uD83D\uDCE9 Received message:", JSON.stringify(message, null, 2));
+    console.error("\uD83D\uDCE9 Received message:", JSON.stringify(message, null, 2));
   };
   transport.onerror = (error46) => {
     console.error("\uD83D\uDEA8 Transport error:", error46);

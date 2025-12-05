@@ -89,35 +89,29 @@ TOOL_INIT_MARKER="backend/.tools_initialized"
 # 如果使用了 MySQL，建议清理一下旧的标记文件，或者您可以手动控制。
 # 这里我们保留标记文件逻辑，但如果迁移成功，通常意味着可以尝试同步工具。
 
-if [ ! -f "$TOOL_INIT_MARKER" ]; then
-    echo -e "${YELLOW}首次启动，正在初始化工具（MCP同步 & Dify示例）...${NC}"
-    
-    # 确保PYTHONPATH包含backend目录，以便脚本能正确导入app模块
-    export PYTHONPATH=$PYTHONPATH:$(pwd)/backend
-    
-    # 1. 同步MCP工具
-    echo -e "${BLUE}正在同步MCP工具...${NC}"
-    if python backend/scripts/sync_mcp_tools.py; then
-        echo -e "${GREEN}✓ MCP工具同步完成${NC}"
-    else
-        echo -e "${RED}✗ MCP工具同步失败${NC}"
-        # 不退出，继续尝试下一个
-    fi
-    
-    # 2. 创建Dify示例工具
-    echo -e "${BLUE}正在创建Dify示例工具...${NC}"
-    if python backend/scripts/create_dify_tool.py; then
-        echo -e "${GREEN}✓ Dify工具创建完成${NC}"
-    else
-        echo -e "${RED}✗ Dify工具创建失败${NC}"
-    fi
-    
-    # 创建标记文件
-    touch "$TOOL_INIT_MARKER"
-    echo -e "${GREEN}✓ 工具初始化流程结束${NC}"
+echo -e "${YELLOW}正在初始化工具（MCP同步 & Dify示例）...${NC}"
+
+# 确保PYTHONPATH包含backend目录，以便脚本能正确导入app模块
+export PYTHONPATH=$PYTHONPATH:$(pwd)/backend
+
+# 1. 同步MCP工具
+echo -e "${BLUE}正在同步MCP工具...${NC}"
+if python backend/scripts/sync_mcp_tools.py; then
+    echo -e "${GREEN}✓ MCP工具同步完成${NC}"
 else
-    echo -e "${GREEN}✓ 工具已初始化 (跳过)${NC}"
+    echo -e "${RED}✗ MCP工具同步失败${NC}"
+    # 不退出，继续尝试下一个
 fi
+
+# 2. 创建Dify示例工具
+echo -e "${BLUE}正在创建Dify示例工具...${NC}"
+if python backend/scripts/create_dify_tool.py; then
+    echo -e "${GREEN}✓ Dify工具创建完成${NC}"
+else
+    echo -e "${RED}✗ Dify工具创建失败${NC}"
+fi
+
+echo -e "${GREEN}✓ 工具初始化流程结束${NC}"
 
 # 6. 启动服务
 echo ""
