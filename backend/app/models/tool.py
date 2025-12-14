@@ -7,7 +7,7 @@ class Tool(Base):
     """工具模型"""
     __tablename__ = "tools"
     
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
     tool_id = Column(String(64), nullable=False)
     name = Column(String(128), nullable=False)
     type = Column(Enum('mcp', 'http', name='tool_type'), nullable=False)
@@ -26,8 +26,8 @@ class Tool(Base):
     download_count = Column(Integer, default=0, nullable=False)  # 下载次数
     rating = Column(Float, nullable=True)  # 用户评分
     
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime, server_default=func.current_timestamp())
+    updated_at = Column(DateTime, nullable=True)
     
     # 关系定义
     developer = relationship("User", back_populates="tools")

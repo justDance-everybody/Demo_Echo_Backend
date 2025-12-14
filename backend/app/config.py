@@ -83,6 +83,11 @@ class Settings(BaseSettings):
     JWT_SECRET: str = Field(default="", env="JWT_SECRET")  # 移除硬编码的密钥
     JWT_ALGORITHM: str = Field(default="HS256", env="JWT_ALGORITHM")
     JWT_EXPIRATION: int = Field(default=60 * 24 * 7, env="JWT_EXPIRATION") # 7天，单位:分钟
+
+    # 测试管理员账户配置
+    TEST_ADMIN_USERNAME: str = Field(default="", env="TEST_ADMIN_USERNAME")
+    TEST_ADMIN_PASSWORD: str = Field(default="", env="TEST_ADMIN_PASSWORD")
+    TEST_ADMIN_ROLE: str = Field(default="admin", env="TEST_ADMIN_ROLE")
     
     # 兼容旧配置 (或特定开关)
     USE_MOCK_RESPONSES_STR: str = Field(default="false", env="USE_MOCK_RESPONSES")

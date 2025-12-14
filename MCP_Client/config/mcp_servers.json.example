@@ -5,6 +5,7 @@
       "description": "提供Web浏览和自动化功能",
       "command": "npx",
       "args": [
+        "-y",
         "@playwright/mcp@latest"
       ],
       "enabled": true
@@ -40,7 +41,17 @@
       },
       "enabled": true
     },
-
+    "bsc-mcp": {
+      "name": "BNB Chain 工具集",
+      "description": "提供 BSC 链上查询、转账和兑换(Swap)功能",
+      "command": "node",
+      "args": ["MCP_server/build/index.js"],
+      "env": {
+        "BSC_WALLET_PRIVATE_KEY": "",
+        "BSC_RPC_URL": "https://bsc-dataseed.binance.org/"
+      },
+      "enabled": true
+    }
     "web3-rpc": {
       "name": "Web3 区块链API",
       "description": "提供多链区块链服务",
@@ -51,7 +62,7 @@
       "env": {
         "SOLANA_RPC_URL": "https://api.mainnet-beta.solana.com"
       },
-      "enabled": true
+      "enabled": false
     }
   },
   "defaultServer": "null",

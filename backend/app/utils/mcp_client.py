@@ -1306,7 +1306,7 @@ class MCPClientWrapper:
                 *cmd,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
-                cwd=os.path.join(project_root, "MCP_Client"),  # 设置工作目录
+                cwd=project_root,  # 使用项目根目录作为工作目录
                 env=env  # 传递环境变量
             )
             

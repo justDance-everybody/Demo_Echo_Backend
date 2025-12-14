@@ -189,8 +189,7 @@ class ExecuteService:
             x = x.replace("\\n", "\n").replace("\\t", " ")
             x = "\n".join(line.strip() for line in x.splitlines() if line.strip())
             x = re.sub(r"\s+", " ", x)
-            if len(x) > 200:
-                x = x[:200] + "…"
+            # 移除字数限制，保留完整信息
             return x
         if not client or not settings.LLM_MODEL:
             out = clean_out(raw_text)
@@ -204,8 +203,10 @@ class ExecuteService:
             return out
         system_prompt = (
             "仅输出播报正文。不含前缀、说明、道歉、工具或实现细节。"
-            "保持原语言与事实，保留数字/实体/否定。最长200字，无法忠实则原文。"
+            "保持原语言与事实，保留数字/实体/否定。"
             "如检测到区块链地址，统一缩写后输出。"
+            "**关键要求：必须完整保留原文中的所有关键信息，禁止编造、减少或省略任何内容。**"
+            "如果原文包含多条结果，必须全部呈现；只提取并组织原文中已有的信息。"
         )
         prompt = (
             "用户参数：" + params_text + "\n" + "原文：\n" + raw_text
@@ -215,7 +216,7 @@ class ExecuteService:
                 model=settings.LLM_MODEL,
                 messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": prompt}],
                 temperature=0.2,
-                max_tokens=200,
+                max_tokens=800,
             )
             tts = (resp.choices[0].message.content or "").strip()
             suspicious = [
@@ -371,12 +372,6 @@ class ExecuteService:
                     # 调用 LLM 总结
                     try:
                         logger.debug(f"准备调用 LLM 总结 MCP 工具 '{tool_id}' 的结果。")
-                        summary_prompt = (
-                            f"你是一个智能助手，需要将以下工具执行的原始结果总结成一段简洁、流畅、适合直接对用户语音播报的话。\n"
-                            f"用户的原始问题(或相关参数)是：{params}\n"
-                            f"工具 '{tool_id}' 返回的原始结果是：\n```\n{str(raw_result)}\n```\n"
-                            f"请生成总结。"
-                        )
                         speakable = self._extract_speakable_text(raw_result)
                         tts_message = await self._faithful_tts(params, speakable)
                     except Exception as llm_err:
@@ -610,12 +605,6 @@ class ExecuteService:
                                 logger.debug(
                                     f"准备调用 LLM 总结 Dify 工具 '{tool_id}' 的结果。"
                                 )
-                                summary_prompt = (
-                                    f"你是一个智能助手，需要将以下工具执行的原始结果总结成一段简洁、流畅、适合直接对用户语音播报的话。\n"
-                                    f"用户的原始问题(或相关参数)是：{params}\n"
-                                    f"工具 '{tool_id}' (Dify App) 返回的原始结果是：\n```\n{str(raw_result)}\n```\n"
-                                    f"请生成总结。"
-                                )
                                 # 忠实提取与改写
                                 speakable = self._extract_speakable_text(raw_result)
                                 tts_message = await self._faithful_tts(params, speakable)
@@ -718,12 +707,6 @@ class ExecuteService:
                             try:
                                 logger.debug(
                                     f"准备调用 LLM 总结 Coze 工具 '{tool_id}' 的结果。"
-                                )
-                                summary_prompt = (
-                                    f"你是一个智能助手，需要将以下工具执行的原始结果总结成一段简洁、流畅、适合直接对用户语音播报的话。\n"
-                                    f"用户的原始问题(或相关参数)是：{params}\n"
-                                    f"工具 '{tool_id}' (Coze Bot) 返回的原始结果是：\n```\n{str(raw_result)}\n```\n"
-                                    f"请生成总结。"
                                 )
                                 speakable = self._extract_speakable_text(raw_result)
                                 tts_message = await self._faithful_tts(params, speakable)

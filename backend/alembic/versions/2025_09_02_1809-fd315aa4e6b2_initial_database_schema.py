@@ -30,7 +30,7 @@ def upgrade() -> None:
     sa.Column('role', sa.Enum('user', 'developer', 'admin', name='user_role'), nullable=False),
     sa.Column('is_active', sa.SmallInteger(), nullable=True),
     sa.Column('is_superuser', sa.SmallInteger(), nullable=True),
-    sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=True),
+    sa.Column('created_at', sa.DateTime(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=True),
     sa.Column('updated_at', sa.DateTime(), nullable=True),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('username')
@@ -44,8 +44,8 @@ def upgrade() -> None:
     sa.Column('is_public', sa.Boolean(), nullable=False),
     sa.Column('status', sa.Enum('draft', 'active', 'inactive', 'deployed', name='app_status'), nullable=False),
     sa.Column('config', sa.JSON(), nullable=True),
-    sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=True),
-    sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=True),
+    sa.Column('created_at', sa.DateTime(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=True),
+    sa.Column('updated_at', sa.DateTime(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=True),
     sa.ForeignKeyConstraint(['developer_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('app_id')
     )
@@ -53,13 +53,13 @@ def upgrade() -> None:
     sa.Column('session_id', sa.String(length=36), nullable=False),
     sa.Column('user_id', sa.BigInteger(), nullable=False),
     sa.Column('status', sa.Enum('interpreting', 'waiting_confirm', 'executing', 'done', 'error', name='session_status'), nullable=False),
-    sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=True),
-    sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=True),
+    sa.Column('created_at', sa.DateTime(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=True),
+    sa.Column('updated_at', sa.DateTime(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=True),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('session_id')
     )
     op.create_table('tools',
-    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+    sa.Column('id', sa.BigInteger(), autoincrement=True, nullable=False),
     sa.Column('tool_id', sa.String(length=64), nullable=False),
     sa.Column('name', sa.String(length=128), nullable=False),
     sa.Column('type', sa.Enum('mcp', 'http', name='tool_type'), nullable=False),
@@ -75,8 +75,8 @@ def upgrade() -> None:
     sa.Column('tags', sa.JSON(), nullable=True),
     sa.Column('download_count', sa.Integer(), nullable=False),
     sa.Column('rating', sa.Float(), nullable=True),
-    sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=True),
-    sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=True),
+    sa.Column('created_at', sa.DateTime(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=True),
+    sa.Column('updated_at', sa.DateTime(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=True),
     sa.ForeignKeyConstraint(['developer_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('tool_id', 'server_name', name='uq_tools_tool_id_server')
@@ -87,7 +87,7 @@ def upgrade() -> None:
     sa.Column('tool_id', sa.String(length=64), nullable=False),
     sa.Column('order_index', sa.Integer(), nullable=False),
     sa.Column('config', sa.JSON(), nullable=True),
-    sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=True),
+    sa.Column('created_at', sa.DateTime(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=True),
     sa.ForeignKeyConstraint(['app_id'], ['apps.app_id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -99,7 +99,7 @@ def upgrade() -> None:
     sa.Column('step', sa.String(length=32), nullable=False),
     sa.Column('status', sa.String(length=32), nullable=False),
     sa.Column('message', sa.Text(), nullable=True),
-    sa.Column('timestamp', sa.DateTime(), server_default=sa.text('now()'), nullable=True),
+    sa.Column('timestamp', sa.DateTime(), server_default=sa.text('CURRENT_TIMESTAMP'), nullable=True),
     sa.ForeignKeyConstraint(['session_id'], ['sessions.session_id'], ),
     sa.PrimaryKeyConstraint('id')
     )
