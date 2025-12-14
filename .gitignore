@@ -7,7 +7,6 @@ node_modules/
 /coverage
 
 # Production
-/build
 /dist
 
 # Environment variables
@@ -59,7 +58,6 @@ __pycache__/
 *$py.class
 *.so
 .Python
-build/
 develop-eggs/
 dist/
 downloads/
@@ -138,3 +136,4 @@ token*
 *.m4a
 outputs/
 MCP_server/*/outputs/
+.tools_initialized
