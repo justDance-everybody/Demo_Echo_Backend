@@ -37,7 +37,7 @@ async def get_developer_integrations(
     status: Optional[str] = Query(None, description="工具状态筛选"),
     is_public: Optional[bool] = Query(None, description="是否公开筛选"),
     search: Optional[str] = Query(None, description="搜索关键词"),
-    current_user: User = Depends(get_developer_user),
+    current_user: Optional[User] = Depends(get_developer_user),
     db: AsyncSession = Depends(get_async_db_session)
 ):
     """
@@ -80,13 +80,10 @@ async def get_developer_integrations(
 )
 async def create_developer_integration(
     tool_data: DeveloperToolCreate,
-    current_user: User = Depends(get_developer_user),
     db: AsyncSession = Depends(get_async_db_session)
 ):
     """
     创建新的开发者工具（仅支持 Dify 与 Coze 平台）。
-
-    鉴权：需要开发者或管理员角色。
 
     字段说明：
     - name（必填，2-30字）
@@ -104,7 +101,6 @@ async def create_developer_integration(
 
     示例 cURL：
     curl -X POST https://localhost:3000/api/v1/dev/integrations \
-      -H 'Authorization: Bearer <JWT>' \
       -H 'Content-Type: application/json' \
       -d '{"name":"Dify集成测试工具","type":"http","description":"用于测试Dify对话型应用提交","endpoint":{"platform":"dify","api_key":"app-xxxx","base_url":"https://api.dify.ai/v1"},"request_schema":{"type":"object","properties":{"query":{"type":"string"}},"required":["query"]}}'
 
@@ -117,7 +113,7 @@ async def create_developer_integration(
     return await dev_tool_service.create_tool(
         db=db,
         tool_data=tool_data,
-        current_user=current_user
+        current_user=None
     )
 
 

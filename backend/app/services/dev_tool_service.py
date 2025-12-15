@@ -111,7 +111,7 @@ class DeveloperToolService:
         self,
         db: AsyncSession,
         tool_data: DeveloperToolCreate,
-        current_user: User
+        current_user: Optional[User] = None
     ) -> DeveloperToolResponse:
         """
         创建新的开发者工具（增强版：支持格式验证、连通性测试、自动生成）
@@ -119,7 +119,7 @@ class DeveloperToolService:
         Args:
             db: 数据库会话
             tool_data: 工具创建数据
-            current_user: 当前用户
+            current_user: 当前用户（可选）
             
         Returns:
             创建的工具信息
@@ -127,7 +127,8 @@ class DeveloperToolService:
         Raises:
             HTTPException: 如果验证失败、连通性测试失败或工具ID已存在
         """
-        logger.info(f"创建开发者工具 - 用户: {current_user.id}")
+        user_id = current_user.id if current_user else None
+        logger.info(f"创建开发者工具 - 用户: {user_id}")
         
         # 1. 格式验证
         validation_result = await self.validate_tool_data(tool_data)
@@ -215,7 +216,7 @@ class DeveloperToolService:
             request_schema=tool_data.request_schema,
             response_schema=tool_data.response_schema,
             server_name=tool_data.server_name,
-            developer_id=current_user.id,
+            developer_id=current_user.id if current_user else None,
             is_public=tool_data.is_public,
             version=tool_data.version,
             tags=tool_data.tags,
@@ -822,14 +823,14 @@ class DeveloperToolService:
         logger.info(f"开始自动探测 Dify 应用类型: {api_key[:15]}...")
         
         attempts = []
-        async def try_endpoint(path: str, payload: dict) -> Optional[str]:
+        async def try_endpoint(path: str, payload: dict, timeout: float = 10.0) -> Optional[str]:
             url = f"{base_url}/{path}"
             headers = {
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json"
             }
             try:
-                async with httpx.AsyncClient(timeout=10.0) as client:
+                async with httpx.AsyncClient(timeout=timeout) as client:
                     response = await client.post(url, headers=headers, json=payload)
                     if response.status_code == 200:
                         return "success"
@@ -839,6 +840,12 @@ class DeveloperToolService:
                         "status": response.status_code,
                         "body": body[:500]
                     })
+            except httpx.TimeoutException as e:
+                attempts.append({
+                    "endpoint": path,
+                    "status": None,
+                    "body": f"请求超时: {str(e)[:300]}"
+                })
             except Exception as e:
                 attempts.append({
                     "endpoint": path,
@@ -855,19 +862,50 @@ class DeveloperToolService:
         if r:
             logger.info("✅ 探测成功：Dify 应用类型为 Chat App")
             return "chat"
+        # workflows 可能需要更长的处理时间，使用更长的超时
         r = await try_endpoint("workflows/run", {
             "inputs": {"query": test_query},
             "user": "test-user",
             "response_mode": "blocking"
-        })
+        }, timeout=15.0)
         if r:
             logger.info("✅ 探测成功：Dify 应用类型为 Workflow")
             return "workflow"
-        # 如果返回的是参数错误，仍可判定为 workflow（路由正确但缺少业务必填项）
+        
+        # 改进的 workflow 判断逻辑：如果 workflows/run 端点返回特定错误，说明路由存在，可能是 workflow
+        workflow_attempt = None
         for att in attempts:
-            if att.get("endpoint") == "workflows/run" and att.get("status") == 400 and "invalid_param" in (att.get("body") or ""):
-                logger.info("✅ 探测识别：Dify 应用类型为 Workflow（缺少业务必填项）")
+            if att.get("endpoint") == "workflows/run":
+                workflow_attempt = att
+                break
+        
+        if workflow_attempt:
+            status = workflow_attempt.get("status")
+            body = (workflow_attempt.get("body") or "").lower()
+            
+            # 情况1: 返回 400 错误（可能是参数错误，说明路由存在）
+            if status == 400:
+                # 排除明确的"不是 workflow"错误
+                if "not_workflow" not in body:
+                    # 包含 invalid_param 或 validation 等关键词，说明路由正确
+                    if any(keyword in body for keyword in ["invalid", "validation", "param", "required", "missing", "error"]):
+                        logger.info("✅ 探测识别：Dify 应用类型为 Workflow（参数验证错误，路由正确）")
+                        return "workflow"
+                    # 如果没有明确的错误信息，但返回了 400，也可能是 workflow
+                    logger.info("✅ 探测识别：Dify 应用类型为 Workflow（返回400，路由可能存在）")
+                    return "workflow"
+            
+            # 情况2: 返回 401/403（认证/授权错误，说明路由存在）
+            if status in [401, 403]:
+                logger.info("✅ 探测识别：Dify 应用类型为 Workflow（认证错误，路由存在）")
                 return "workflow"
+            
+            # 情况3: 返回 422（参数验证错误，说明路由存在）
+            if status == 422:
+                logger.info("✅ 探测识别：Dify 应用类型为 Workflow（参数验证错误）")
+                return "workflow"
+            
+            # 注意：status 为 null 的情况（超时/连接失败）将在所有端点尝试完成后统一判断
         r = await try_endpoint("agent/chat", {
             "query": test_query,
             "user": "test-user",
@@ -885,12 +923,58 @@ class DeveloperToolService:
         if r:
             logger.info("✅ 探测成功：Dify 应用类型为 Completion")
             return "completion"
+        
+        # 最后尝试：如果所有端点都失败，检查是否为 workflow
+        # 查找 workflows/run 的尝试结果
+        workflow_attempt = None
+        for att in attempts:
+            if att.get("endpoint") == "workflows/run":
+                workflow_attempt = att
+                break
+        
+        if workflow_attempt:
+            workflow_status = workflow_attempt.get("status")
+            # 如果 workflows/run 超时或连接失败（status 为 None），检查其他端点是否都明确失败
+            if workflow_status is None:
+                # 检查所有其他端点
+                other_endpoints = [att for att in attempts if att.get("endpoint") != "workflows/run"]
+                if other_endpoints:
+                    # 检查是否所有其他端点都明确失败
+                    all_clearly_failed = True
+                    for other_att in other_endpoints:
+                        other_status = other_att.get("status")
+                        other_body = (other_att.get("body") or "").lower()
+                        
+                        # 如果返回 200，说明这个端点成功了
+                        if other_status == 200:
+                            all_clearly_failed = False
+                            break
+                        
+                        # 如果返回 400，检查是否有明确的类型不匹配错误
+                        if other_status == 400:
+                            has_type_mismatch = any(keyword in other_body for keyword in [
+                                "not_chat_app", "not_agent", "not_completion", 
+                                "app_unavailable", "app mode matches", "not_chat", "not_agent_app"
+                            ])
+                            # 如果没有类型不匹配错误，可能是其他原因，不能确定所有都失败
+                            if not has_type_mismatch:
+                                all_clearly_failed = False
+                                break
+                        
+                        # 如果返回 404，说明路由不存在，可以认为是失败
+                        # status 为 None（超时/连接失败）也认为是失败
+                    
+                    if all_clearly_failed:
+                        logger.info("✅ 最终推断：Dify 应用类型为 Workflow（其他类型端点均明确失败，workflow 端点可能有效但因超时/网络问题无法确认）")
+                        return "workflow"
+        
         logger.error("❌ 无法探测 Dify 应用类型，所有端点都失败")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={
-                "message": "无法识别 Dify 应用类型。请检查 API Key 是否有效，或应用是否已发布。",
-                "attempts": attempts
+                "message": "无法识别 Dify 应用类型。请检查 API Key 是否有效，或应用是否已发布。如果确认 API Key 有效，请在 endpoint 中显式提供 app_type 参数（chat/workflow/agent/completion）以跳过自动探测。",
+                "attempts": attempts,
+                "suggestion": "在 endpoint 配置中添加 'app_type' 字段，例如: {\"platform\": \"dify\", \"api_key\": \"app-xxx\", \"app_type\": \"workflow\"}"
             }
         )
 
