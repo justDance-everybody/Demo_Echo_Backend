@@ -164,7 +164,14 @@ async def get_async_db_session() -> AsyncGenerator[AsyncSession, None]:
             await session.commit() # 异步提交
         except Exception as e:
             await session.rollback() # 异步回滚
-            logger.error(f"异步数据库操作失败: {e}")
+            try:
+                from fastapi import HTTPException
+                if isinstance(e, HTTPException) and e.status_code == 401:
+                    logger.error("请求未授权: 401 无法验证凭据")
+                else:
+                    logger.error(f"异步数据库操作失败: {e}")
+            except Exception:
+                logger.error(f"异步数据库操作失败: {e}")
             raise
         finally:
             # 关闭在 AsyncSessionLocal() 的 context manager 中自动处理
