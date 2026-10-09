@@ -1,5 +1,7 @@
 {
+  "type": "module",
   "dependencies": {
+    "@mapbox/node-pre-gyp": "^2.0.3",
     "@modelcontextprotocol/sdk": "^1.9.0",
     "@solana/spl-token": "^0.4.13",
     "@solana/web3.js": "^1.98.0",
@@ -11,16 +13,23 @@
     "@xchainjs/xchain-thorchain-amm": "^2.0.25",
     "@xchainjs/xchain-thorchain-query": "^1.0.13",
     "@xchainjs/xchain-util": "^1.0.8",
+    "aws-sdk": "^2.1692.0",
     "axios": "^1.8.4",
     "bignumber.js": "^9.2.1",
     "bs58": "^6.0.0",
     "cross-fetch": "^4.1.0",
     "dotenv": "^16.5.0",
+    "minimax-mcp-js": "^0.0.17",
+    "mock-aws-s3": "^4.0.2",
+    "nock": "^14.0.10",
     "typescript": "^5.8.3",
     "xrpl": "^4.2.0",
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@playwright/mcp": "^0.0.47",
+    "@playwright/test": "^1.56.1",
     "@types/node": "^22.14.1"
-  }
+  },
+  "scripts": {}
 }

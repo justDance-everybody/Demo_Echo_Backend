@@ -16,7 +16,7 @@ router = APIRouter()
     response_model=ToolsListResponse,
     response_model_exclude_none=False,
     summary="获取可用工具列表",
-    description="检索系统中所有可用工具的列表。"
+    description="检索系统中所有可用工具的列表。鉴权：需要 JWT。\n\n示例 cURL：\ncurl -X GET https://localhost:3000/api/v1/tools -H 'Authorization: Bearer <JWT>'",
 )
 async def get_tools(
     db: AsyncSession = Depends(get_async_db_session),

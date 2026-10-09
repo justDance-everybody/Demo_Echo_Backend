@@ -11,13 +11,13 @@ class App(Base):
     name = Column(String(128), nullable=False)
     description = Column(String(512), nullable=True)
     version = Column(String(32), default='1.0.0', nullable=False)
-    developer_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    developer_id = Column(BigInteger, ForeignKey('users.id'), nullable=False)
     is_public = Column(Boolean, default=True, nullable=False)
     status = Column(Enum('draft', 'active', 'inactive', 'deployed', name='app_status'), default='draft', nullable=False)
     config = Column(JSON, nullable=True)  # 应用配置信息
     
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime, server_default=func.current_timestamp())
+    updated_at = Column(DateTime, nullable=True)
     
     # 关系定义
     developer = relationship("User", back_populates="apps")
@@ -32,10 +32,10 @@ class AppTool(Base):
     
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     app_id = Column(String(50), ForeignKey('apps.app_id'), nullable=False)
-    tool_id = Column(Integer, ForeignKey('tools.id'), nullable=False)
+    tool_id = Column(String(64), ForeignKey('tools.tool_id'), nullable=False)
     order_index = Column(Integer, default=0, nullable=False)  # 工具在应用中的顺序
     config = Column(JSON, default=dict)  # 工具在此应用中的特定配置
-    created_at = Column(DateTime, server_default=func.now())
+    created_at = Column(DateTime, server_default=func.current_timestamp())
     
     def __repr__(self):
         return f"<AppTool(app_id={self.app_id}, tool_id={self.tool_id}, order={self.order})>"

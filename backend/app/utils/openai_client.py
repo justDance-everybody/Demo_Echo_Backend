@@ -14,28 +14,20 @@ class OpenAIClientError(Exception):
 class OpenAIClient:
     """与LLM交互的客户端 (兼容OpenAI SDK)"""
     
-    # @stable(tested=basic_connectivity, date=2025-04-30)
     def __init__(self):
-        """初始化LLM客户端"""
         api_key = settings.LLM_API_KEY or os.getenv("LLM_API_KEY")
         api_base = settings.LLM_API_BASE or os.getenv("LLM_API_BASE")
-        
         if not api_key:
             raise OpenAIClientError("未配置LLM_API_KEY环境变量")
-            
         config = {
             "api_key": api_key,
-            "timeout": float(settings.LLM_TIMEOUT),  # 使用配置的超时时间
+            "timeout": float(settings.LLM_TIMEOUT),
         }
-        
         if api_base:
             config["base_url"] = api_base
-            
         self.client = AsyncOpenAI(**config)
         self.model = settings.LLM_MODEL
         logger.info(f"LLM客户端初始化成功，使用模型: {self.model}")
-                
-        # 定义各种系统提示模板
         self.tool_confirmation_prompt = """
         基于用户的原始请求，生成一个简洁明了的确认文本，用于向用户确认你已正确理解他们的意图。确认文本应该：
         1. 简明扼要地复述用户的原始请求
@@ -50,7 +42,6 @@ class OpenAIClient:
         - 好的确认文本："您想要查询明天上海的天气情况吗？"
         - 不好的确认文本："我将调用天气API为您查询明天上海的天气。"
         """
-                
         self.intent_system_prompt = """
         你是一个高级意图识别和分析系统。你需要从用户的自然语言输入中提取意图和实体，并给出详细的分析。
         输出格式必须是JSON，包含以下字段：
@@ -60,14 +51,14 @@ class OpenAIClient:
         - query_paraphrase: 查询的改写形式（字符串）
         - required_tools: 所需工具列表（字符串数组）
         - analysis: 分析解释（字符串）
-
+        
         可能的意图类型包括但不限于：
         - 查询天气
         - 查询路线
         - 搜索信息
         - 设置提醒
         - 日程安排
-
+        
         可能的实体类型包括但不限于：
         - 地点
         - 时间
@@ -140,5 +131,19 @@ class OpenAIClient:
                 "analysis": f"意图分析失败: {str(e)}"
             }
 
-# 创建全局LLM客户端实例
-openai_client = OpenAIClient() 
+_cached_client: Optional[OpenAIClient] = None
+
+def get_openai_client() -> Optional[OpenAIClient]:
+    global _cached_client
+    try:
+        if _cached_client is None:
+            api_key = settings.LLM_API_KEY or os.getenv("LLM_API_KEY")
+            model = settings.LLM_MODEL
+            if not api_key or not model:
+                logger.warning("LLM未配置，跳过客户端初始化")
+                return None
+            _cached_client = OpenAIClient()
+        return _cached_client
+    except Exception as e:
+        logger.warning(f"初始化LLM客户端失败: {e}")
+        return None

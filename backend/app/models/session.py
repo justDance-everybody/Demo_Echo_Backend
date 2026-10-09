@@ -25,8 +25,8 @@ class Session(Base):
         nullable=False,
         default='interpreting'
     )
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime, server_default=func.current_timestamp())
+    updated_at = Column(DateTime, nullable=True)
     
     # 关系
     user = relationship("User", backref="sessions")

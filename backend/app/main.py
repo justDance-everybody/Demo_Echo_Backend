@@ -13,6 +13,10 @@ from app.routers import intent, execute, tools, auth, dev_tools, dev_apps, mcp_s
 from app.config import settings
 from app.utils.db import init_db
 from app.services.mcp_manager import mcp_manager
+from app.utils.db import init_db, get_async_db_session
+from app.models.user import User
+from app.utils.security import get_password_hash
+from sqlalchemy.future import select
 import time
 import json
 from pathlib import Path
@@ -73,7 +77,7 @@ class SecurityAuditMiddleware(BaseHTTPMiddleware):
         }
         
         # 对于敏感端点或未认证访问进行特别记录
-        sensitive_paths = ["/api/v1/execute", "/api/v1/tools"]
+        sensitive_paths = ["/api/v1/tools/execute", "/api/v1/tools", "/api/v1/dev/integrations"]
         if any(request.url.path.startswith(path) for path in sensitive_paths):
             if not has_auth:
                 logger.warning(f"🔒 未认证访问敏感端点: {json.dumps(log_data)}")
@@ -101,6 +105,33 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"❌ MCP服务器管理器启动失败: {e}")
     
+    # 检查并创建测试管理员用户
+    if settings.TEST_ADMIN_USERNAME and settings.TEST_ADMIN_PASSWORD:
+        logger.info(f"检查测试管理员用户: {settings.TEST_ADMIN_USERNAME}")
+        try:
+            async for db in get_async_db_session():
+                stmt = select(User).where(User.username == settings.TEST_ADMIN_USERNAME)
+                result = await db.execute(stmt)
+                existing_user = result.scalar_one_or_none()
+                
+                if not existing_user:
+                    logger.info(f"创建测试管理员用户: {settings.TEST_ADMIN_USERNAME}")
+                    hashed_password = get_password_hash(settings.TEST_ADMIN_PASSWORD)
+                    new_user = User(
+                        username=settings.TEST_ADMIN_USERNAME,
+                        password_hash=hashed_password,
+                        role=settings.TEST_ADMIN_ROLE
+                    )
+                    db.add(new_user)
+                    # session 提交由 get_async_db_session 上下文管理器处理，但在这里我们可以显式commit以确保生效
+                    await db.commit()
+                    logger.info("✅ 测试管理员用户创建成功")
+                else:
+                    logger.info("✅ 测试管理员用户已存在")
+                break # 只需要一个session
+        except Exception as e:
+            logger.error(f"❌ 创建测试管理员用户失败: {e}")
+
     yield
     
     # 应用关闭时执行
@@ -152,7 +183,7 @@ async def custom_swagger_ui_html(request: Request):
         {
             "request": request,
             "title": settings.APP_NAME,
-            "openapi_url": app.openapi_url
+            "openapi_url": "/openapi.json"
         }
     )
 
@@ -168,10 +199,10 @@ async def root():
 # 添加路由
 app.include_router(health_router)
 app.include_router(intent.router, prefix=settings.API_PREFIX, tags=["intent"])
-app.include_router(execute.router, prefix=settings.API_PREFIX, tags=["execute"])
 app.include_router(tools.router, prefix=settings.API_PREFIX, tags=["tools"])
+app.include_router(execute.router, prefix=f"{settings.API_PREFIX}/tools", tags=["tools"])
 app.include_router(auth.router, prefix=settings.API_PREFIX, tags=["auth"])
-app.include_router(dev_tools.router, prefix=settings.API_PREFIX, tags=["dev-tools"])
+app.include_router(dev_tools.router, prefix=settings.API_PREFIX)  # 使用 router 自己定义的 tags
 app.include_router(mcp_status.router, prefix=settings.API_PREFIX, tags=["mcp-status"])
 # app.include_router(dev_apps.router, prefix=settings.API_PREFIX, tags=["dev-apps"])  # 已关闭DEV-APPS功能
 # app.include_router(admin.router, prefix=settings.API_PREFIX, tags=["admin"])  # admin路由暂未实现

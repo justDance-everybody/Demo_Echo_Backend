@@ -1,308 +1,32 @@
-# Echo 智能语音 AI-Agent 开放平台
+# Voice intent demo
 
-## 项目简介
-Echo是一个基于Python(FastAPI)后端和React前端的智能语音AI-Agent开放平台，支持语音全流程交互、意图识别、工具调用等功能。系统可集成MCP服务和各类HTTP API，实现丰富的技能服务。
+面向手机浏览器的语音任务演示项目：用户表达目标，AI 负责获取能力、安排执行并反馈结果。此轮整理保留了 FastAPI 服务、React 界面及既有工具调用代码，作为下一轮升级的基础。
 
-## 主要特性
-- **语音全流程交互**：支持语音输入、意图识别、语音合成输出
-- **多种工具集成**：
-  - MCP服务集成（支持区块链、Web3等复杂场景）
-  - HTTP工具支持（Dify平台、Coze平台、通用HTTP API）
-- **意图识别与确认**：使用大语言模型(LLM)解析用户意图并生成确认提示
-- **安全认证**：JWT身份验证与权限管理
-- **多轮对话管理**：会话状态跟踪与上下文保持
-- **日志与监控**：详细操作记录，便于审计与排查
+## 目标与当前状态
 
-## 技术栈
-- **后端**：Python 3.9+, FastAPI, SQLAlchemy, Alembic, Pydantic
-- **前端**：React, Material UI, Web Speech API
-- **数据库**：MySQL
-- **AI服务**：兼容OpenAI API的LLM服务
-- **认证**：JWT
-- **部署**：Uvicorn, PM2
+目标是让 AI 自主发现可用能力、选择工具、规划并组合执行，在失败时恢复并返回结果。工具可以来自 MCP、CLI 或 HTTP；链上操作只是可能的示例能力，不是固定任务白名单。使用偏好是未来需要沉淀的长期记忆目标。
 
-## 项目结构
-```
-project/
-├── backend/               # 后端服务
-│   ├── alembic/           # 数据库迁移
-│   ├── app/               # 应用主目录
-│   │   ├── clients/       # 第三方客户端封装
-│   │   ├── controllers/   # 控制器
-│   │   ├── models/        # 数据库模型
-│   │   ├── routers/       # API路由
-│   │   ├── schemas/       # 数据验证模型
-│   │   ├── services/      # 业务逻辑
-│   │   ├── utils/         # 工具函数
-│   │   ├── config.py      # 配置管理
-│   │   └── main.py        # 应用入口
-│   ├── logs/              # 日志文件
-│   ├── scripts/           # 辅助脚本
-│   ├── tests/             # 测试代码
-│   ├── .env.example       # 环境变量示例
-│   └── requirements.txt   # 依赖包列表
-├── frontend/              # 前端项目
-│   ├── public/            # 静态资源
-│   ├── src/               # 源代码
-│   │   ├── components/    # UI组件
-│   │   ├── contexts/      # React上下文
-│   │   ├── hooks/         # 自定义钩子
-│   │   ├── pages/         # 页面组件
-│   │   ├── services/      # API服务
-│   │   ├── styles/        # 样式文件
-│   │   └── utils/         # 工具函数
-│   └── package.json       # 依赖配置
-├── MCP_Client/            # MCP客户端（Python）
-│   ├── config/            # MCP配置
-│   └── src/               # MCP客户端源码
-├── docs/                  # 项目文档
-├── logs/                  # 项目日志
-└── .env.example           # 环境变量示例
-```
+## 当前代码状态
 
-## 安装与配置
+当前代码仍采用旧版意图分析、工具目录、MCP 调用、确认执行流程及语音界面。自主能力发现、偏好记忆和手机端完整语音流程尚待实现与验证；旧版确认步骤也待重新设计。
 
-### 依赖环境
-- Python 3.9+
-- Node.js 16+
-- MySQL 5.7+
-- (推荐)虚拟环境管理工具：venv, uv等
+旧启动入口会调用数据库初始化并创建缺失的 ORM 表。不要将它直接用于保留数据库；本次整理没有连接数据库、修改 schema 或执行工具。
 
-### 后端安装与配置
-1. 克隆仓库并进入后端目录
-```bash
-git clone <repo_url>
-cd project/backend
-```
+## 数据库兼容要求
 
-2. 创建并激活虚拟环境
-```bash
-python -m venv venv
-source venv/bin/activate  # Linux/macOS
-# 或
-venv\Scripts\activate  # Windows
-```
+后续新版必须兼容现有业务表及全部字段，所有旧数据都需要保留。该要求描述未来版本，不表示当前旧 ORM 已覆盖全部字段。`docs/database-contract.json` 根据本机数据库 dump 中的 `CREATE TABLE` 结构生成；dump 本身不进入仓库。当前 ORM 未映射的字段及两个独立 schema 的结构差异见该文件与 `docs/consolidation.md`。本次整理没有修改数据库或 schema。
 
-3. 安装依赖
-```bash
-pip install -r requirements.txt
-```
+旧 `sessions` 和 `logs` 可作为未来记忆能力的可利用历史记录；这不表示当前代码已从会话记录中实现偏好记忆。
 
-4. 配置环境变量
-```bash
-cp .env.example .env
-# 编辑.env文件，设置数据库连接、API密钥等
-```
+## 目录
 
-5. 配置环境变量
-```bash
-# 编辑.env文件，设置必要的配置项
-vim .env
-```
-
-主要配置项包括：数据库连接、LLM API密钥、JWT密钥等。详细配置说明请参考：[后端开发文档](docs/后端开发文档.md)
-
-6. 数据库迁移
-```bash
-cd backend
-alembic upgrade head
-```
-
-### 前端安装与配置
-1. 进入前端目录
-```bash
-cd project/frontend
-```
-
-2. 安装依赖
-```bash
-npm install
-```
-
-3. 配置环境变量
-```bash
-cp .env.example .env
-# 编辑.env文件，设置API路径等
-```
-
-### MCP_Client 配置
-1. 进入MCP_Client目录
-```bash
-cd project/MCP_Client
-```
-
-2. 创建并激活虚拟环境
-```bash
-python -m venv .venv
-source .venv/bin/activate  # Linux/macOS
-# 或
-.venv\Scripts\activate  # Windows
-```
-
-3. 安装依赖
-```bash
-pip install openai python-dotenv
-pip install git+https://github.com/modelcontextprotocol/python-sdk.git
-```
-
-## 启动服务
-
-### 启动后端服务
-```bash
-cd backend
-# 开发模式（自动重载）
-uvicorn app.main:app --reload --host 0.0.0.0 --port 3000
-
-# 生产模式
-uvicorn app.main:app --host 0.0.0.0 --port 3000
-```
-
-### 使用PM2启动（生产环境推荐）
-```bash
-# 安装PM2 (需要Node.js)
-npm install -g pm2
-
-# 使用项目根目录的启动脚本
-cd project
-pm2 start ecosystem.config.js
-# 或使用start-pm2.sh脚本
-./start-pm2.sh
-```
-
-### 启动前端服务
-
-```bash
-# 开发模式（Mock数据，无需后端）
-./start-frontend.sh start dev
-
-# 生产模式（自动检测后端进程）
-./start-frontend.sh start prod
-
-# 查看状态和日志
-./start-frontend.sh status
-./start-frontend.sh logs
-
-# 停止服务
-./start-frontend.sh stop
-
-# 查看帮助
-./start-frontend.sh help
-```
-
-**核心特性：** 智能后端检测、自动端口分配、多模式启动、实时监控
-
-### 直接启动MCP_Client（可选）
-```bash
-cd MCP_Client
-# 启动并连接到指定MCP服务器
-python src/mcp/client/main.py <path_to_server_script>
-```
-
-## 核心API接口
-
-系统提供完整的RESTful API接口，支持意图解析、工具执行、用户认证等功能。
-
-- **API基础路径**: `http://localhost:3000/api/v1`
-- **API文档**: `http://localhost:3000/docs` (Swagger UI)
-- **认证方式**: JWT Bearer Token
-
-详细的API接口说明请参考：[前后端对接与API规范](docs/前后端对接与API规范.md)
-
-## 支持的工具类型
-
-系统支持两种主要类型的工具：
-
-### 1. MCP工具
-MCP (Model Context Protocol) 工具是基于自定义协议的脚本工具，能够执行区块链相关操作和其他复杂任务。
-
-- 要求配置 `server_name` 字段，指向对应的MCP服务器
-- 支持完整的参数传递和结果解析
-- 集成了多种MCP服务器，如Playwright、MiniMax API、地图API和Web3区块链API
-
-### 2. HTTP工具
-HTTP工具允许系统调用外部HTTP API来执行操作。目前支持以下平台类型：
-
-#### a. Dify
-- 调用Dify平台上的AI应用
-- 支持conversation_id管理
-- 响应通过LLM总结，生成适合语音播报的内容
-
-#### b. Coze
-- 调用Coze平台上的机器人
-- 要求在配置中提供bot_id
-- 响应同样经过LLM总结处理
-
-#### c. 通用HTTP
-- 支持配置和调用任意HTTP API
-- 支持GET, POST, PUT, PATCH, DELETE等多种HTTP方法
-- 灵活配置头信息、认证方式（Bearer、ApiKey、Basic）
-- 支持响应结果路径提取（使用result_path字段）
-- 支持URL参数格式化和有效载荷配置
-- 对响应结果进行LLM总结处理，生成简洁易懂的语音反馈
-
-## 统一API架构
-
-本项目采用了统一的API架构，提高了代码可维护性和一致性：
-
-1. **统一API入口**
-   - 所有API请求通过统一的路由处理
-   - 标准化的请求/响应格式
-   - 版本化API设计 (如 `/api/v1/...`)
-
-2. **标准响应格式**
-   ```json
-   {
-     "status": "success|error|waiting",
-     "data": { /* 响应数据 */ },
-     "message": "操作结果描述",
-     "timestamp": "2023-04-19T12:34:56.789Z"
-   }
-   ```
-
-## 开发指南
-
-详细的开发指南请参考：
-- [后端开发文档](docs/后端开发文档.md) - 后端开发者专用
-- [前后端对接与API规范](docs/前后端对接与API规范.md) - 前端开发者必读
-- [前端开发文档](docs/前端开发文档.md) - 前端开发指南
-
-## 测试与调试
-
-### 运行测试
-```bash
-cd backend
-pytest
-```
-
-### API调试
-- Swagger UI: http://localhost:3000/docs
-- ReDoc: http://localhost:3000/redoc
-
-## 贡献指南
-- Fork本仓库
-- 创建特性分支 (`git checkout -b feature/amazing-feature`)
-- 提交更改 (`git commit -m 'Add some amazing feature'`)
-- 推送分支 (`git push origin feature/amazing-feature`)
-- 创建Pull Request
-
-## 更新日志
-
-### 2025-05-14
-- 实现通用HTTP API工具支持，包括多种HTTP方法、认证方式和结果处理
-- 完善Dify和Coze平台工具的LLM结果总结功能
-- 添加单元测试覆盖工具执行服务
-
-### 2025-04-30
-- 实现意图识别和工具执行的核心功能
-- 完成MCP客户端集成，支持多种操作
-- 添加基础认证系统
-
-## 文档导航
-
-- [前后端对接与API规范](docs/前后端对接与API规范.md) - API接口详细说明和调用示例
-- [后端开发文档](docs/后端开发文档.md) - 后端架构、服务和开发指南
-- [前端开发文档](docs/前端开发文档.md) - 前端组件和开发规范
-
----
-
-> 文档更新时间：2025-05-14
+- `backend/`：FastAPI 服务源码及 Python 依赖清单。
+- `MCP_Client/`：旧版 MCP 客户端。
+- `MCP_server/web3-mcp/`：仓库内的 MCP server 源码。
+- `frontend/`：唯一保留的 React 前端工程。
+- `docs/product-goal.md`：目标与当前实现边界。
+- `docs/consolidation.md`：源码基准、差异和整理记录。
+- `docs/database-contract.json`：数据库表结构契约，不含业务行数据。
+- `docs/legacy-migrations/`：只供审阅的旧迁移材料，不是运行指引。
+- `docs/legacy-ci/`：main 分支历史 CI 自动化，仅作为文档保存，不会激活。
+- `docs/auxiliary/proxy-tools/`：从旧开发环境保存的辅助代理源码，不是独立应用。

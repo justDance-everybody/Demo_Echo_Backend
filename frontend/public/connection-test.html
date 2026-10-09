@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>连接测试 - Echo AI</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            line-height: 1.6;
+        }
+        .container {
+            background: rgba(255,255,255,0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+        .success {
+            background: #10B981;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        .info {
+            background: rgba(59, 130, 246, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #3B82F6;
+        }
+        .server-info {
+            font-family: 'Monaco', 'Menlo', monospace;
+            background: rgba(0,0,0,0.3);
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        h1 { margin-top: 0; text-align: center; }
+        .timestamp { font-size: 14px; opacity: 0.8; }
+        .back-link {
+            display: inline-block;
+            background: #4FD1C5;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 6px;
+            margin-top: 20px;
+            transition: background 0.3s;
+        }
+        .back-link:hover {
+            background: #38B2AC;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎉 连接测试成功！</h1>
+        
+        <div class="success">
+            ✅ VS Code端口转发工作正常
+        </div>
+        
+        <div class="info">
+            <strong>🌐 服务器信息：</strong>
+            <div class="server-info">
+                IP地址: 10.109.129.119<br>
+                端口: 3000<br>
+                进程: React开发服务器<br>
+                <div class="timestamp">测试时间: <span id="timestamp"></span></div>
+            </div>
+        </div>
+        
+        <div class="info">
+            <strong>📋 说明：</strong><br>
+            如果您在MacBook浏览器中看到这个页面，说明：
+            <ul>
+                <li>✅ VS Code Remote连接正常</li>
+                <li>✅ 端口3000转发成功</li>
+                <li>✅ 您可以访问远程服务器的应用</li>
+            </ul>
+        </div>
+        
+        <div class="info">
+            <strong>🚀 下一步：</strong><br>
+            现在您可以放心使用完整的Echo AI应用，包括语音交互功能。
+        </div>
+        
+        <a href="/" class="back-link">🎙️ 进入Echo AI主应用</a>
+    </div>
+    
+    <script>
+        // 显示当前时间
+        document.getElementById('timestamp').textContent = new Date().toLocaleString('zh-CN');
+        
+        // 每秒更新时间，证明这是动态页面
+        setInterval(() => {
+            document.getElementById('timestamp').textContent = new Date().toLocaleString('zh-CN');
+        }, 1000);
+        
+        console.log('✅ 端口转发测试成功！');
+        console.log('🌐 远程服务器IP: 10.109.129.119');
+        console.log('📡 本地访问地址: http://localhost:3000');
+    </script>
+</body>
+</html> 

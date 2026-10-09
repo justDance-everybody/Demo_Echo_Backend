@@ -1,4 +1,4 @@
-from sqlalchemy import Column, BigInteger, String, Text, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, BigInteger
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.utils.db import Base
@@ -12,7 +12,7 @@ class Log(Base):
     step = Column(String(32), nullable=False)  # interpret, execute, confirm等
     status = Column(String(32), nullable=False)  # success, error等
     message = Column(Text, nullable=True)  # 详细信息
-    timestamp = Column(DateTime, server_default=func.now())
+    timestamp = Column(DateTime, server_default=func.current_timestamp())
     
     # 关系
     session = relationship("Session", backref="logs")

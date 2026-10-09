@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>进度条同步测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .stage-test {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .stage-name {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .progress-visual {
+            height: 20px;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #1890ff, #52c41a);
+            transition: width 0.3s ease;
+            border-radius: 10px;
+        }
+        .stages {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+        }
+        .stage-item {
+            text-align: center;
+            flex: 1;
+            position: relative;
+        }
+        .stage-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 8px;
+            font-size: 18px;
+        }
+        .stage-icon.active {
+            background-color: #1890ff;
+            color: white;
+        }
+        .stage-icon.completed {
+            background-color: #52c41a;
+            color: white;
+        }
+        .stage-label {
+            font-size: 12px;
+            color: #666;
+        }
+        .stage-label.active {
+            color: #1890ff;
+            font-weight: bold;
+        }
+        .stage-label.completed {
+            color: #52c41a;
+            font-weight: bold;
+        }
+        .test-button {
+            background-color: #1890ff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background-color: #40a9ff;
+        }
+        .status-display {
+            background-color: #f6f6f6;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>进度条同步测试</h1>
+        <p>此页面用于测试修复后的进度条与实际进度的同步效果。</p>
+        
+        <div class="status-display">
+            <strong>当前状态:</strong> <span id="currentStatus">idle</span><br>
+            <strong>进度百分比:</strong> <span id="progressPercent">0%</span>
+        </div>
+
+        <div class="stage-test">
+            <div class="stage-name">SessionStages 进度条 (5阶段)</div>
+            <div class="progress-visual">
+                <div class="progress-fill" id="sessionProgress" style="width: 0%"></div>
+            </div>
+            <div class="stages">
+                <div class="stage-item">
+                    <div class="stage-icon" id="stage1">🎤</div>
+                    <div class="stage-label" id="label1">识别中</div>
+                </div>
+                <div class="stage-item">
+                    <div class="stage-icon" id="stage2">🧠</div>
+                    <div class="stage-label" id="label2">理解中</div>
+                </div>
+                <div class="stage-item">
+                    <div class="stage-icon" id="stage3">❓</div>
+                    <div class="stage-label" id="label3">确认中</div>
+                </div>
+                <div class="stage-item">
+                    <div class="stage-icon" id="stage4">⚙️</div>
+                    <div class="stage-label" id="label4">执行中</div>
+                </div>
+                <div class="stage-item">
+                    <div class="stage-icon" id="stage5">✅</div>
+                    <div class="stage-label" id="label5">完成</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stage-test">
+            <div class="stage-name">FourStageProgressBar (4阶段)</div>
+            <div class="progress-visual">
+                <div class="progress-fill" id="fourStageProgress" style="width: 0%"></div>
+            </div>
+            <div class="stages">
+                <div class="stage-item">
+                    <div class="stage-icon" id="fourStage1">🧠</div>
+                    <div class="stage-label" id="fourLabel1">理解</div>
+                </div>
+                <div class="stage-item">
+                    <div class="stage-icon" id="fourStage2">❓</div>
+                    <div class="stage-label" id="fourLabel2">确认</div>
+                </div>
+                <div class="stage-item">
+                    <div class="stage-icon" id="fourStage3">⚙️</div>
+                    <div class="stage-label" id="fourLabel3">执行</div>
+                </div>
+                <div class="stage-item">
+                    <div class="stage-icon" id="fourStage4">🏁</div>
+                    <div class="stage-label" id="fourLabel4">完成</div>
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px;">
+            <button class="test-button" onclick="testStage('idle')">空闲</button>
+            <button class="test-button" onclick="testStage('listening')">识别中</button>
+            <button class="test-button" onclick="testStage('interpreting')">理解中</button>
+            <button class="test-button" onclick="testStage('confirming')">确认中</button>
+            <button class="test-button" onclick="testStage('executing')">执行中</button>
+            <button class="test-button" onclick="testStage('result')">完成</button>
+        </div>
+
+        <div style="text-align: center; margin-top: 20px;">
+            <button class="test-button" onclick="runFullTest()" style="background-color: #52c41a;">运行完整测试</button>
+        </div>
+    </div>
+
+    <script>
+        // SessionStages 定义
+        const SessionStages = {
+            IDLE: 'idle',
+            LISTENING: 'listening',
+            INTERPRETING: 'interpreting',
+            CONFIRMING: 'confirming',
+            EXECUTING: 'executing',
+            RESULT: 'result',
+            ERROR: 'error'
+        };
+
+        // FourStageProgressBar 阶段定义
+        const FOUR_STAGES = {
+            UNDERSTANDING: 'understanding',
+            CONFIRMING: 'confirming',
+            EXECUTING: 'executing',
+            COMPLETED: 'completed'
+        };
+
+        let currentStage = 'idle';
+
+        function updateSessionProgressBar(stage) {
+            const progressBar = document.getElementById('sessionProgress');
+            const statusDisplay = document.getElementById('currentStatus');
+            const progressPercent = document.getElementById('progressPercent');
+            
+            let progress = 0;
+            let statusText = '';
+
+            switch (stage) {
+                case SessionStages.LISTENING:
+                    progress = 20;
+                    statusText = '识别中';
+                    break;
+                case SessionStages.INTERPRETING:
+                    progress = 40;
+                    statusText = '理解中';
+                    break;
+                case SessionStages.CONFIRMING:
+                    progress = 60;
+                    statusText = '确认中';
+                    break;
+                case SessionStages.EXECUTING:
+                    progress = 80;
+                    statusText = '执行中';
+                    break;
+                case SessionStages.RESULT:
+                    progress = 100;
+                    statusText = '完成';
+                    break;
+                default:
+                    progress = 0;
+                    statusText = '空闲';
+            }
+
+            progressBar.style.width = progress + '%';
+            statusDisplay.textContent = statusText;
+            progressPercent.textContent = progress + '%';
+
+            // 更新阶段图标状态
+            for (let i = 1; i <= 5; i++) {
+                const icon = document.getElementById('stage' + i);
+                const label = document.getElementById('label' + i);
+                
+                icon.classList.remove('active', 'completed');
+                label.classList.remove('active', 'completed');
+                
+                if (i < getStageIndex(stage)) {
+                    icon.classList.add('completed');
+                    label.classList.add('completed');
+                } else if (i === getStageIndex(stage)) {
+                    icon.classList.add('active');
+                    label.classList.add('active');
+                }
+            }
+        }
+
+        function updateFourStageProgressBar(stage) {
+            const progressBar = document.getElementById('fourStageProgress');
+            
+            let progress = 0;
+            let fourStage = null;
+
+            // 将SessionStages映射到FourStageProgressBar
+            switch (stage) {
+                case SessionStages.LISTENING:
+                case SessionStages.INTERPRETING:
+                    fourStage = FOUR_STAGES.UNDERSTANDING;
+                    progress = 25;
+                    break;
+                case SessionStages.CONFIRMING:
+                    fourStage = FOUR_STAGES.CONFIRMING;
+                    progress = 50;
+                    break;
+                case SessionStages.EXECUTING:
+                    fourStage = FOUR_STAGES.EXECUTING;
+                    progress = 75;
+                    break;
+                case SessionStages.RESULT:
+                    fourStage = FOUR_STAGES.COMPLETED;
+                    progress = 100;
+                    break;
+                default:
+                    progress = 0;
+            }
+
+            progressBar.style.width = progress + '%';
+
+            // 更新四阶段图标状态
+            for (let i = 1; i <= 4; i++) {
+                const icon = document.getElementById('fourStage' + i);
+                const label = document.getElementById('fourLabel' + i);
+                
+                icon.classList.remove('active', 'completed');
+                label.classList.remove('active', 'completed');
+                
+                if (i < getFourStageIndex(fourStage)) {
+                    icon.classList.add('completed');
+                    label.classList.add('completed');
+                } else if (i === getFourStageIndex(fourStage)) {
+                    icon.classList.add('active');
+                    label.classList.add('active');
+                }
+            }
+        }
+
+        function getStageIndex(stage) {
+            switch (stage) {
+                case SessionStages.LISTENING: return 1;
+                case SessionStages.INTERPRETING: return 2;
+                case SessionStages.CONFIRMING: return 3;
+                case SessionStages.EXECUTING: return 4;
+                case SessionStages.RESULT: return 5;
+                default: return 0;
+            }
+        }
+
+        function getFourStageIndex(stage) {
+            switch (stage) {
+                case FOUR_STAGES.UNDERSTANDING: return 1;
+                case FOUR_STAGES.CONFIRMING: return 2;
+                case FOUR_STAGES.EXECUTING: return 3;
+                case FOUR_STAGES.COMPLETED: return 4;
+                default: return 0;
+            }
+        }
+
+        function testStage(stage) {
+            currentStage = stage;
+            updateSessionProgressBar(stage);
+            updateFourStageProgressBar(stage);
+        }
+
+        function runFullTest() {
+            const stages = ['idle', 'listening', 'interpreting', 'confirming', 'executing', 'result'];
+            let index = 0;
+            
+            const interval = setInterval(() => {
+                if (index < stages.length) {
+                    testStage(stages[index]);
+                    index++;
+                } else {
+                    clearInterval(interval);
+                    alert('完整测试完成！进度条现在应该与实际进度同步。');
+                }
+            }, 1000);
+        }
+
+        // 初始化
+        updateSessionProgressBar('idle');
+        updateFourStageProgressBar('idle');
+    </script>
+</body>
+</html>

@@ -15,6 +15,13 @@ class ExecuteRequest(BaseModel):
         populate_by_name = True
         allow_population_by_field_name = True
         extra = "ignore"
+        json_schema_extra = {
+            "example": {
+                "tool_id": "dify_12345678_abcd1234",
+                "params": {"query": "你好"},
+                "session_id": "session_1"
+            }
+        }
 
 
 class ExecuteResult(BaseModel):

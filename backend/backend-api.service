@@ -1,0 +1,30 @@
+[Unit]
+Description=Backend API Service
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=devbox
+Group=devbox
+WorkingDirectory=%h/project/Backend
+Environment=SERVICE_PORT=3000
+Environment=SERVICE_HOST=0.0.0.0
+Environment=PYTHONPATH=%h/project/Backend/backend
+Environment=PATH=%h/project/Backend/.venv/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=%h/project/Backend/monitor_service.sh monitor
+ExecStop=%h/project/Backend/monitor_service.sh stop
+Restart=always
+RestartSec=10
+TimeoutStartSec=60
+TimeoutStopSec=30
+StandardOutput=append:%h/project/Backend/logs/systemd.log
+StandardError=append:%h/project/Backend/logs/systemd-error.log
+KillMode=mixed
+KillSignal=SIGTERM
+LimitNOFILE=65536
+LimitNPROC=4096
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

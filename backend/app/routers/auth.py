@@ -53,7 +53,12 @@ class TokenResponse(BaseModel):
     role: Optional[str] = None
     
 # 用户注册
-@router.post("/register", response_model=UserResponse)
+@router.post(
+    "/register",
+    response_model=UserResponse,
+    summary="注册用户",
+    description="注册一个新用户，返回基础信息。\n\n示例 cURL：\ncurl -X POST https://localhost:3000/api/v1/auth/register \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"username\":\"user1\",\"password\":\"Passw0rd!\",\"email\":\"u1@example.com\"}'\n\n错误示例：\n- 409 用户名已存在",
+)
 async def register(
     user_data: UserCreate,
     db: AsyncSession = Depends(get_async_db_session)
@@ -107,7 +112,12 @@ async def register(
         )
 
 # 用户登录获取token
-@router.post("/token", response_model=TokenResponse)
+@router.post(
+    "/token",
+    response_model=TokenResponse,
+    summary="登录获取令牌",
+    description="使用表单登录以获取访问令牌。\n\nContent-Type：application/x-www-form-urlencoded；字段：username、password。\n\n示例 cURL：\ncurl -X POST https://localhost:3000/api/v1/auth/token \\\n  -H 'Content-Type: application/x-www-form-urlencoded' \\\n  -d 'username=user1&password=Passw0rd!'\n\n错误示例：\n- 401 用户名或密码错误",
+)
 async def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(get_async_db_session)
@@ -154,7 +164,12 @@ async def login_for_access_token(
     )
 
 # 用户登录（兼容性端点）
-@router.post("/login", response_model=TokenResponse)
+@router.post(
+    "/login",
+    response_model=TokenResponse,
+    summary="登录（兼容端点）",
+    description="与 /auth/token 等效的登录端点，使用表单提交。\n\n示例 cURL：\ncurl -X POST https://localhost:3000/api/v1/auth/login \\\n  -H 'Content-Type: application/x-www-form-urlencoded' \\\n  -d 'username=user1&password=Passw0rd!'",
+)
 async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(get_async_db_session)
@@ -175,7 +190,12 @@ async def login(
     return await login_for_access_token(form_data, db)
 
 # 获取当前用户
-@router.get("/me", response_model=UserResponse)
+@router.get(
+    "/me",
+    response_model=UserResponse,
+    summary="当前用户信息",
+    description="使用 JWT 获取当前登录用户信息。\n\n示例 cURL：\ncurl -X GET https://localhost:3000/api/v1/auth/me -H 'Authorization: Bearer <JWT>'\n\n错误示例：\n- 401 未授权",
+)
 async def get_me(current_user: User = Depends(get_current_user)):
     """
     获取当前登录用户信息

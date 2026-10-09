@@ -107,7 +107,23 @@ class MCPServerManager:
     def _load_server_configs(self):
         """加载MCP服务器配置"""
         try:
-            config_path = os.getenv("MCP_SERVERS_PATH", "/home/devbox/project/MCP_Client/config/mcp_servers.json")
+            # 默认路径：相对于项目根目录寻找 MCP_Client/config/mcp_servers.json
+            # 假设当前文件在 backend/app/services/mcp_manager.py
+            # 项目根目录应该在 ../../../
+            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+            default_path = os.path.join(base_dir, "MCP_Client", "config", "mcp_servers.json")
+            
+            config_path = os.getenv("MCP_SERVERS_PATH", default_path)
+            
+            if not os.path.exists(config_path):
+                logger.warning(f"配置文件不存在: {config_path}，尝试使用当前目录下的 config/mcp_servers.json")
+                # 尝试其他可能的路径
+                fallback_path = os.path.join(os.getcwd(), "MCP_Client", "config", "mcp_servers.json")
+                if os.path.exists(fallback_path):
+                    config_path = fallback_path
+            
+            logger.info(f"加载MCP服务器配置: {config_path}")
+            
             with open(config_path, 'r', encoding='utf-8') as f:
                 config_data = json.load(f)
                 self.server_configs = config_data.get("mcpServers", {})
@@ -657,11 +673,21 @@ class MCPServerManager:
                 logger.error(f"MCP服务器 {server_name} 环境变量验证失败")
                 server_status.error_message = "环境变量验证失败"
                 return False
-                
+
+            # 获取工作目录（如果配置中指定）
+            cwd = config.get('cwd', None)
+            # 如果没有指定工作目录，默认使用项目根目录
+            if cwd is None:
+                import os
+                # 获取项目根目录（从backend/app/services回退到项目根）
+                cwd = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..'))
+                logger.debug(f"MCP服务器 {server_name} 使用默认工作目录: {cwd}")
+
             # 启动进程
             process = await asyncio.create_subprocess_exec(
                 cmd, *args,
                 env=env,
+                cwd=cwd,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE
             )
@@ -708,6 +734,18 @@ class MCPServerManager:
                     # 检查输出内容，判断是否成功启动
                     stdout_text = stdout_data.decode('utf-8', errors='ignore')
                     stderr_text = stderr_data.decode('utf-8', errors='ignore')
+                    
+                    # 过滤掉Node.js的DeprecationWarning等非致命警告，防止误判为启动失败
+                    # 比如: (node:513) [DEP0040] DeprecationWarning: The punycode module is deprecated.
+                    clean_stderr_lines = []
+                    for line in stderr_text.splitlines():
+                        if "DeprecationWarning" in line or "[DEP" in line or "trace-deprecation" in line:
+                            continue
+                        clean_stderr_lines.append(line)
+                    clean_stderr_text = "\n".join(clean_stderr_lines)
+                    
+                    # 用于判断是否"无输出"的文本（忽略警告）
+                    check_output_text = stdout_text + clean_stderr_text
                     
                     # 对于不同MCP服务器的成功启动指示符
                     # 从配置动态生成成功指示符
@@ -762,7 +800,7 @@ class MCPServerManager:
                     
                     startup_success = (
                         is_success or                                    # 匹配到成功指示符
-                        (not output_text.strip() and process_alive)     # 无输出但进程存活（stdio模式）
+                        (not check_output_text.strip() and process_alive)     # 无输出（或仅有警告）但进程存活（stdio模式）
                     ) and not has_error                                 # 且没有明确错误
                     
                     logger.debug(f"MCP服务器 {server_name} 启动判断: is_success={is_success}, has_output={bool(output_text.strip())}, has_error={has_error}, startup_success={startup_success}")
