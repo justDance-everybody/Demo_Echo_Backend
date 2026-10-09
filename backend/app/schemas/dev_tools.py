@@ -28,35 +28,35 @@ class DeveloperToolCreate(BaseModel):
             "examples": [
                 {
                     "platform": "dify",
-                    "api_key": "app-xxxxx",
+                    "api_key": "${REDACTED}",
                     "base_url": "https://api.dify.ai/v1",
                     "app_type": "chat",
                     "app_config": {"response_mode": "blocking"}
                 },
                 {
                     "platform": "dify",
-                    "api_key": "app-xxxxx",
+                    "api_key": "${REDACTED}",
                     "base_url": "https://api.dify.ai/v1",
                     "app_type": "workflow",
                     "app_config": {"response_mode": "blocking"}
                 },
                 {
                     "platform": "dify",
-                    "api_key": "app-xxxxx",
+                    "api_key": "${REDACTED}",
                     "base_url": "https://api.dify.ai/v1",
                     "app_type": "agent",
                     "app_config": {"response_mode": "blocking"}
                 },
                 {
                     "platform": "dify",
-                    "api_key": "app-xxxxx",
+                    "api_key": "${REDACTED}",
                     "base_url": "https://api.dify.ai/v1",
                     "app_type": "completion",
                     "app_config": {"response_mode": "blocking"}
                 },
                 {
                     "platform": "coze",
-                    "api_key": "pat_xxxxx",
+                    "api_key": "${REDACTED}",
                     "base_url": "https://api.coze.com/open_api",
                     "app_config": {"bot_id": 123456789}
                 }
@@ -156,7 +156,7 @@ class ToolValidateRequest(BaseModel):
                 "description": "用于测试Dify应用提交与自适应类型的端到端工作",
                 "endpoint": {
                     "platform": "dify",
-                    "api_key": "app-xxxxx",
+                    "api_key": "${REDACTED}",
                     "base_url": "https://api.dify.ai/v1"
                 }
             }
@@ -187,7 +187,7 @@ class ToolTestRequest(BaseModel):
                         "description": "...",
                         "endpoint": {
                             "platform": "dify",
-                            "api_key": "app-xxxxx",
+                            "api_key": "${REDACTED}",
                             "base_url": "https://api.dify.ai/v1",
                             "app_type": "workflow",
                             "app_config": {"response_mode": "blocking"}
@@ -203,7 +203,7 @@ class ToolTestRequest(BaseModel):
                         "description": "...",
                         "endpoint": {
                             "platform": "coze",
-                            "api_key": "pat_xxxxx",
+                            "api_key": "${REDACTED}",
                             "base_url": "https://api.coze.com/open_api",
                             "app_config": {"bot_id": 123456789}
                         }

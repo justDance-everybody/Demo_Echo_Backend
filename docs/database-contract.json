@@ -1,0 +1,756 @@
+{
+  "source": "database/test-db-all.sql.gz; CREATE TABLE only; no row data read",
+  "dump_sha256": "94ed147781c5f0d9b8b1fce9820b9dd2696aab118e847ae06da647ebcd188d90",
+  "database_tables": {
+    "ai_assistant": {
+      "alembic_version": {
+        "columns": [
+          {
+            "name": "version_num",
+            "type": "varchar(32)",
+            "nullable": false
+          }
+        ],
+        "ddl_sha256": "b959356d02dc5da3b91b475e0f37d91e54837cf922ae78a0898c52119e707d20"
+      },
+      "app_tools": {
+        "columns": [
+          {
+            "name": "id",
+            "type": "bigint",
+            "nullable": false
+          },
+          {
+            "name": "app_id",
+            "type": "varchar(50)",
+            "nullable": false
+          },
+          {
+            "name": "tool_id",
+            "type": "int",
+            "nullable": false
+          },
+          {
+            "name": "order_index",
+            "type": "int",
+            "nullable": false
+          },
+          {
+            "name": "config",
+            "type": "json",
+            "nullable": true
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "nullable": true
+          }
+        ],
+        "ddl_sha256": "369fb7a20e94b30bbf57839cc8e8e2563393450c7ee0e59a1403effa2575dda1"
+      },
+      "apps": {
+        "columns": [
+          {
+            "name": "id",
+            "type": "bigint",
+            "nullable": false
+          },
+          {
+            "name": "app_id",
+            "type": "varchar(50)",
+            "nullable": false
+          },
+          {
+            "name": "name",
+            "type": "varchar(100)",
+            "nullable": false
+          },
+          {
+            "name": "description",
+            "type": "text",
+            "nullable": true
+          },
+          {
+            "name": "version",
+            "type": "varchar(20)",
+            "nullable": false
+          },
+          {
+            "name": "developer_id",
+            "type": "bigint",
+            "nullable": false
+          },
+          {
+            "name": "is_public",
+            "type": "tinyint(1)",
+            "nullable": false
+          },
+          {
+            "name": "status",
+            "type": "varchar(20)",
+            "nullable": false
+          },
+          {
+            "name": "config",
+            "type": "json",
+            "nullable": true
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "nullable": true
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamp",
+            "nullable": true
+          }
+        ],
+        "ddl_sha256": "5ebf69b17091d26c95db1bd708a11e1185d1c70ff1b2d1568486d50ea7b7c2c8"
+      },
+      "logs": {
+        "columns": [
+          {
+            "name": "id",
+            "type": "bigint",
+            "nullable": false
+          },
+          {
+            "name": "session_id",
+            "type": "varchar(36)",
+            "nullable": false
+          },
+          {
+            "name": "step",
+            "type": "varchar(32)",
+            "nullable": false
+          },
+          {
+            "name": "status",
+            "type": "varchar(32)",
+            "nullable": false
+          },
+          {
+            "name": "message",
+            "type": "text",
+            "nullable": true
+          },
+          {
+            "name": "timestamp",
+            "type": "datetime",
+            "nullable": true
+          }
+        ],
+        "ddl_sha256": "2c1bdcd4c1bb94b2288e6793f19e18cbb346eb230e4952909ba9110aa6e86172"
+      },
+      "migration_history": {
+        "columns": [
+          {
+            "name": "id",
+            "type": "int",
+            "nullable": false
+          },
+          {
+            "name": "revision",
+            "type": "varchar(50)",
+            "nullable": false
+          },
+          {
+            "name": "description",
+            "type": "text",
+            "nullable": true
+          },
+          {
+            "name": "applied_at",
+            "type": "timestamp",
+            "nullable": true
+          },
+          {
+            "name": "rollback_sql",
+            "type": "text",
+            "nullable": true
+          }
+        ],
+        "ddl_sha256": "b28e45a74106ef6f423fb20d8ed9dff610a20af0cc29afeca3135a619813ce77"
+      },
+      "sessions": {
+        "columns": [
+          {
+            "name": "session_id",
+            "type": "varchar(36)",
+            "nullable": false
+          },
+          {
+            "name": "user_id",
+            "type": "bigint",
+            "nullable": true
+          },
+          {
+            "name": "status",
+            "type": "enum('interpreting','waiting_confirm','executing','done','error')",
+            "nullable": false
+          },
+          {
+            "name": "created_at",
+            "type": "datetime",
+            "nullable": true
+          },
+          {
+            "name": "updated_at",
+            "type": "datetime",
+            "nullable": true
+          }
+        ],
+        "ddl_sha256": "64119d51a330105d06a9ab621ebb125a58790351e9273fe2cef6d1500426a404"
+      },
+      "tools": {
+        "columns": [
+          {
+            "name": "id",
+            "type": "int",
+            "nullable": false
+          },
+          {
+            "name": "tool_id",
+            "type": "varchar(64)",
+            "nullable": false
+          },
+          {
+            "name": "name",
+            "type": "varchar(128)",
+            "nullable": false
+          },
+          {
+            "name": "type",
+            "type": "enum('mcp','http')",
+            "nullable": false
+          },
+          {
+            "name": "description",
+            "type": "varchar(512)",
+            "nullable": true
+          },
+          {
+            "name": "endpoint",
+            "type": "json",
+            "nullable": false
+          },
+          {
+            "name": "request_schema",
+            "type": "json",
+            "nullable": false
+          },
+          {
+            "name": "response_schema",
+            "type": "json",
+            "nullable": true
+          },
+          {
+            "name": "created_at",
+            "type": "datetime",
+            "nullable": true
+          },
+          {
+            "name": "server_name",
+            "type": "varchar(64)",
+            "nullable": true
+          },
+          {
+            "name": "updated_at",
+            "type": "datetime",
+            "nullable": true
+          },
+          {
+            "name": "creator_id",
+            "type": "bigint",
+            "nullable": true
+          },
+          {
+            "name": "source",
+            "type": "varchar(20)",
+            "nullable": false
+          },
+          {
+            "name": "is_active",
+            "type": "tinyint(1)",
+            "nullable": true
+          },
+          {
+            "name": "developer_id",
+            "type": "int",
+            "nullable": true
+          },
+          {
+            "name": "test_field",
+            "type": "varchar(255)",
+            "nullable": true
+          },
+          {
+            "name": "is_public",
+            "type": "tinyint(1)",
+            "nullable": true
+          },
+          {
+            "name": "status",
+            "type": "varchar(20)",
+            "nullable": true
+          },
+          {
+            "name": "version",
+            "type": "varchar(20)",
+            "nullable": true
+          },
+          {
+            "name": "tags",
+            "type": "text",
+            "nullable": true
+          },
+          {
+            "name": "download_count",
+            "type": "int",
+            "nullable": true
+          },
+          {
+            "name": "rating",
+            "type": "decimal(3,2)",
+            "nullable": true
+          }
+        ],
+        "ddl_sha256": "8cb4c3fde5bde07f0d5c1ebebf2c37134fde007d71ec3d5221d7f6a097255ede"
+      },
+      "users": {
+        "columns": [
+          {
+            "name": "id",
+            "type": "bigint",
+            "nullable": false
+          },
+          {
+            "name": "username",
+            "type": "varchar(64)",
+            "nullable": false
+          },
+          {
+            "name": "password_hash",
+            "type": "varchar(128)",
+            "nullable": true
+          },
+          {
+            "name": "email",
+            "type": "varchar(120)",
+            "nullable": true
+          },
+          {
+            "name": "full_name",
+            "type": "varchar(120)",
+            "nullable": true
+          },
+          {
+            "name": "is_active",
+            "type": "tinyint(1)",
+            "nullable": true
+          },
+          {
+            "name": "is_superuser",
+            "type": "tinyint(1)",
+            "nullable": true
+          },
+          {
+            "name": "created_at",
+            "type": "datetime",
+            "nullable": true
+          },
+          {
+            "name": "updated_at",
+            "type": "datetime",
+            "nullable": true
+          },
+          {
+            "name": "contacts",
+            "type": "json",
+            "nullable": true
+          },
+          {
+            "name": "wallets",
+            "type": "json",
+            "nullable": true
+          },
+          {
+            "name": "role",
+            "type": "enum('user','developer','admin')",
+            "nullable": false
+          }
+        ],
+        "ddl_sha256": "f758a839510b7686dbdea948d2f4a5a7a37307571dec98109c68016bbe0b6f2f"
+      }
+    },
+    "echo_db": {
+      "alembic_version": {
+        "columns": [
+          {
+            "name": "version_num",
+            "type": "varchar(32)",
+            "nullable": false
+          }
+        ],
+        "ddl_sha256": "b959356d02dc5da3b91b475e0f37d91e54837cf922ae78a0898c52119e707d20"
+      },
+      "app_tools": {
+        "columns": [
+          {
+            "name": "id",
+            "type": "bigint",
+            "nullable": false
+          },
+          {
+            "name": "app_id",
+            "type": "varchar(50)",
+            "nullable": false
+          },
+          {
+            "name": "tool_id",
+            "type": "varchar(64)",
+            "nullable": false
+          },
+          {
+            "name": "order_index",
+            "type": "int",
+            "nullable": false
+          },
+          {
+            "name": "config",
+            "type": "json",
+            "nullable": true
+          },
+          {
+            "name": "created_at",
+            "type": "datetime",
+            "nullable": true
+          }
+        ],
+        "ddl_sha256": "f8e4b43d0fa297ed53973b7da6c42220f84547d0c57ad73c8090f32024959d80"
+      },
+      "apps": {
+        "columns": [
+          {
+            "name": "app_id",
+            "type": "varchar(64)",
+            "nullable": false
+          },
+          {
+            "name": "name",
+            "type": "varchar(128)",
+            "nullable": false
+          },
+          {
+            "name": "description",
+            "type": "varchar(512)",
+            "nullable": true
+          },
+          {
+            "name": "version",
+            "type": "varchar(32)",
+            "nullable": false
+          },
+          {
+            "name": "developer_id",
+            "type": "bigint",
+            "nullable": false
+          },
+          {
+            "name": "is_public",
+            "type": "tinyint(1)",
+            "nullable": false
+          },
+          {
+            "name": "status",
+            "type": "enum('draft','active','inactive','deployed')",
+            "nullable": false
+          },
+          {
+            "name": "config",
+            "type": "json",
+            "nullable": true
+          },
+          {
+            "name": "created_at",
+            "type": "datetime",
+            "nullable": true
+          },
+          {
+            "name": "updated_at",
+            "type": "datetime",
+            "nullable": true
+          }
+        ],
+        "ddl_sha256": "8330c8a49a59537b9a2c8fb83ba9d96351d6e1b67a8546f69f024a9c72977aa2"
+      },
+      "logs": {
+        "columns": [
+          {
+            "name": "id",
+            "type": "bigint",
+            "nullable": false
+          },
+          {
+            "name": "session_id",
+            "type": "varchar(36)",
+            "nullable": false
+          },
+          {
+            "name": "step",
+            "type": "varchar(32)",
+            "nullable": false
+          },
+          {
+            "name": "status",
+            "type": "varchar(32)",
+            "nullable": false
+          },
+          {
+            "name": "message",
+            "type": "text",
+            "nullable": true
+          },
+          {
+            "name": "timestamp",
+            "type": "datetime",
+            "nullable": true
+          }
+        ],
+        "ddl_sha256": "1b1a604d894237f2206b90d2ef9049e35552fe62f45baf964847d6dd529ac872"
+      },
+      "sessions": {
+        "columns": [
+          {
+            "name": "session_id",
+            "type": "varchar(36)",
+            "nullable": false
+          },
+          {
+            "name": "user_id",
+            "type": "bigint",
+            "nullable": false
+          },
+          {
+            "name": "status",
+            "type": "enum('interpreting','waiting_confirm','executing','done','error')",
+            "nullable": false
+          },
+          {
+            "name": "created_at",
+            "type": "datetime",
+            "nullable": true
+          },
+          {
+            "name": "updated_at",
+            "type": "datetime",
+            "nullable": true
+          }
+        ],
+        "ddl_sha256": "bfffc966836f0fcfdd0a84ed4229e97b36c894759eb66742b8beb86a6a69ccbf"
+      },
+      "tools": {
+        "columns": [
+          {
+            "name": "id",
+            "type": "int",
+            "nullable": false
+          },
+          {
+            "name": "tool_id",
+            "type": "varchar(64)",
+            "nullable": false
+          },
+          {
+            "name": "name",
+            "type": "varchar(128)",
+            "nullable": false
+          },
+          {
+            "name": "type",
+            "type": "enum('mcp','http')",
+            "nullable": false
+          },
+          {
+            "name": "description",
+            "type": "varchar(512)",
+            "nullable": true
+          },
+          {
+            "name": "endpoint",
+            "type": "json",
+            "nullable": false
+          },
+          {
+            "name": "request_schema",
+            "type": "json",
+            "nullable": false
+          },
+          {
+            "name": "response_schema",
+            "type": "json",
+            "nullable": true
+          },
+          {
+            "name": "server_name",
+            "type": "varchar(64)",
+            "nullable": true
+          },
+          {
+            "name": "developer_id",
+            "type": "bigint",
+            "nullable": true
+          },
+          {
+            "name": "is_public",
+            "type": "tinyint(1)",
+            "nullable": false
+          },
+          {
+            "name": "status",
+            "type": "enum('active','inactive','pending')",
+            "nullable": false
+          },
+          {
+            "name": "version",
+            "type": "varchar(32)",
+            "nullable": false
+          },
+          {
+            "name": "tags",
+            "type": "json",
+            "nullable": true
+          },
+          {
+            "name": "download_count",
+            "type": "int",
+            "nullable": false
+          },
+          {
+            "name": "rating",
+            "type": "float",
+            "nullable": true
+          },
+          {
+            "name": "created_at",
+            "type": "datetime",
+            "nullable": true
+          },
+          {
+            "name": "updated_at",
+            "type": "datetime",
+            "nullable": true
+          }
+        ],
+        "ddl_sha256": "9b4d96c42f5bc279c6dba2f06953e8b0d03f492caa98ba49627432e507d32c45"
+      },
+      "users": {
+        "columns": [
+          {
+            "name": "id",
+            "type": "bigint",
+            "nullable": false
+          },
+          {
+            "name": "username",
+            "type": "varchar(64)",
+            "nullable": false
+          },
+          {
+            "name": "password_hash",
+            "type": "varchar(128)",
+            "nullable": true
+          },
+          {
+            "name": "email",
+            "type": "varchar(120)",
+            "nullable": true
+          },
+          {
+            "name": "full_name",
+            "type": "varchar(120)",
+            "nullable": true
+          },
+          {
+            "name": "role",
+            "type": "enum('user','developer','admin')",
+            "nullable": false
+          },
+          {
+            "name": "is_active",
+            "type": "smallint",
+            "nullable": true
+          },
+          {
+            "name": "is_superuser",
+            "type": "smallint",
+            "nullable": true
+          },
+          {
+            "name": "created_at",
+            "type": "datetime",
+            "nullable": true
+          },
+          {
+            "name": "updated_at",
+            "type": "datetime",
+            "nullable": true
+          }
+        ],
+        "ddl_sha256": "8eb401bb167ccf57faf3af786c89391d5c703c15fd84a46d37d8cabcd6262a32"
+      }
+    }
+  },
+  "scope": {
+    "included_database_schemas": [
+      "ai_assistant",
+      "echo_db"
+    ],
+    "table_definition_count": 15,
+    "column_definition_count": 124,
+    "note": "Two independent schemas are preserved separately by USE context. Same-named tables may differ; no automated unification is performed."
+  },
+  "schema_differences": {
+    "app_tools.tool_id": {
+      "ai_assistant": "int",
+      "echo_db": "varchar(64)"
+    },
+    "apps.app_id": {
+      "ai_assistant": "varchar(50)",
+      "echo_db": "varchar(64)"
+    },
+    "apps.status": {
+      "ai_assistant": "varchar(20)",
+      "echo_db": "enum('draft','active','inactive','deployed')"
+    },
+    "note": "Different types, lengths, enum values, and nullability are preserved as found in each schema."
+  },
+  "orm_coverage_gaps": {
+    "ai_assistant": {
+      "users": [
+        "contacts",
+        "wallets"
+      ],
+      "tools": [
+        "creator_id",
+        "source",
+        "is_active",
+        "test_field"
+      ],
+      "apps": [
+        "id"
+      ],
+      "migration_history": "no current application ORM model",
+      "alembic_version": "migration metadata; no application ORM model"
+    },
+    "echo_db": {
+      "users": [],
+      "tools": [],
+      "apps": [],
+      "migration_history": "table absent",
+      "alembic_version": "migration metadata; no application ORM model"
+    },
+    "note": "Compatibility must cover every column in both schemas; these differences are not merged automatically."
+  }
+}

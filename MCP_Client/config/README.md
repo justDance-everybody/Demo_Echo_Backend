@@ -27,14 +27,14 @@ vim mcp_servers.json
 
 1. **MiniMax API密钥**
    ```json
-   "MINIMAX_API_KEY": "your_minimax_api_key_here"
+   "MINIMAX_API_KEY": "REDACTED"
    ```
    - 获取地址: https://api.minimax.chat
    - 用途: 文字转语音功能
 
 2. **高德地图API密钥**
    ```json
-   "AMAP_MAPS_API_KEY": "your_amap_api_key_here"
+   "AMAP_MAPS_API_KEY": "REDACTED"
    ```
    - 获取地址: https://lbs.amap.com/dev
    - 用途: 地理位置查询功能
