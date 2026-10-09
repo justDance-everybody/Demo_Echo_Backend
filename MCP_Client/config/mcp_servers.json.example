@@ -20,7 +20,7 @@
         "minimax-mcp-js"
       ],
       "env": {
-        "MINIMAX_API_KEY": "your_minimax_api_key_here",
+        "MINIMAX_API_KEY": "REDACTED",
         "MINIMAX_API_HOST": "https://api.minimax.chat",
         "MINIMAX_MCP_BASE_PATH": "../MCP_server/minimax-mcp-js/outputs",
         "MINIMAX_RESOURCE_MODE": "file"
@@ -37,7 +37,7 @@
         "@amap/amap-maps-mcp-server"
       ],
       "env": {
-        "AMAP_MAPS_API_KEY": "your_amap_api_key_here"
+        "AMAP_MAPS_API_KEY": "REDACTED"
       },
       "enabled": true
     },

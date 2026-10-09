@@ -1,0 +1,62 @@
+.voice-recorder-container {
+  position: fixed; 
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 15px 0; 
+  background-color: #1E1E2F; 
+  border-top: 1px solid #333; 
+  z-index: 100; 
+}
+
+.recorder-button {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%; 
+  background-color: #4FD1C5; 
+  border: none;
+  color: #1E1E2F; 
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.recorder-button:hover {
+  background-color: #3dbbab; 
+}
+
+.recorder-button:active {
+    transform: scale(0.95); 
+}
+
+.recorder-button.listening {
+  background-color: #F56565; 
+  color: white;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+.recorder-button:disabled {
+    background-color: #4A5568; 
+    cursor: not-allowed;
+    opacity: 0.6; /* Add opacity for disabled state */
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(245, 101, 101, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(245, 101, 101, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(245, 101, 101, 0); }
+}
+
+.voice-recorder-container p {
+    color: #A0AEC0; 
+    margin-left: 15px;
+} 

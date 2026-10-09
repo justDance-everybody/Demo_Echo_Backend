@@ -1,0 +1,594 @@
+# Review-only patch from the older Echo working tree against its local HEAD.
+# Not applied; that HEAD predates the d6d6f4d source baseline.
+# Selected MCP environment/path, connection health/recovery, and DB initialization hunks.
+diff --git a/backend/app/services/mcp_manager.py b/backend/app/services/mcp_manager.py
+index 0a494646..05f3b483 100644
+--- a/backend/app/services/mcp_manager.py
++++ b/backend/app/services/mcp_manager.py
+@@ -107,11 +107,34 @@ class MCPServerManager:
+     def _load_server_configs(self):
+         """加载MCP服务器配置"""
+         try:
+-            config_path = os.getenv("MCP_SERVERS_PATH", "/home/devbox/project/MCP_Client/config/mcp_servers.json")
++            # 优先使用环境变量中的路径
++            config_path = os.getenv("MCP_SERVERS_PATH", "")
++            if not config_path:
++                # 如果环境变量未设置，使用配置文件中的默认值
++                from app.config import settings
++                config_path = settings.MCP_SERVERS_PATH
++                logger.info(f"使用配置文件中的默认路径: {config_path}")
++            
++            # 计算项目根目录路径（从backend/app/services目录回到项目根目录）
++            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
++            
++            # 如果路径是相对路径，转换为绝对路径
++            if not os.path.isabs(config_path):
++                config_path = os.path.join(project_root, config_path)
++                logger.info(f"相对路径转换为绝对路径: {config_path}")
++            
++            # 检查文件是否存在
++            if not os.path.exists(config_path):
++                logger.error(f"配置文件不存在: {config_path}")
++                raise FileNotFoundError(f"MCP配置文件不存在: {config_path}")
++            
+             with open(config_path, 'r', encoding='utf-8') as f:
+                 config_data = json.load(f)
+                 self.server_configs = config_data.get("mcpServers", {})
+                 
++            # 替换配置文件中的环境变量占位符
++            self.server_configs = self._replace_env_placeholders(self.server_configs)
++                
+             # 初始化服务器状态
+             for server_name, config in self.server_configs.items():
+                 self.servers[server_name] = MCPServerStatus(
+@@ -170,6 +193,48 @@ class MCPServerManager:
+         logger.info(f"生成了 {len(validation_rules)} 个服务器的环境变量验证规则")
+         return validation_rules
+     
++    def _replace_env_placeholders(self, server_configs: dict) -> dict:
++        """
++        替换配置文件中的环境变量占位符
++        
++        Args:
++            server_configs: 服务器配置字典
++            
++        Returns:
++            dict: 替换后的配置字典
++        """
++        import re
++        
++        def replace_placeholders(obj):
++            """递归替换对象中的占位符"""
++            if isinstance(obj, dict):
++                return {k: replace_placeholders(v) for k, v in obj.items()}
++            elif isinstance(obj, list):
++                return [replace_placeholders(item) for item in obj]
++            elif isinstance(obj, str):
++                # 查找 {ENV_VAR_NAME} 格式的占位符
++                matches = re.findall(r'\{([^}]+)\}', obj)
++                for match in matches:
++                    env_value = os.getenv(match)
++                    if env_value:
++                        obj = obj.replace(f'{{{match}}}', env_value)
++                        logger.info(f"替换占位符 {{{match}}} -> {env_value}")
++                    else:
++                        logger.warning(f"环境变量 {match} 未设置，使用原始值")
++                return obj
++            else:
++                return obj
++        
++        # 深拷贝配置以避免修改原始数据
++        import copy
++        replaced_configs = copy.deepcopy(server_configs)
++        
++        # 替换所有占位符
++        replaced_configs = replace_placeholders(replaced_configs)
++        
++        logger.info("已完成环境变量占位符替换")
++        return replaced_configs
++    
+     def _get_success_indicators(self, server_name: str, config: dict) -> list:
+         """
+         从配置动态生成启动成功指示符
+@@ -658,9 +723,25 @@ class MCPServerManager:
+                 server_status.error_message = "环境变量验证失败"
+                 return False
+                 
++            # 处理参数中的路径，将相对路径转换为绝对路径
++            processed_args = []
++            for arg in args:
++                if isinstance(arg, str) and (arg.endswith('.js') or arg.endswith('.py') or arg.endswith('/')):
++                    # 如果是相对路径，转换为绝对路径
++                    if not os.path.isabs(arg):
++                        # 计算项目根目录（从backend/app/services到项目根目录）
++                        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
++                        absolute_path = os.path.join(project_root, arg)
++                        logger.info(f"MCP服务器 {server_name}: 相对路径 {arg} 转换为绝对路径 {absolute_path}")
++                        processed_args.append(absolute_path)
++                    else:
++                        processed_args.append(arg)
++                else:
++                    processed_args.append(arg)
++            
+             # 启动进程
+             process = await asyncio.create_subprocess_exec(
+-                cmd, *args,
++                cmd, *processed_args,
+                 env=env,
+                 stdout=asyncio.subprocess.PIPE,
+                 stderr=asyncio.subprocess.PIPE
+diff --git a/backend/app/utils/db.py b/backend/app/utils/db.py
+index 1d7298db..607863df 100644
+--- a/backend/app/utils/db.py
++++ b/backend/app/utils/db.py
+@@ -23,6 +23,11 @@ def create_db_engine(db_url=None):
+     if db_url is None:
+         db_url = settings.DATABASE_URL
+     
++    # 将异步MySQL URL转换为同步URL
++    if 'mysql+aiomysql://' in db_url:
++        db_url = db_url.replace('mysql+aiomysql://', 'mysql+pymysql://')
++        logger.info(f"转换为同步MySQL URL: {db_url.split('@')[0]}@***")
++    
+     # 创建数据库引擎，禁用连接池事件监听器，以修复某些环境下的连接问题
+     engine_params = {
+         "echo": settings.DEBUG,
+@@ -56,19 +61,25 @@ def create_db_engine(db_url=None):
+         logger.error(f"数据库连接失败: {e}")
+         raise
+ 
+-# 创建数据库引擎
+-engine = create_db_engine()
+-
+-# 创建会话工厂
+-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
++# 全局变量，延迟初始化
++engine = None
++SessionLocal = None
++db_session = None
+ 
+-# 创建线程安全的会话
+-db_session = scoped_session(SessionLocal)
++def get_sync_engine():
++    """获取同步数据库引擎，延迟初始化"""
++    global engine, SessionLocal, db_session
++    if engine is None:
++        engine = create_db_engine()
++        SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
++        db_session = scoped_session(SessionLocal)
++    return engine
+ 
+ # 获取数据库会话的上下文管理器
+ @contextmanager
+ def get_db() -> Generator:
+     """获取数据库会话"""
++    get_sync_engine()  # 确保引擎已初始化
+     session = SessionLocal()
+     try:
+         yield session
+@@ -84,7 +95,8 @@ def get_db() -> Generator:
+ def init_db():
+     """初始化数据库，创建所有表"""
+     try:
+-        Base.metadata.create_all(bind=engine)
++        sync_engine = get_sync_engine()  # 获取延迟初始化的引擎
++        Base.metadata.create_all(bind=sync_engine)
+         logger.info("数据库表创建成功")
+     except Exception as e:
+         logger.error(f"数据库表创建失败: {e}")
+@@ -144,20 +156,30 @@ def create_async_db_engine(db_url=None):
+         logger.error(f"创建异步数据库引擎失败: {e}")
+         raise
+ 
+-async_engine = create_async_db_engine()
+-
+-# 创建异步会话工厂
+-AsyncSessionLocal = sessionmaker(
+-    bind=async_engine,
+-    class_=AsyncSession,
+-    expire_on_commit=False,
+-    autocommit=False,
+-    autoflush=False,
+-)
++# 延迟创建异步引擎，避免在模块导入时初始化
++async_engine = None
++AsyncSessionLocal = None
++
++def get_async_engine():
++    """获取异步数据库引擎，延迟初始化"""
++    global async_engine, AsyncSessionLocal
++    if async_engine is None:
++        async_engine = create_async_db_engine()
++        # 创建异步会话工厂
++        AsyncSessionLocal = sessionmaker(
++            bind=async_engine,
++            class_=AsyncSession,
++            expire_on_commit=False,
++            autocommit=False,
++            autoflush=False,
++        )
++    return async_engine
+ 
+ # 获取异步数据库会话的依赖函数 (用于 FastAPI Depends)
+ async def get_async_db_session() -> AsyncGenerator[AsyncSession, None]:
+     """提供异步数据库会话的生成器"""
++    # 确保异步引擎已初始化
++    get_async_engine()
+     async with AsyncSessionLocal() as session:
+         try:
+             yield session
+@@ -172,43 +194,8 @@ async def get_async_db_session() -> AsyncGenerator[AsyncSession, None]:
+ 
+ # --- 异步数据库配置 --- END
+ 
+-# 创建同步数据库引擎 (保留，可能其他地方还在用)
+-engine = create_db_engine()
+-
+-# 创建同步会话工厂 (保留)
+-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+-
+-# 创建线程安全的同步会话 (保留)
+-db_session = scoped_session(SessionLocal)
+-
+-# 获取同步数据库会话的上下文管理器 (保留)
+-@contextmanager
+-def get_db() -> Generator:
+-    """获取数据库会话"""
+-    session = SessionLocal()
+-    try:
+-        yield session
+-        session.commit()
+-    except Exception as e:
+-        session.rollback()
+-        logger.error(f"数据库操作失败: {e}")
+-        raise
+-    finally:
+-        session.close()
+-
+ def get_db_url():
+     """获取数据库URL"""
+     return settings.DATABASE_URL
+ 
+-# 初始化数据库 (使用同步引擎创建表)
+-def init_db():
+-    """初始化数据库，创建所有表 (使用同步引擎)"""
+-    try:
+-        logger.info("开始使用同步引擎创建数据库表...")
+-        Base.metadata.create_all(bind=engine)
+-        logger.info("数据库表创建成功 (使用同步引擎)")
+-    except Exception as e:
+-        logger.error(f"数据库表创建失败: {e}")
+-        raise
+-
+ # ... (移除连接池监听器代码) ...
+\ No newline at end of file
+diff --git a/backend/app/utils/mcp_client.py b/backend/app/utils/mcp_client.py
+index 886cbb3b..13b995c6 100644
+--- a/backend/app/utils/mcp_client.py
++++ b/backend/app/utils/mcp_client.py
+@@ -266,18 +261,35 @@ class MCPClientWrapper:
+         try:
+             # 加载MCP服务器配置
+             import json
+-            mcp_config_path = os.environ.get("MCP_SERVERS_PATH", "config/mcp_servers.json")
++            mcp_config_path = os.environ.get("MCP_SERVERS_PATH", "")
++            
++            # 如果环境变量中没有设置，使用配置文件中的默认值
++            if not mcp_config_path:
++                from app.config import settings
++                mcp_config_path = settings.MCP_SERVERS_PATH
++                logger.info(f"使用配置文件中的默认路径: {mcp_config_path}")
++            
++            # 计算项目根目录路径
++            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
++            
++            # 如果是相对路径，转换为绝对路径
+             if not os.path.isabs(mcp_config_path):
+-                mcp_client_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), "MCP_Client")
+-                mcp_config_path = os.path.join(mcp_client_dir, mcp_config_path)
++                config_path = os.path.join(project_root, mcp_config_path)
++                logger.info(f"相对路径转换为绝对路径: {config_path}")
++            else:
++                config_path = mcp_config_path
+             
+-            if not os.path.exists(mcp_config_path):
+-                logger.warning(f"MCP服务器配置文件不存在: {mcp_config_path}")
++            # 检查文件是否存在
++            if not os.path.exists(config_path):
++                logger.warning(f"MCP服务器配置文件不存在: {config_path}")
+                 self.server_configs = {}
+-            else:
+-                with open(mcp_config_path, encoding='utf-8') as f:
+-                    config_data = json.load(f)
+-                    self.server_configs = config_data.get("mcpServers", {})
++                return
++            
++            mcp_config_path = config_path
++            
++            with open(mcp_config_path, encoding='utf-8') as f:
++                config_data = json.load(f)
++                self.server_configs = config_data.get("mcpServers", {})
+             
+             logger.info("MCP客户端包装器：配置加载成功")
+             if self.server_configs:
+@@ -291,20 +303,19 @@ class MCPClientWrapper:
+     
+     def _get_server_timeout(self, server_name: str, operation_type: str = 'default') -> float:
+         """
+-        根据服务器配置动态获取超时时间
+-        
+-        Args:
+-            server_name: 服务器名称
+-            operation_type: 操作类型 ('ping', 'warmup', 'validation', 'default')
+-            
+-        Returns:
+-            float: 超时时间（秒）
++        获取特定服务器在不同操作阶段的超时（支持每个服务器覆盖）
++        - 支持的operation_type包括：connect、handshake、list_tools、ping、warmup、validation、quick_probe、default
++        - 默认值可被 server_configs[server].timeout.{operation_type} 覆盖
+         """
+-        # 默认超时时间
++        # 默认超时配置（可被每个server覆盖）
+         default_timeouts = {
+-            'ping': 10.0,
+-            'warmup': 10.0,
+-            'validation': 10.0,
++            'connect': 20.0,
++            'handshake': 20.0,
++            'list_tools': 15.0,
++            'ping': 5.0,
++            'warmup': 15.0,
++            'validation': 12.0,
++            'quick_probe': 2.0,
+             'default': 10.0
+         }
+         
+@@ -327,6 +338,82 @@ class MCPClientWrapper:
+         
+         return default_timeouts.get(operation_type, default_timeouts['default'])
+     
++    async def _quick_reuse_health_probe(self, target_server: str, client) -> dict:
++        """
++        复用前的快速健康探针（严格判定，低时延）
++        
++        目的：
++        - 在复用已有连接前，用一个轻量RPC在短超时内验证连接“确实可用”；
++        - 优先使用 list_tools（或 session.list_tools），其次回退到 ping；
++        - 若均不可用或超时/异常，判定为不可复用，交给后续恢复逻辑处理。
++        
++        返回：{"healthy": bool, "reason": str, "method": str}
++        """
++        try:
++            # 基础连接存活性
++            if hasattr(client, 'is_connected') and callable(getattr(client, 'is_connected')):
++                try:
++                    if not client.is_connected():
++                        return {"healthy": False, "reason": "连接未建立", "method": "none"}
++                except Exception as e:
++                    return {"healthy": False, "reason": f"is_connected异常: {e}", "method": "none"}
++            
++            timeout = self._get_server_timeout(target_server, 'quick_probe')
++            method = None
++
++            # 选择最强验证方式：list_tools > session.list_tools > ping
++            if hasattr(client, 'list_tools') and callable(getattr(client, 'list_tools')):
++                coro = client.list_tools()
++                method = 'list_tools'
++            elif hasattr(client, 'session') and client.session is not None and hasattr(client.session, 'list_tools') and callable(getattr(client.session, 'list_tools')):
++                coro = client.session.list_tools()
++                method = 'session.list_tools'
++            elif hasattr(client, 'ping') and callable(getattr(client, 'ping')):
++                coro = client.ping()
++                method = 'ping'
++            else:
++                logger.warning(f"快速探针无可用方法: {target_server}")
++                return {"healthy": False, "reason": "无可用探针方法(list_tools/ping)", "method": "none"}
++
++            start = time.perf_counter()
++            try:
++                await asyncio.wait_for(coro, timeout=timeout)
++                elapsed_ms = (time.perf_counter() - start) * 1000.0
++                logger.debug(f"快速复用探针通过 server={target_server} method={method} timeout={timeout}s elapsed={elapsed_ms:.1f}ms")
++                return {"healthy": True, "reason": "ok", "method": method}
++            except asyncio.TimeoutError:
++                elapsed_ms = (time.perf_counter() - start) * 1000.0
++                logger.warning(f"快速复用探针超时 server={target_server} method={method} timeout={timeout}s elapsed={elapsed_ms:.1f}ms")
++                return {"healthy": False, "reason": "quick_probe_timeout", "method": method}
++            except Exception as e:
++                elapsed_ms = (time.perf_counter() - start) * 1000.0
++                logger.warning(f"快速复用探针异常 server={target_server} method={method} elapsed={elapsed_ms:.1f}ms err={e}")
++                return {"healthy": False, "reason": f"quick_probe_error: {e}", "method": method}
++        except Exception as e:
++            logger.warning(f"快速复用探针执行异常 {target_server}: {e}")
++            return {"healthy": False, "reason": f"probe_exception: {e}", "method": "none"}
++    
++    async def _cleanup_connection(self, target_server: str):
++        """
++        清理失效的连接（辅助方法）
++        
++        Args:
++            target_server: 服务器名称
++        """
++        try:
++            if target_server in self._connection_pool:
++                old_client = self._connection_pool[target_server]
++                # 尝试优雅关闭连接
++                if hasattr(old_client, 'close'):
++                    try:
++                        await old_client.close()
++                    except Exception:
++                        pass  # 忽略关闭时的错误
++                del self._connection_pool[target_server]
++                logger.debug(f"已清理失效连接: {target_server}")
++        except Exception as e:
++            logger.warning(f"清理连接时出错 {target_server}: {e}")
++
+     async def _get_or_create_client(self, target_server: str) -> 'MCPClient':
+         """
+         获取或创建MCP客户端连接（任务7：完善重试和恢复机制）
+@@ -358,24 +445,23 @@ class MCPClientWrapper:
+         
+         for attempt in range(max_retries):
+             try:
+-                # 1. 增强连接池健康检查
++                # 0. 复用前快速探针（严格2s，可按server覆盖）
+                 if target_server in self._connection_pool:
+                     existing_client = self._connection_pool[target_server]
+-                    health_check_result = await self._enhanced_connection_health_check(target_server, existing_client)
+-                    
+-                    if health_check_result["healthy"]:
+-                        logger.debug(f"复用健康连接: {target_server}")
++                    probe = await self._quick_reuse_health_probe(target_server, existing_client)
++                    if probe.get("healthy"):
++                        logger.debug(f"复用健康连接(快速探针通过): {target_server}")
+                         return existing_client
+                     else:
+-                        logger.warning(f"连接健康检查失败: {target_server}, 原因: {health_check_result['reason']}")
++                        logger.warning(f"连接快速探针失败，不复用并清理: {target_server}, 原因: {probe.get('reason')}")
+                         await self._cleanup_connection(target_server)
+                 
+-                # 2. 获取服务器配置
++                # 1. 获取服务器配置
+                 server_config = self.server_configs.get(target_server)
+                 if not server_config:
+                     raise ValueError(f"未找到服务器配置: {target_server}")
+                 
+-                # 3. 智能故障恢复：使用MCPServerManager协调接口
++                # 2. 智能故障恢复：使用MCPServerManager协调接口
+                 recovery_result = await self._intelligent_server_recovery(target_server, attempt)
+                 if not recovery_result["success"]:
+                     error_msg = f"无法启动MCP服务器 {target_server}: {recovery_result['message']}"
+@@ -402,55 +488,65 @@ class MCPClientWrapper:
+                     else:
+                         raise RuntimeError(error_msg)
+                 
+-                # 4. 检查是否已经返回了可用的客户端连接
++                # 3. 检查是否已经返回了可用的客户端连接
+                 if recovery_result.get("client"):
+                     client = recovery_result["client"]
+                     logger.info(f"使用智能恢复返回的客户端连接: {target_server}")
+-                    
+-                    # 连接验证和加入连接池
+-                    if await self._validate_new_connection(target_server, client):
+-                        self._connection_pool[target_server] = client
+-                        logger.info(f"成功使用恢复的连接并加入连接池: {target_server} (尝试 {attempt + 1}/{max_retries})")
+-                        return client
++                    # 记录创建时间用于后续健康评估
++                    if hasattr(client, '__dict__'):
++                        client._created_at = time.time()
++                    # 缓存连接供后续复用
++                    self._connection_pool[target_server] = client
++                    return client
++
++                # 4. 未直接返回客户端时，创建新连接 -> 预热
++                try:
++                    client = await self._create_client_connection_with_warmup(target_server, attempt)
++                except Exception as e:
++                    last_exception = e
++                    logger.warning(f"创建/预热新连接失败: {target_server}, 错误: {e}")
++                    # 根据重试策略决定是否重试
++                    if attempt < max_retries - 1:
++                        delay = self._calculate_retry_delay(attempt, base_delay, max_delay, backoff_factor, jitter_factor)
++                        logger.debug(f"将在 {delay:.2f}s 后重试创建连接: {target_server}")
++                        await asyncio.sleep(delay)
++                        continue
+                     else:
+-                        logger.warning(f"恢复的连接验证失败: {target_server}，尝试创建新连接")
+-                        # 继续尝试创建新连接
+-                
+-                # 5. 创建客户端连接（带连接预热）
+-                client = await self._create_client_connection_with_warmup(target_server, attempt)
+-                
+-                # 6. 连接验证和加入连接池
+-                if await self._validate_new_connection(target_server, client):
++                        raise
++
++                # 5. 验证新连接
++                is_valid = True
++                try:
++                    is_valid = await self._validate_new_connection(target_server, client)
++                except Exception as e:
++                    last_exception = e
++                    logger.warning(f"新连接验证异常: {target_server}, 错误: {e}")
++                    is_valid = False
++
++                if is_valid:
+                     self._connection_pool[target_server] = client
+-                    logger.info(f"成功连接到MCP服务器并加入连接池: {target_server} (尝试 {attempt + 1}/{max_retries})")
++                    logger.info(f"新连接建立并缓存成功: {target_server}")
+                     return client
+                 else:
+-                    logger.warning(f"新连接验证失败: {target_server}")
+-                    await self._cleanup_connection(target_server)
+-                    raise RuntimeError(f"连接验证失败: {target_server}")
+-                
+-            except ValueError:
+-                # 配置错误不重试
+-                raise
++                    # 关闭临时client
++                    try:
++                        if hasattr(client, 'close'):
++                            await client.close()
++                    except Exception:
++                        pass
++                    # 按重试策略重试或抛出
++                    if attempt < max_retries - 1:
++                        delay = self._calculate_retry_delay(attempt, base_delay, max_delay, backoff_factor, jitter_factor)
++                        logger.warning(f"新连接验证失败，将在 {delay:.2f}s 后重试: {target_server}")
++                        await asyncio.sleep(delay)
++                        continue
++                    else:
++                        raise RuntimeError(f"新连接验证失败: {target_server}")
+             except Exception as e:
+-                last_exception = e
+-                error_type = MCPErrorClassifier.classify_error(str(e), type(e))
+-                
+-                if not self._should_retry_for_error(error_type, attempt, max_retries):
+-                    logger.error(f"连接到MCP服务器 '{target_server}' 失败，错误类型不可重试: {error_type}")
+-                    raise RuntimeError(f"连接到MCP服务器 '{target_server}' 失败: {e}")
+-                
+-                if attempt < max_retries - 1:
+-                    delay = self._calculate_retry_delay(attempt, base_delay, max_delay, backoff_factor, jitter_factor)
+-                    logger.warning(f"连接到MCP服务器 '{target_server}' 失败 (尝试 {attempt + 1}/{max_retries}): {e}，{delay:.2f} 秒后重试...")
+-                    await asyncio.sleep(delay)
+-                else:
+-                    logger.error(f"连接到MCP服务器 '{target_server}' 最终失败: {e}")
+-                    raise RuntimeError(f"连接到MCP服务器 '{target_server}' 失败: {e}")
+-        
+-        # 理论上不会到达这里
+-        raise RuntimeError(f"连接到MCP服务器 '{target_server}' 失败: 超出最大重试次数，最后错误: {last_exception}")
++                logger.warning(f"创建客户端连接失败 {target_server} (尝试 {attempt + 1}): {e}")
++                raise
+     
++
+     async def _find_existing_process(self, target_server: str, server_config: dict) -> Optional[int]:
+         """
+         查找现有的MCP进程
+@@ -590,27 +686,6 @@ class MCPClientWrapper:
+             logger.warning(f"创建客户端连接失败 {target_server} (尝试 {attempt + 1}): {e}")
+             raise
+     
+-    async def _cleanup_connection(self, target_server: str):
+-        """
+-        清理失效的连接（辅助方法）
+-        
+-        Args:
+-            target_server: 服务器名称
+-        """
+-        try:
+-            if target_server in self._connection_pool:
+-                old_client = self._connection_pool[target_server]
+-                # 尝试优雅关闭连接
+-                if hasattr(old_client, 'close'):
+-                    try:
+-                        await old_client.close()
+-                    except Exception:
+-                        pass  # 忽略关闭时的错误
+-                del self._connection_pool[target_server]
+-                logger.debug(f"已清理失效连接: {target_server}")
+-        except Exception as e:
+-            logger.warning(f"清理连接时出错 {target_server}: {e}")
+-    
+     async def _enhanced_connection_health_check(self, target_server: str, client) -> dict:
+         """
+         增强连接健康检查（任务7）

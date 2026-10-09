@@ -1,0 +1,45 @@
+{
+  "run_type": "client",
+  "local_addr": "127.0.0.1",
+  "local_port": 1080,
+  "// 远程服务器配置": "============================",
+  "remote_addr": "example.com",
+  "remote_port": 443,
+  "password": [
+    "REDACTED"
+  ],
+  "// SSL/TLS 配置": "============================",
+  "ssl": {
+    "sni": "example.com",
+    "verify": true,
+    "verify_hostname": true,
+    "fingerprint": ""
+  },
+  "// 多路复用配置": "============================",
+  "mux": {
+    "enabled": true,
+    "concurrency": 8,
+    "idle_timeout": 60
+  },
+  "// 路由规则配置": "============================",
+  "router": {
+    "enabled": true,
+    "bypass": [
+      "geoip:cn",
+      "geoip:private",
+      "geosite:cn",
+      "geosite:private"
+    ],
+    "block": [
+      "geosite:category-ads"
+    ],
+    "proxy": [
+      "geosite:geolocation-!cn"
+    ],
+    "default_policy": "proxy",
+    "geoip": "/home/devbox/project/proxy/geoip.dat",
+    "geosite": "/home/devbox/project/proxy/geosite.dat"
+  },
+  "// 日志级别": "0=All, 1=Info, 2=Warn, 3=Error, 4=Fatal",
+  "log_level": 1
+}

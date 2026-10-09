@@ -20,9 +20,51 @@ from app.models.tool import Tool
 from app.utils.openai_client import get_openai_client
 from app.config import settings  # 导入 settings 以获取模型名称等
 
+# 尝试导入web3用于EVM地址转换
+try:
+    from web3 import Web3
+    WEB3_AVAILABLE = True
+except ImportError:
+    WEB3_AVAILABLE = False
+    logger.warning("web3库未安装，EVM地址转换将被跳过")
+
 
 class ExecuteService:
     """处理工具执行请求的服务"""
+
+    def _preprocess_evm_addresses(self, tool_id: str, params: Dict[str, Any]) -> Dict[str, Any]:
+        """预处理EVM地址参数，转换为checksum格式
+
+        Args:
+            tool_id: 工具ID
+            params: 原始参数
+
+        Returns:
+            处理后的参数
+        """
+        # 只处理EVM相关工具
+        if not tool_id.lower().startswith(('getevm', 'evm', 'eth', 'bsc', 'polygon')):
+            return params
+
+        if not WEB3_AVAILABLE:
+            logger.warning(f"web3库不可用，跳过EVM地址转换: tool_id={tool_id}")
+            return params
+
+        # 复制参数以避免修改原始数据
+        processed_params = params.copy()
+
+        # 检查并转换address参数
+        if 'address' in processed_params and isinstance(processed_params['address'], str):
+            original_address = processed_params['address']
+            try:
+                # 转换为checksum格式
+                checksum_address = Web3.to_checksum_address(original_address)
+                processed_params['address'] = checksum_address
+                logger.info(f"EVM地址已转换为checksum格式: {original_address} -> {checksum_address}")
+            except Exception as e:
+                logger.warning(f"EVM地址转换失败: {original_address}, 错误: {str(e)}")
+
+        return processed_params
 
     def _abbrev_addresses(self, text: str) -> str:
         import re
@@ -263,6 +305,9 @@ class ExecuteService:
         """
         logger.info(f"服务层：开始执行工具: tool_id={tool_id}, session_id={session_id}")
         session: Optional[Session] = None
+
+        # 🔧 预处理：EVM地址转换为checksum格式
+        params = self._preprocess_evm_addresses(tool_id, params)
 
         # 可以在这里添加数据库日志记录：记录执行尝试
         if session_id:

@@ -1,0 +1,39 @@
+{
+  "run_type": "client",
+  "local_addr": "127.0.0.1",
+  "local_port": 1080,
+  "remote_addr": "your_server_ip_or_domain",
+  "remote_port": 443,
+  "password": [
+    "REDACTED"
+  ],
+  "ssl": {
+    "sni": "your-domain-name.com",
+    "verify": true,
+    "verify_hostname": true
+  },
+  "mux": {
+    "enabled": true,
+    "concurrency": 8,
+    "idle_timeout": 60
+  },
+  "router": {
+    "enabled": true,
+    "bypass": [
+      "geoip:cn",
+      "geoip:private",
+      "geosite:cn",
+      "geosite:private"
+    ],
+    "block": [
+      "geosite:category-ads"
+    ],
+    "proxy": [
+      "geosite:geolocation-!cn"
+    ],
+    "default_policy": "proxy",
+    "geoip": "/home/devbox/project/proxy/geoip.dat",
+    "geosite": "/home/devbox/project/proxy/geosite.dat"
+  },
+  "log_level": 1
+}
