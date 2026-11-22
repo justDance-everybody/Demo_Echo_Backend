@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Echo</title>
+<link rel="icon" href="data:,">
+<style>
+  :root { --fg:#f2f2f2; --bg:#16161f; --dim:#8a8a99; --accent:#4fd1c5; --err:#f56565; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.5 system-ui, sans-serif; background:var(--bg); color:var(--fg);
+         display:flex; flex-direction:column; height:100vh; }
+  #log { flex:1; overflow-y:auto; padding:16px; }
+  .msg { margin:6px 0; max-width:85%; padding:8px 12px; border-radius:12px; }
+  .user { margin-left:auto; background:#2b2b3a; }
+  .assistant { background:#1f3a38; }
+  .sys { color:var(--dim); font-size:13px; }
+  .err { color:var(--err); font-size:13px; }
+  footer { padding:16px; display:flex; gap:8px; align-items:center; border-top:1px solid #2b2b3a; }
+  #talk { width:64px; height:64px; border-radius:50%; border:none; background:var(--accent);
+          color:#000; font-size:14px; cursor:pointer; flex:none; }
+  #talk.on { background:var(--err); color:#fff; }
+  #text { flex:1; padding:10px; border-radius:8px; border:1px solid #333; background:#1e1e2a; color:var(--fg); }
+  #status { font-size:12px; color:var(--dim); padding:0 16px 8px; }
+</style>
+</head>
+<body>
+<div id="log"></div>
+<div id="status">未连接</div>
+<footer>
+  <button id="talk">开始</button>
+  <input id="text" placeholder="也可以打字，回车发送">
+</footer>
+<script>
+const $ = (id) => document.getElementById(id);
+const token = new URLSearchParams(location.search).get("token") || "";
+let ws, ctx, micNode, micStream, inRate = 16000, outRate = 24000, playAt = 0, sources = [];
+let partial = null, workletLoaded = false;
+
+function line(cls, text) {
+  const d = document.createElement("div"); d.className = "msg " + cls; d.textContent = text;
+  $("log").appendChild(d); $("log").scrollTop = 1e9; return d;
+}
+
+// 麦克风采集：AudioWorklet 把 Float32 降采样成 PCM16
+const workletSrc = `
+class Mic extends AudioWorkletProcessor {
+  constructor(o) { super(); this.ratio = sampleRate / o.processorOptions.rate; this.buf = []; this.pos = 0; }
+  process(inputs) {
+    const ch = inputs[0][0]; if (!ch) return true;
+    for (; this.pos < ch.length; this.pos += this.ratio) {
+      const s = Math.max(-1, Math.min(1, ch[Math.floor(this.pos)]));
+      this.buf.push(s < 0 ? s * 0x8000 : s * 0x7fff);
+    }
+    this.pos -= ch.length;
+    if (this.buf.length >= 1600) { this.port.postMessage(Int16Array.from(this.buf).buffer); this.buf = []; }
+    return true;
+  }
+}
+registerProcessor("mic", Mic);`;
+
+function stopPlayback() { sources.forEach(s => { try { s.stop(); } catch {} }); sources = []; playAt = 0; }
+
+function play(buf) {
+  const pcm = new Int16Array(buf), f = new Float32Array(pcm.length);
+  for (let i = 0; i < pcm.length; i++) f[i] = pcm[i] / 0x8000;
+  const ab = ctx.createBuffer(1, f.length, outRate); ab.copyToChannel(f, 0);
+  const src = ctx.createBufferSource(); src.buffer = ab; src.connect(ctx.destination);
+  playAt = Math.max(playAt, ctx.currentTime + 0.03); src.start(playAt); playAt += ab.duration;
+  sources.push(src); src.onended = () => { sources = sources.filter(s => s !== src); };
+}
+
+function connect() {
+  return new Promise((resolve, reject) => {
+    const proto = location.protocol === "https:" ? "wss" : "ws";
+    ws = new WebSocket(`${proto}://${location.host}/ws?token=${encodeURIComponent(token)}`);
+    ws.binaryType = "arraybuffer";
+    ws.onclose = (e) => { $("status").textContent = "已断开" + (e.code === 4401 ? "（令牌不对）" : ""); stopMic(); };
+    ws.onmessage = (e) => {
+      if (typeof e.data !== "string") { play(e.data); return; }
+      const m = JSON.parse(e.data);
+      if (m.type === "ready") { inRate = m.input_rate; outRate = m.output_rate; $("status").textContent = "已连接"; resolve(); }
+      else if (m.type === "speech_started") stopPlayback();
+      else if (m.type === "transcript") {
+        if (m.role === "user") line("user", m.text);
+        else if (!m.final) { partial = partial || line("assistant", ""); partial.textContent += m.text; }
+        else { (partial || line("assistant", "")).textContent = m.text; partial = null; }
+      }
+      else if (m.type === "tool") line("sys", `工具 ${m.tool}：${m.status}${m.ms ? "，" + m.ms + "ms" : ""}`);
+      else if (m.type === "latency") $("status").textContent = `首字延迟 ${m.first_audio_ms} ms`;
+      else if (m.type === "error") { line("err", m.message); reject(new Error(m.message)); }
+    };
+  });
+}
+
+async function ensure() {
+  if (!ctx) ctx = new AudioContext();
+  await ctx.resume();
+  if (!ws || ws.readyState > 1) await connect();
+}
+
+async function startMic() {
+  await ensure();
+  micStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+  if (!workletLoaded) {
+    await ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([workletSrc], { type: "text/javascript" })));
+    workletLoaded = true;
+  }
+  micNode = new AudioWorkletNode(ctx, "mic", { processorOptions: { rate: inRate } });
+  micNode.port.onmessage = (e) => { if (ws.readyState === 1) ws.send(e.data); };
+  ctx.createMediaStreamSource(micStream).connect(micNode);
+  $("talk").classList.add("on"); $("talk").textContent = "停止";
+}
+
+function stopMic() {
+  if (micStream) micStream.getTracks().forEach(t => t.stop());
+  if (micNode) micNode.disconnect();
+  micStream = micNode = null; $("talk").classList.remove("on"); $("talk").textContent = "开始";
+}
+
+$("talk").onclick = () => (micStream ? stopMic() : startMic().catch(e => line("err", e.message)));
+$("text").onkeydown = async (e) => {
+  if (e.key !== "Enter" || !e.target.value.trim()) return;
+  const text = e.target.value; e.target.value = "";
+  try { await ensure(); stopPlayback(); line("user", text); ws.send(JSON.stringify({ type: "text", text })); }
+  catch (err) { line("err", err.message); }
+};
+</script>
+</body>
+</html>

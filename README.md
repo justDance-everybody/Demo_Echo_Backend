@@ -1,308 +1,116 @@
-# Echo 智能语音 AI-Agent 开放平台
+# Echo：一句话语音 Agent
 
-## 项目简介
-Echo是一个基于Python(FastAPI)后端和React前端的智能语音AI-Agent开放平台，支持语音全流程交互、意图识别、工具调用等功能。系统可集成MCP服务和各类HTTP API，实现丰富的技能服务。
+用户说一句话，Echo 听懂、调用工具办事、用语音回答。写操作（记录、下单、转账这类）会先复述并等用户口头确认，确认由服务端强制执行。
 
-## 主要特性
-- **语音全流程交互**：支持语音输入、意图识别、语音合成输出
-- **多种工具集成**：
-  - MCP服务集成（支持区块链、Web3等复杂场景）
-  - HTTP工具支持（Dify平台、Coze平台、通用HTTP API）
-- **意图识别与确认**：使用大语言模型(LLM)解析用户意图并生成确认提示
-- **安全认证**：JWT身份验证与权限管理
-- **多轮对话管理**：会话状态跟踪与上下文保持
-- **日志与监控**：详细操作记录，便于审计与排查
+这是 v2（2026-11），整体重写。v1 是 2025 年 4 月到 9 月做的原型，完整代码和提交历史保留在 tag [`v1.0-2025`](../../tree/v1.0-2025)。
 
-## 技术栈
-- **后端**：Python 3.9+, FastAPI, SQLAlchemy, Alembic, Pydantic
-- **前端**：React, Material UI, Web Speech API
-- **数据库**：MySQL
-- **AI服务**：兼容OpenAI API的LLM服务
-- **认证**：JWT
-- **部署**：Uvicorn, PM2
+## 设计目标
 
-## 项目结构
+沿用 2025 年 PRD 的目标，指标按今天的做法改了口径：
+
+| 目标 | v2 的做法 | 口径 |
+|---|---|---|
+| 一句话办成一件事 | 实时语音模型直接听、直接调工具、直接说 | 端到端成功率，用 `eval/` 测 |
+| 快 | 语音进、语音出走一个模型，结果不再额外调一次 LLM 做摘要 | **首字延迟**：用户说完到听到第一个字，每轮自动记录 |
+| 安全地做写操作 | 只读工具直接执行，写操作服务端强制确认 | 写操作未经用户开口确认的执行次数 = 0 |
+| 第三方接入简单 | 接一个远程 MCP 服务 = 在 `tools.yaml` 里加几行 | 接入耗时 |
+
+## 架构
+
 ```
-project/
-├── backend/               # 后端服务
-│   ├── alembic/           # 数据库迁移
-│   ├── app/               # 应用主目录
-│   │   ├── clients/       # 第三方客户端封装
-│   │   ├── controllers/   # 控制器
-│   │   ├── models/        # 数据库模型
-│   │   ├── routers/       # API路由
-│   │   ├── schemas/       # 数据验证模型
-│   │   ├── services/      # 业务逻辑
-│   │   ├── utils/         # 工具函数
-│   │   ├── config.py      # 配置管理
-│   │   └── main.py        # 应用入口
-│   ├── logs/              # 日志文件
-│   ├── scripts/           # 辅助脚本
-│   ├── tests/             # 测试代码
-│   ├── .env.example       # 环境变量示例
-│   └── requirements.txt   # 依赖包列表
-├── frontend/              # 前端项目
-│   ├── public/            # 静态资源
-│   ├── src/               # 源代码
-│   │   ├── components/    # UI组件
-│   │   ├── contexts/      # React上下文
-│   │   ├── hooks/         # 自定义钩子
-│   │   ├── pages/         # 页面组件
-│   │   ├── services/      # API服务
-│   │   ├── styles/        # 样式文件
-│   │   └── utils/         # 工具函数
-│   └── package.json       # 依赖配置
-├── MCP_Client/            # MCP客户端（Python）
-│   ├── config/            # MCP配置
-│   └── src/               # MCP客户端源码
-├── docs/                  # 项目文档
-├── logs/                  # 项目日志
-└── .env.example           # 环境变量示例
+浏览器（麦克风 / 扬声器）
+   │  WebSocket：PCM 音频 + 少量 JSON
+   ▼
+Echo 服务（本仓库，约 1000 行 Python）
+   ├─ 会话中继：音频双向转发、记录首字延迟和日志
+   ├─ 工具执行 + 确认闸
+   └─ 工具白名单 tools.yaml ── 内置工具 / 远程 MCP（HTTP）
+   │  WebSocket（Realtime 协议）
+   ▼
+实时语音模型（默认 Qwen-Omni-Realtime，可切 OpenAI Realtime）
 ```
 
-## 安装与配置
+**为什么让服务端中继，而不是浏览器直连模型。** 模型密钥和工具执行都留在服务端，前端只是一根音频管子，绕不过确认。多一跳带来的延迟一般在几十毫秒，跟模型本身的延迟比可以忽略。中继也让我们能换国内或国外的模型，不用改前端。
 
-### 依赖环境
-- Python 3.9+
-- Node.js 16+
-- MySQL 5.7+
-- (推荐)虚拟环境管理工具：venv, uv等
+## 和 v1 比，删掉了什么
 
-### 后端安装与配置
-1. 克隆仓库并进入后端目录
-```bash
-git clone <repo_url>
-cd project/backend
+| v1 | v2 | 为什么 |
+|---|---|---|
+| 浏览器 STT → LLM 选工具 → LLM 生成确认语 → LLM 判断“是/否” → 执行 → LLM 摘要 → 浏览器 TTS，一轮最多 4 次串行 LLM 调用 | 一个实时语音模型 | 延迟和代码量都主要耗在这条链上 |
+| 每次请求都复述确认 | 只读的直接做，只有写操作才确认 | 查天气不该多问一句“您确认吗” |
+| 前端能直接调 `/execute` 执行任意工具 | 前端没有执行接口；确认后执行的是登记时的参数 | v1 的确认在服务端可以被绕过 |
+| 自己拉起、监控、清理 MCP 子进程（3000+ 行） | 只接远程 MCP（Streamable HTTP），不托管任何进程 | 托管陌生代码既不安全也不稳定 |
+| 每次把全部工具塞给模型，prompt 里写死工具名 | `tools.yaml` 白名单，上限 40 个 | 最简单的发现机制，见下文 |
+| MySQL + Alembic + JWT 账号体系 + 开发者门户 | 访问令牌 + 本地 JSONL 日志 | MVP 先不做多租户 |
+| 自建 `mcp` 同名包 | 官方 `mcp` SDK | |
+
+## 工具发现：一个白名单文件
+
+`tools.yaml` 就是全部的发现机制：里面列出的工具，每次会话开始时全部交给模型，没列的模型看不到。
+
+```yaml
+builtin:
+  get_weather: {}
+  save_memo:
+    confirm: true                       # 写操作：服务端强制确认
+    summary: "要帮你记下这条备忘：{text}。确认吗？"
+
+mcp_servers:
+  - name: amap                          # 高德官方远程 MCP
+    url: https://mcp.amap.com/mcp?key=${AMAP_KEY}
+    prefix: amap_
+    allow: [maps_weather, maps_text_search]   # 必须逐个放行
 ```
 
-2. 创建并激活虚拟环境
-```bash
-python -m venv venv
-source venv/bin/activate  # Linux/macOS
-# 或
-venv\Scripts\activate  # Windows
-```
+当前的实时语音模型在几十个工具以内选得准，所以先不做检索。超过 40 个时服务拒绝启动，到那时再加一层“先检索再选择”。
 
-3. 安装依赖
-```bash
-pip install -r requirements.txt
-```
+**当前阶段只开放我们自己验证过的工具**：内置工具，加上 `tools.yaml` 里人工审过的远程 MCP 服务。第三方开发者自助接入（提交 MCP 服务、审核、沙箱）放到后续版本。
 
-4. 配置环境变量
-```bash
-cp .env.example .env
-# 编辑.env文件，设置数据库连接、API密钥等
-```
+## 确认闸怎么工作
 
-5. 配置环境变量
-```bash
-# 编辑.env文件，设置必要的配置项
-vim .env
-```
+1. 模型调用一个 `confirm: true` 的工具。服务端**不执行**，只登记一条待确认动作，把 `summary` 返回给模型。
+2. 模型把 summary 念给用户，然后等用户回答。
+3. 用户同意，模型调用 `confirm_action(action_id)`，服务端执行**登记时的参数**。
+4. 服务端只在“登记之后用户又说过话”时接受确认，所以模型不能自问自答。待确认动作 120 秒过期。
 
-主要配置项包括：数据库连接、LLM API密钥、JWT密钥等。详细配置说明请参考：[后端开发文档](docs/后端开发文档.md)
-
-6. 数据库迁移
-```bash
-cd backend
-alembic upgrade head
-```
-
-### 前端安装与配置
-1. 进入前端目录
-```bash
-cd project/frontend
-```
-
-2. 安装依赖
-```bash
-npm install
-```
-
-3. 配置环境变量
-```bash
-cp .env.example .env
-# 编辑.env文件，设置API路径等
-```
-
-### MCP_Client 配置
-1. 进入MCP_Client目录
-```bash
-cd project/MCP_Client
-```
-
-2. 创建并激活虚拟环境
-```bash
-python -m venv .venv
-source .venv/bin/activate  # Linux/macOS
-# 或
-.venv\Scripts\activate  # Windows
-```
-
-3. 安装依赖
-```bash
-pip install openai python-dotenv
-pip install git+https://github.com/modelcontextprotocol/python-sdk.git
-```
-
-## 启动服务
-
-### 启动后端服务
-```bash
-cd backend
-# 开发模式（自动重载）
-uvicorn app.main:app --reload --host 0.0.0.0 --port 3000
-
-# 生产模式
-uvicorn app.main:app --host 0.0.0.0 --port 3000
-```
-
-### 使用PM2启动（生产环境推荐）
-```bash
-# 安装PM2 (需要Node.js)
-npm install -g pm2
-
-# 使用项目根目录的启动脚本
-cd project
-pm2 start ecosystem.config.js
-# 或使用start-pm2.sh脚本
-./start-pm2.sh
-```
-
-### 启动前端服务
+## 运行
 
 ```bash
-# 开发模式（Mock数据，无需后端）
-./start-frontend.sh start dev
-
-# 生产模式（自动检测后端进程）
-./start-frontend.sh start prod
-
-# 查看状态和日志
-./start-frontend.sh status
-./start-frontend.sh logs
-
-# 停止服务
-./start-frontend.sh stop
-
-# 查看帮助
-./start-frontend.sh help
+uv sync
+cp .env.example .env        # 填模型地址和密钥
+set -a; . ./.env; set +a
+uv run echo-server          # 打开 http://127.0.0.1:8000
 ```
 
-**核心特性：** 智能后端检测、自动端口分配、多模式启动、实时监控
+公网部署时必须设置 `ECHO_ACCESS_TOKEN`，用 `https://域名/?token=...` 打开页面。没设令牌时服务只接受本机连接。浏览器要在 HTTPS 下才能用麦克风（localhost 除外）。
 
-### 直接启动MCP_Client（可选）
+## 测试
+
 ```bash
-cd MCP_Client
-# 启动并连接到指定MCP服务器
-python src/mcp/client/main.py <path_to_server_script>
+uv run pytest               # 不需要模型密钥；用 tests/fake_realtime.py 按协议模拟模型
+uv run python eval/run.py   # 需要真模型：意图选择准确率 + 首字延迟
 ```
 
-## 核心API接口
+`pytest` 测的是协议、确认闸、工具和整条中继链路。真模型听不听得懂、快不快，只能用 `eval/` 对着真模型测。
 
-系统提供完整的RESTful API接口，支持意图解析、工具执行、用户认证等功能。
+## 当前状态（v2.0.0）
 
-- **API基础路径**: `http://localhost:3000/api/v1`
-- **API文档**: `http://localhost:3000/docs` (Swagger UI)
-- **认证方式**: JWT Bearer Token
+已验证（`pytest` + 浏览器冒烟）：中继链路、确认闸（包括模型自问自答被拦下）、令牌、内置工具、远程 MCP 白名单加载与调用、网页客户端的打字和麦克风两条路径。
 
-详细的API接口说明请参考：[前后端对接与API规范](docs/前后端对接与API规范.md)
+还没对真模型跑过：`realtime.py` 按 Qwen-Omni-Realtime 和 OpenAI Realtime 的官方文档实现，测试用的是按协议写的假模型。接上真密钥后先跑 `eval/run.py`，如果某个字段不被接受，只需要改 `Dialect.session_update` 一处。
 
-## 支持的工具类型
+## 目录
 
-系统支持两种主要类型的工具：
-
-### 1. MCP工具
-MCP (Model Context Protocol) 工具是基于自定义协议的脚本工具，能够执行区块链相关操作和其他复杂任务。
-
-- 要求配置 `server_name` 字段，指向对应的MCP服务器
-- 支持完整的参数传递和结果解析
-- 集成了多种MCP服务器，如Playwright、MiniMax API、地图API和Web3区块链API
-
-### 2. HTTP工具
-HTTP工具允许系统调用外部HTTP API来执行操作。目前支持以下平台类型：
-
-#### a. Dify
-- 调用Dify平台上的AI应用
-- 支持conversation_id管理
-- 响应通过LLM总结，生成适合语音播报的内容
-
-#### b. Coze
-- 调用Coze平台上的机器人
-- 要求在配置中提供bot_id
-- 响应同样经过LLM总结处理
-
-#### c. 通用HTTP
-- 支持配置和调用任意HTTP API
-- 支持GET, POST, PUT, PATCH, DELETE等多种HTTP方法
-- 灵活配置头信息、认证方式（Bearer、ApiKey、Basic）
-- 支持响应结果路径提取（使用result_path字段）
-- 支持URL参数格式化和有效载荷配置
-- 对响应结果进行LLM总结处理，生成简洁易懂的语音反馈
-
-## 统一API架构
-
-本项目采用了统一的API架构，提高了代码可维护性和一致性：
-
-1. **统一API入口**
-   - 所有API请求通过统一的路由处理
-   - 标准化的请求/响应格式
-   - 版本化API设计 (如 `/api/v1/...`)
-
-2. **标准响应格式**
-   ```json
-   {
-     "status": "success|error|waiting",
-     "data": { /* 响应数据 */ },
-     "message": "操作结果描述",
-     "timestamp": "2023-04-19T12:34:56.789Z"
-   }
-   ```
-
-## 开发指南
-
-详细的开发指南请参考：
-- [后端开发文档](docs/后端开发文档.md) - 后端开发者专用
-- [前后端对接与API规范](docs/前后端对接与API规范.md) - 前端开发者必读
-- [前端开发文档](docs/前端开发文档.md) - 前端开发指南
-
-## 测试与调试
-
-### 运行测试
-```bash
-cd backend
-pytest
 ```
-
-### API调试
-- Swagger UI: http://localhost:3000/docs
-- ReDoc: http://localhost:3000/redoc
-
-## 贡献指南
-- Fork本仓库
-- 创建特性分支 (`git checkout -b feature/amazing-feature`)
-- 提交更改 (`git commit -m 'Add some amazing feature'`)
-- 推送分支 (`git push origin feature/amazing-feature`)
-- 创建Pull Request
-
-## 更新日志
-
-### 2025-05-14
-- 实现通用HTTP API工具支持，包括多种HTTP方法、认证方式和结果处理
-- 完善Dify和Coze平台工具的LLM结果总结功能
-- 添加单元测试覆盖工具执行服务
-
-### 2025-04-30
-- 实现意图识别和工具执行的核心功能
-- 完成MCP客户端集成，支持多种操作
-- 添加基础认证系统
-
-## 文档导航
-
-- [前后端对接与API规范](docs/前后端对接与API规范.md) - API接口详细说明和调用示例
-- [后端开发文档](docs/后端开发文档.md) - 后端架构、服务和开发指南
-- [前端开发文档](docs/前端开发文档.md) - 前端组件和开发规范
-
----
-
-> 文档更新时间：2025-05-14
+echo_agent/
+  server.py      HTTP / WebSocket 入口、访问令牌
+  session.py     一次语音会话：中继、工具调度、首字延迟、日志
+  realtime.py    实时语音模型协议适配（qwen / openai）
+  confirm.py     工具执行 + 确认闸
+  tools.py       tools.yaml 白名单加载
+  mcp_remote.py  远程 MCP 客户端（官方 SDK）
+  builtin.py     内置工具：时间、计算、天气（Open-Meteo，免密钥）、备忘
+web/index.html   单文件网页客户端（麦克风采集、播放、打断、打字输入）
+eval/            对真模型的意图与延迟评测
+tests/           不依赖模型的自动化测试
+```

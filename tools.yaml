@@ -1,0 +1,20 @@
+# Echo 的工具白名单。这里列出的工具，就是模型在每次会话里能用的全部工具。
+# confirm: true 的工具是写操作，执行前服务端会强制要求用户口头确认。
+
+builtin:
+  get_time: {}
+  calculate: {}
+  get_weather: {}
+  list_memos: {}
+  save_memo:
+    confirm: true
+    summary: "要帮你记下这条备忘：{text}。确认吗？"
+
+# 远程 MCP 服务（Streamable HTTP）。只接我们审过的服务，并逐个放行工具。
+# 不托管第三方进程；URL 和 headers 里可用 ${环境变量}。
+mcp_servers: []
+#  - name: amap                      # 高德官方远程 MCP，需要 AMAP_KEY
+#    url: https://mcp.amap.com/mcp?key=${AMAP_KEY}
+#    prefix: amap_
+#    allow: [maps_weather, maps_text_search, maps_direction_driving]
+#    confirm: []

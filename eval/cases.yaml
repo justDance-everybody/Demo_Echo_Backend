@@ -1,0 +1,33 @@
+# 意图评测集：一句话 → 期望模型调用的工具（null 表示应该直接回答，不调工具）。
+# args 只检查列出的字段，值做子串匹配。
+- text: 现在几点了
+  tool: get_time
+- text: 今天星期几
+  tool: get_time
+- text: 帮我算一下一百二十八乘以三十七
+  tool: calculate
+- text: 三千块钱打八五折是多少
+  tool: calculate
+- text: 武汉今天天气怎么样
+  tool: get_weather
+  args: {city: 武汉}
+- text: 明天北京会下雨吗
+  tool: get_weather
+  args: {city: 北京}
+- text: 上海这周末冷不冷
+  tool: get_weather
+  args: {city: 上海}
+- text: 帮我记一下明天下午三点开会
+  tool: save_memo
+  args: {text: 开会}
+- text: 记个备忘，周五前交电费
+  tool: save_memo
+  args: {text: 电费}
+- text: 我之前记了什么
+  tool: list_memos
+- text: 你好
+  tool: null
+- text: 讲个笑话
+  tool: null
+- text: 谢谢你
+  tool: null
