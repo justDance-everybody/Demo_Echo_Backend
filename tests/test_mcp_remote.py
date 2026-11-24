@@ -62,6 +62,17 @@ async def test_allowlist_and_call(mcp_url, monkeypatch):
     assert result in (5, {"result": 5})
 
 
+async def test_confirm_and_summary_fields(mcp_url):
+    """tools.yaml 里的 confirm / summaries 会落到工具上，由确认闸接管。"""
+    tools = await load_mcp_tools(
+        {"name": "demo", "url": mcp_url, "allow": ["add"], "confirm": ["add"],
+         "summaries": {"add": "要算 {a} 加 {b}，确认吗？"}},
+        _expand_env,
+    )
+    assert tools[0].confirm is True
+    assert tools[0].confirm_summary({"a": 2, "b": 3}) == "要算 2 加 3，确认吗？"
+
+
 async def test_allow_list_required(mcp_url):
     with pytest.raises(ValueError, match="allow"):
         await load_mcp_tools({"name": "demo", "url": mcp_url}, _expand_env)

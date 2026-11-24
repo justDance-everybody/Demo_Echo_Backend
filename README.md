@@ -1,154 +1,109 @@
-# Echo：一句话语音 Agent
+# Echo
 
-用户说一句话，Echo 听懂、调用工具办事、用语音回答。写操作（记录、下单、转账这类）会先复述并等用户口头确认，确认由服务端强制执行。
+**让声音成为真实软件的执行界面。**
 
-这是 v2（2026-11），整体重写。v1 是 2025 年 4 月到 9 月做的原型，完整代码和提交历史保留在 tag [`v1.0-2025`](../../tree/v1.0-2025)。
+![Voice-Native Action](https://img.shields.io/badge/Paradigm-Voice--Native%20Action-0F766E?style=flat-square)
+![Realtime](https://img.shields.io/badge/Realtime-Qwen--Omni%20%7C%20OpenAI-111827?style=flat-square)
+![MCP](https://img.shields.io/badge/Protocol-Streamable%20HTTP%20MCP-2563EB?style=flat-square)
+![Eval](https://img.shields.io/badge/Live%20Eval-39%2F39-16A34A?style=flat-square)
+![Core](https://img.shields.io/badge/Core-%3C1%2C000%20LOC%20Python-3776AB?style=flat-square)
 
-## 演示
+四十年来人靠 App 点击用软件；语音 AI 会聊天了，却没人敢给它写权限。Echo 是后 App 时代的语音原生执行系统：**概率交给大模型，边界交给确定性代码。**
 
-[![Echo 演示：查天气、记备忘并口头确认、中途打断](docs/media/echo-demo.gif)](docs/media/echo-demo.mp4?raw=true)
+[![Echo 实录：查询直出、写操作口头确认、随时打断](docs/media/echo-demo.gif)](docs/media/echo-demo.mp4?raw=true)
 
-上面是 2 倍速无声预览。**[下载 72 秒带声音的完整视频（mp4，3.9 MB）](docs/media/echo-demo.mp4?raw=true)**
+<sub>真 Chrome + `qwen3.8-omni-flash-realtime` 一镜到底实录，2 倍速无声预览。**[下载 72 秒带声音的完整视频](docs/media/echo-demo.mp4?raw=true)**</sub>
 
-真实录屏、一镜到底：真 Chrome、真模型（Qwen3.8-Omni-Flash-Realtime）、本仓库的服务端和网页原样运行，对话没有剪辑，说明框是后加的。用户一方的声音是合成语音，从虚拟麦克风输入。录了几条完整的，这是其中一条；其他几条遇到的问题如实写在下面的[当前状态](#当前状态v201)里。用 `demo/record.sh` 可以一条命令重录。
+- **开口即执行，随时打断。** 查询说完就执行、直接播报；播报中插话，约 1 s 停下转向新问题。任何 Streamable HTTP 远程 MCP 服务，几行配置就成为语音能力。
+- **口头即签名。** 写操作先在服务端冻结参数、由模型复述；用户再次开口后才按原参数执行，模型无法自问自答。
+- **2025 年启程，2026 年收敛到不到 1,000 行 Python。** 真模型实测：首字延迟中位数 1.51 s，任务办成 39/39，评测和录音中未经用户开口的写执行 0 次。
 
-视频里依次是：
+## 核心范式：概率智能 × 确定性授权
 
-1. 查天气：只读工具，直接执行，不多问。
-2. 记备忘：写操作，服务端先登记、锁定参数，模型复述后等用户开口。
-3. 用户说“好的，记吧”：服务端这时才执行，执行的是登记时的参数。
-4. Echo 讲到一半，用户插话问别的：约一秒内停下，转去回答新问题。
-
-右侧面板是服务端的执行记录：每次工具调用、参数、耗时、确认状态，以及每轮的首字延迟。
+| 交互方式 | 怎么操作 | 响应与打断 | 写操作的安全边界 | 接新服务 |
+|---|---|---|---|---|
+| **App / 图形界面** | 找入口、点菜单、填表单 | 人逐步点击 | 弹窗按钮确认 | 每个服务各做一套前端 |
+| **串联语音（识别 → LLM → 合成）** | 语音输入，多次串行模型调用 | 延迟逐级叠加，难以打断 | 靠提示词约束 | 胶水代码或本地托管进程 |
+| **前端直连实时语音模型** | 实时语音 | 秒级响应 | 工具执行跟着模型走，听错或幻觉就可能误操作 | 和单一模型接口绑定 |
+| **Echo** | **开口即执行，随时打断** | **首字中位 1.51 s，约 1 s 停播** | **服务端锁参 + 发言轮次校验，模型无法自问自答** | **在 `tools.yaml` 写几行接入远程 MCP** |
 
 ![图 1：(a) 系统结构 (b) 确认闸时序 (c) 实测首字延迟和任务完成率](docs/media/echo-figure.png)
 
-## 设计目标
+浏览器只传 PCM16 音频，不持有密钥、没有执行接口；写操作登记为参数快照，用户发言轮次增加且未超过 120 s 才执行（`echo_agent/confirm.py`）；能力边界由 `tools.yaml` 白名单声明，单会话最多 40 个工具。用户说的是同意还是拒绝由模型理解，边界见[工程笔记](docs/engineering-notes.md#确认闸的边界)。
 
-沿用 2025 年 PRD 的目标，指标按今天的做法改了口径：
+## 把 MCP 服务变成语音能力
 
-| 目标 | v2 的做法 | 口径 |
-|---|---|---|
-| 一句话办成一件事 | 实时语音模型直接听、直接调工具、直接说 | 端到端成功率，用 `eval/` 测 |
-| 快 | 语音进、语音出走一个模型，结果不再额外调一次 LLM 做摘要 | **首字延迟**：用户说完到听到第一个字，每轮自动记录 |
-| 安全地做写操作 | 只读工具直接执行，写操作服务端强制确认 | 写操作未经用户开口确认的执行次数 = 0 |
-| 第三方接入简单 | 接一个远程 MCP 服务 = 在 `tools.yaml` 里加几行 | 接入耗时 |
-
-## 架构
-
-```
-浏览器（麦克风 / 扬声器）
-   │  WebSocket：PCM 音频 + 少量 JSON
-   ▼
-Echo 服务（本仓库，约 1000 行 Python）
-   ├─ 会话中继：音频双向转发、记录首字延迟和日志
-   ├─ 工具执行 + 确认闸
-   └─ 工具白名单 tools.yaml ── 内置工具 / 远程 MCP（HTTP）
-   │  WebSocket（Realtime 协议）
-   ▼
-实时语音模型（默认 Qwen-Omni-Realtime，可切 OpenAI Realtime）
-```
-
-**为什么让服务端中继，而不是浏览器直连模型。** 模型密钥和工具执行都留在服务端，前端只是一根音频管子，绕不过确认。多一跳带来的延迟一般在几十毫秒，跟模型本身的延迟比可以忽略。中继也让我们能换国内或国外的模型，不用改前端。
-
-## 和 v1 比，删掉了什么
-
-| v1 | v2 | 为什么 |
-|---|---|---|
-| 浏览器 STT → LLM 选工具 → LLM 生成确认语 → LLM 判断“是/否” → 执行 → LLM 摘要 → 浏览器 TTS，一轮最多 4 次串行 LLM 调用 | 一个实时语音模型 | 延迟和代码量都主要耗在这条链上 |
-| 每次请求都复述确认 | 只读的直接做，只有写操作才确认 | 查天气不该多问一句“您确认吗” |
-| 前端能直接调 `/execute` 执行任意工具 | 前端没有执行接口；确认后执行的是登记时的参数 | v1 的确认在服务端可以被绕过 |
-| 自己拉起、监控、清理 MCP 子进程（3000+ 行） | 只接远程 MCP（Streamable HTTP），不托管任何进程 | 托管陌生代码既不安全也不稳定 |
-| 每次把全部工具塞给模型，prompt 里写死工具名 | `tools.yaml` 白名单，上限 40 个 | 最简单的发现机制，见下文 |
-| MySQL + Alembic + JWT 账号体系 + 开发者门户 | 访问令牌 + 本地 JSONL 日志 | MVP 先不做多租户 |
-| 自建 `mcp` 同名包 | 官方 `mcp` SDK | |
-
-## 工具发现：一个白名单文件
-
-`tools.yaml` 就是全部的发现机制：里面列出的工具，每次会话开始时全部交给模型，没列的模型看不到。
+内置 5 个免密钥工具（时间、计算、Open-Meteo 天气、备忘录）用来零依赖跑通全流程；真实业务在 `tools.yaml` 里接远程 MCP：
 
 ```yaml
-builtin:
-  get_weather: {}
-  save_memo:
-    confirm: true                       # 写操作：服务端强制确认
-    summary: "要帮你记下这条备忘：{text}。确认吗？"
-
 mcp_servers:
-  - name: amap                          # 高德官方远程 MCP
+  - name: amap                                  # 只读：高德官方远程 MCP
     url: https://mcp.amap.com/mcp?key=${AMAP_KEY}
     prefix: amap_
-    allow: [maps_weather, maps_text_search]   # 必须逐个放行
+    allow: [maps_weather, maps_text_search]
+  - name: calendar                              # 写操作示意配置，非内置服务
+    url: https://mcp.example.com/mcp
+    headers: {Authorization: "Bearer ${CALENDAR_TOKEN}"}
+    allow: [list_events, create_event]
+    confirm: [create_event]                     # 走服务端确认闸
+    summaries: {create_event: "要在 {start} 建一个日程：{title}。确认吗？"}
 ```
 
-当前的实时语音模型在几十个工具以内选得准，所以先不做检索。超过 40 个时服务拒绝启动，到那时再加一层“先检索再选择”。
-
-**当前阶段只开放我们自己验证过的工具**：内置工具，加上 `tools.yaml` 里人工审过的远程 MCP 服务。第三方开发者自助接入（提交 MCP 服务、审核、沙箱）放到后续版本。
-
-## 确认闸怎么工作
-
-1. 模型调用一个 `confirm: true` 的工具。服务端**不执行**，只登记一条待确认动作，把 `summary` 返回给模型。
-2. 模型把 summary 念给用户，然后等用户回答。
-3. 用户同意，模型调用 `confirm_action(action_id)`，服务端执行**登记时的参数**。
-4. 服务端只在“登记之后用户又说过话”时接受确认，所以模型不能自问自答。待确认动作 120 秒过期。
+`allow` 必须逐个放行；缺 `allow`、工具不存在、环境变量未设置或连不上时，该服务不加载、只记日志。不托管任何本地进程，每次调用新开连接，不保存 MCP 会话状态（`echo_agent/mcp_remote.py`）。
 
 ## 运行
 
 ```bash
 uv sync
-cp .env.example .env        # 填模型地址和密钥
+cp .env.example .env          # 填 ECHO_PROVIDER_URL 和 ECHO_PROVIDER_API_KEY
 set -a; . ./.env; set +a
-uv run echo-server          # 打开 http://127.0.0.1:8000
+uv run echo-server            # 打开 http://127.0.0.1:8000
 ```
 
-公网部署时必须设置 `ECHO_ACCESS_TOKEN`，用 `https://域名/?token=...` 打开页面。没设令牌时服务只接受本机连接。浏览器要在 HTTPS 下才能用麦克风（localhost 除外）。
+公网部署必须设置 `ECHO_ACCESS_TOKEN`，并走 HTTPS。验证：`uv run pytest`（无需密钥）、`uv run python eval/run.py`（真模型评测）、`./demo/record.sh`（重录演示）。
 
-## 测试
+## 实测与一线规律
 
-```bash
-uv run pytest               # 不需要模型密钥；用 tests/fake_realtime.py 按协议模拟模型
-uv run python eval/run.py   # 需要真模型：任务完成率、工具选择 + 首字延迟
-./demo/record.sh            # 需要真模型：重录演示视频（Linux + Xvfb + PulseAudio + Chrome）
+2026-11-24，`qwen3.8-omni-flash-realtime`，13 条用例 × 3 轮文字输入：任务办成 39/39，第一步选对工具 34/39，首字延迟中位数 1.51 s、p90 3.35 s。接真语音时得到的三条规律：
+
+1. 百炼 `semantic_vad` 会把“好的”当附和吞掉，确认卡死；Qwen3.8 改用 `semantic_vad_ec`。
+2. 打断后在途旧音频仍会续播；服务端在 `speech_started` 后丢弃音频，直到新一轮 `response_created`。
+3. 相对日期别让模型推算：天气工具固定返回 7 天并标星期几。
+
+评测明细、真语音记录和录屏方法见 [`docs/engineering-notes.md`](docs/engineering-notes.md)。
+
+## 下一步
+
+- **交易级授权**：在轮次校验之上加服务端同意判定、金额上限、收款方白名单，承接支付与链上转账。
+- **大规模工具路由**：突破 40 个工具的静态白名单，按意图动态召回，同时守住实时延迟。
+- **更多终端**：客户端协议只有 WebSocket + PCM16 + 少量 JSON 事件，可延伸到车载、可穿戴和硬件终端。
+
+<details>
+<summary><b>从 2025 v1 到 2026 v2：为什么重写反而缩到不到 1,000 行</b></summary>
+
+Echo 在 2025 年 4 月启动 v1，完整代码和提交历史保留在 tag [`v1.0-2025`](../../tree/v1.0-2025)。2026 年重写时，实时语音模型已能在一次会话里同时听、调用函数、说话，远程 MCP 也有了官方 SDK 和现成服务，v2 据此做减法。
+
+| 2025 v1 | 2026 v2 |
+|---|---|
+| 浏览器识别 → LLM 选工具 → LLM 生成确认语 → LLM 判断是否 → 执行 → LLM 摘要 → 浏览器合成，一轮最多 4 次串行 LLM 调用 | 一个实时语音模型直接听、调工具、说 |
+| 每个请求都复述确认；前端能直接调 `/execute`，确认可以被绕过 | 只读直接执行，写操作服务端锁参确认；前端没有执行接口 |
+| 自己拉起、监控、清理 MCP 子进程（3,000 多行） | 只接远程 Streamable HTTP MCP，不托管进程 |
+| 每次把全部工具塞给模型，prompt 里写死工具名 | `tools.yaml` 白名单，上限 40 个 |
+| MySQL + Alembic + JWT 账号体系 + 开发者门户 | 访问令牌 + 本地 JSONL 日志 |
+
+</details>
+
+<details>
+<summary><b>目录</b></summary>
+
 ```
-
-`pytest` 测的是协议、确认闸、工具和整条中继链路。真模型听不听得懂、快不快，只能用 `eval/` 对着真模型测。
-
-## 当前状态（v2.0.1）
-
-已对真模型验证（2026-11-24，Qwen3.8-Omni-Flash-Realtime，北京地域）：
-
-- **意图评测**（`eval/run.py --repeat 3`，13 条用例 × 3 轮，文字输入）：任务办成 39/39；第一步就调用了期望的工具 34/39，另外 5 次是 4 次简单算术模型直接心算（答案都对）、1 次先查时间再记“明天”的备忘。
-- **首字延迟**（用户说完到听到第一个字）：中位数 1.51 s，p90 3.35 s。不调工具约 0.8 s，本地工具 1.0–1.7 s；查天气约 3.3 s，其中约 1.9 s 花在两次串行的外部天气 API 上。
-- **真语音链路**：演示视频里的每一步，包括短确认语、打断。
-
-接真模型时发现并修掉的问题：
-
-- 百炼默认推荐的 `semantic_vad` 会把“好的”“可以”这种短回答当附和过滤掉，确认闸永远收不到用户的同意。改成官方给 3.8 系列的 `semantic_vad_ec` 后正常。
-- 用户插话后，被打断那轮回答的音频还在路上，浏览器清空队列后又会接着播。服务端现在在用户开口后丢掉旧音频，直到模型开始新一轮回答。
-- 查“这周末”天气时，模型只拿了今明两天的预报，却说成了周六周日。天气工具现在固定返回 7 天，每天标星期几。
-
-已知限制：
-
-- 修好 VAD 之后，用语音走“记备忘 → 用户说好”一共 13 次（7 条完整录音 + 6 次单独重复），有 1 次模型只说了“这就给你记上”，没调用 `confirm_action`。服务端因此没有执行，确认闸没被绕过，但模型说了没做的事。之后在系统提示里加了“拿到执行结果之后才能说办好了”，改完后的 4 条录音都正常；但这靠模型遵守指令，服务端保证不了。
-- 语音识别偶尔有错字（“记吧”听成“去吧”），句中停顿较长时会被切成两轮。
-- 评测用的是文字输入，不含语音识别误差；真语音只有演示录音这几条，没有成规模的语音评测集。
-
-`pytest` 不需要模型密钥，用 `tests/fake_realtime.py` 按协议模拟模型，测协议、确认闸、打断和整条中继链路。
-
-## 目录
-
-```
-echo_agent/
-  server.py      HTTP / WebSocket 入口、访问令牌
-  session.py     一次语音会话：中继、工具调度、首字延迟、日志
-  realtime.py    实时语音模型协议适配（qwen / openai）
-  confirm.py     工具执行 + 确认闸
-  tools.py       tools.yaml 白名单加载
-  mcp_remote.py  远程 MCP 客户端（官方 SDK）
-  builtin.py     内置工具：时间、计算、天气（Open-Meteo，免密钥）、备忘
-web/index.html   单文件网页客户端（麦克风采集、播放、打断、打字输入）
-eval/            对真模型的意图与延迟评测
-demo/            一条命令重录演示视频（合成台词 → 真浏览器对真模型说话 → 剪成片）
-docs/media/      演示视频、预览动图、图 1（及其 HTML 源文件）
+echo_agent/      server.py 入口与令牌 · session.py 会话中继与打断 · realtime.py 模型协议适配
+                 confirm.py 确认闸 · tools.py 白名单 · mcp_remote.py 远程 MCP · builtin.py 内置工具
+web/index.html   单文件网页客户端（麦克风、播放、打断、服务端执行记录面板）
+tools.yaml       工具白名单
+eval/            真模型评测        demo/   一条命令重录演示视频
+docs/            engineering-notes.md 与 media/（视频、动图、图 1）
 tests/           不依赖模型的自动化测试
 ```
+
+</details>
