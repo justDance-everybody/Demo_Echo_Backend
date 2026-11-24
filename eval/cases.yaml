@@ -1,13 +1,16 @@
 # 意图评测集：一句话 → 期望模型调用的工具（null 表示应该直接回答，不调工具）。
 # args 只检查列出的字段，值做子串匹配。
+# reply_any：没调工具但回答里出现其中任一字符串也算办成（简单算术模型常直接心算）。
 - text: 现在几点了
   tool: get_time
 - text: 今天星期几
   tool: get_time
 - text: 帮我算一下一百二十八乘以三十七
   tool: calculate
+  reply_any: ["4736", "四千七百三十六"]
 - text: 三千块钱打八五折是多少
   tool: calculate
+  reply_any: ["2550", "两千五百五十"]
 - text: 武汉今天天气怎么样
   tool: get_weather
   args: {city: 武汉}

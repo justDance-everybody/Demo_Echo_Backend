@@ -1,6 +1,6 @@
 [project]
 name = "echo-agent"
-version = "2.0.0"
+version = "2.0.1"
 description = "Echo v2: 一句话语音 Agent。实时语音模型 + 可信工具白名单 + 服务端强制确认。"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -36,3 +36,6 @@ line-length = 130
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
 ignore = ["SIM105"]
+
+[tool.ruff.lint.per-file-ignores]
+"demo/compose.py" = ["E501"]  # 片头和说明框的 HTML 字符串
