@@ -4,7 +4,7 @@
   <b>English</b> &nbsp;|&nbsp; <a href="README.zh-CN.md">简体中文</a>
 </p>
 
-<img src="docs/media/echo-hero-en.png" alt="Echo: Voice as the Execution Interface for Real-World Software" width="100%" />
+<img src="docs/media/echo-hero-en.png" alt="EchoOS: Voice as the Execution Interface for Real-World Software" width="100%" />
 
 <br />
 
@@ -18,7 +18,7 @@
 <h3>For 40 years we operated software by clicking through apps. Voice AI learned to chat, yet nobody trusts it with write access.</h3>
 
 <p>
-  <a href="docs/media/echo-demo.mp4?raw=true"><b>▶ 72s Demo Video (with audio)</b></a>
+  <a href="#demo"><b>▶ 72s Live Demo (Audio)</b></a>
   &nbsp;·&nbsp;
   <a href="#paradigm"><b>Paradigm</b></a>
   &nbsp;·&nbsp;
@@ -29,14 +29,14 @@
   <a href="docs/engineering-notes.md"><b>Engineering Notes</b></a>
 </p>
 
-<br />
+</div>
 
-<a href="docs/media/echo-demo.mp4?raw=true">
-  <img src="docs/media/echo-demo.gif" alt="Echo live recording: instant reads, server-locked spoken confirmation, sub-second barge-in" width="100%" />
-</a>
+<a id="demo"></a>
 
-<sub>Unedited recording on real Chrome + <code>qwen3.8-omni-flash-realtime</code> (2x silent preview) · <a href="docs/media/echo-demo.mp4?raw=true"><b>Download 72s full video with audio (3.9 MB)</b></a></sub>
+https://github.com/user-attachments/assets/94b0e690-7623-4e80-a879-0a2d85c9ea1e
 
+<div align="center">
+<sub>Unedited 72s recording with sound on real Chrome + <code>qwen3.8-omni-flash-realtime</code>: instant read tool, server-locked spoken confirmation, and ~1s barge-in interruption. Reproducible via <code>./demo/record.sh</code>.</sub>
 </div>
 
 <br />
@@ -68,7 +68,7 @@ Originated in April 2025 (<a href="../../tree/v1.0-2025"><code>v1.0-2025</code><
 | **Apps / GUIs** | Open app, tap menus, fill forms | Manual clicks | Modal confirmation buttons | Separate frontend per service |
 | **Chained Voice (STT → LLM → TTS)** | Serial multi-hop LLM calls | Multi-second lag, awkward barge-in | Prompt-only guardrails | Glue code or hosted subprocesses |
 | **Browser-Direct Realtime Model** | Realtime speech-to-speech | Sub-2s response | Keys & execution tied to model; hallucination = action | Locked to one model API |
-| **Echo (Voice-Native Runtime)** | **Speak to act, interrupt naturally** | **1.51 s median TTFA, ~1 s stop** | **Server-locked args + turn gate; no self-confirmation** | **5 lines of `tools.yaml` per remote MCP** |
+| **EchoOS (Voice-Native Runtime)** | **Speak to act, interrupt naturally** | **1.51 s median TTFA, ~1 s stop** | **Server-locked args + turn gate; no self-confirmation** | **5 lines of `tools.yaml` per remote MCP** |
 
 ![Figure 1: System Architecture, Confirmation Gate Sequence, and Measured Latency](docs/media/echo-figure.png)
 
@@ -95,7 +95,7 @@ mcp_servers:
     summaries: {create_event: "Create event {title} at {start}. Confirm?"}
 ```
 
-Every tool must be explicitly listed in `allow`. Missing env vars, unknown tools, or unreachable servers fail closed for that server only without breaking others. Echo never hosts third-party local subprocesses and opens a clean stateless HTTP call per execution (`echo_agent/mcp_remote.py`).
+Every tool must be explicitly listed in `allow`. Missing env vars, unknown tools, or unreachable servers fail closed for that server only without breaking others. EchoOS never hosts third-party local subprocesses and opens a clean stateless HTTP call per execution (`echo_agent/mcp_remote.py`).
 
 ---
 
@@ -115,10 +115,10 @@ For public deployment, set `ECHO_ACCESS_TOKEN` and serve over HTTPS (required by
 
 ## Live Benchmarks & Production Voice Lessons
 
-Tested on `2026-11-24` against `qwen3.8-omni-flash-realtime` (13 cases × 3 runs, text input): **39/39** task completion, **34/39** first-step exact tool choice, **1.51 s** median first-audio latency (`0.82 s` direct reply, `0.99–1.66 s` local tools, `3.35 s` p90). Three real-world voice lessons baked into Echo:
+Tested on `2026-11-24` against `qwen3.8-omni-flash-realtime` (13 cases × 3 runs, text input): **39/39** task completion, **34/39** first-step exact tool choice, **1.51 s** median first-audio latency (`0.82 s` direct reply, `0.99–1.66 s` local tools, `3.35 s` p90). Three real-world voice lessons baked into EchoOS:
 
 1. **Semantic VAD swallows short confirmations.** Default `semantic_vad` filters short replies like "yes" / "好的" as backchannels, stalling voice confirmations. Switching Qwen 3.8 series to `semantic_vad_ec` fixes it.
-2. **In-flight stale audio leaks after barge-in.** Flushing the browser buffer isn't enough because old frames are still on the wire. Echo drops server-side audio after `speech_started` until the next `response_created`.
+2. **In-flight stale audio leaks after barge-in.** Flushing the browser buffer isn't enough because old frames are still on the wire. EchoOS drops server-side audio after `speech_started` until the next `response_created`.
 3. **Ground relative dates in tool outputs.** Returning a 7-day forecast with explicit weekdays eliminates weekend-date hallucinations.
 
 Full per-case eval metrics, real-voice confirmation logs, and recording reproducibility details are in [`docs/engineering-notes.md`](docs/engineering-notes.md).
@@ -134,7 +134,7 @@ Full per-case eval metrics, real-voice confirmation logs, and recording reproduc
 <details>
 <summary><b>Evolution (2025 v1 → 2026 v2): Why Rewriting Shrank the Core to &lt;1,000 Lines</b></summary>
 
-Echo began in April 2025 (full prototype and commit history preserved at tag [`v1.0-2025`](../../tree/v1.0-2025)). In v1, achieving one-sentence tool execution required up to 4 serial LLM hops per turn and 3,000+ lines of MCP subprocess management. In late 2026, native realtime speech-to-speech models and Streamable HTTP MCP allowed collapsing the entire paradigm into ~1,000 lines of Python.
+EchoOS began in April 2025 (full prototype and commit history preserved at tag [`v1.0-2025`](../../tree/v1.0-2025)). In v1, achieving one-sentence tool execution required up to 4 serial LLM hops per turn and 3,000+ lines of MCP subprocess management. In late 2026, native realtime speech-to-speech models and Streamable HTTP MCP allowed collapsing the entire paradigm into ~1,000 lines of Python.
 
 | 2025 v1 | 2026 v2 |
 |---|---|

@@ -4,7 +4,7 @@
   <a href="README.md">English</a> &nbsp;|&nbsp; <b>简体中文</b>
 </p>
 
-<img src="docs/media/echo-hero.png" alt="Echo：让声音成为真实软件的执行界面" width="100%" />
+<img src="docs/media/echo-hero.png" alt="EchoOS：让声音成为真实软件的执行界面" width="100%" />
 
 <br />
 
@@ -18,7 +18,7 @@
 <h3>四十年来人靠 App 点击用软件；语音 AI 会聊天了，却没人敢给它写权限。</h3>
 
 <p>
-  <a href="docs/media/echo-demo.mp4?raw=true"><b>▶ 72 秒带声音实录</b></a>
+  <a href="#demo"><b>▶ 72 秒带声音实录</b></a>
   &nbsp;·&nbsp;
   <a href="#paradigm"><b>核心范式</b></a>
   &nbsp;·&nbsp;
@@ -29,14 +29,14 @@
   <a href="docs/engineering-notes.md"><b>工程笔记</b></a>
 </p>
 
-<br />
+</div>
 
-<a href="docs/media/echo-demo.mp4?raw=true">
-  <img src="docs/media/echo-demo.gif" alt="Echo 实录：查询直出、写操作口头确认、随时打断" width="100%" />
-</a>
+<a id="demo"></a>
 
-<sub>真 Chrome + <code>qwen3.8-omni-flash-realtime</code> 一镜到底实录（2 倍速无声预览） · <a href="docs/media/echo-demo.mp4?raw=true"><b>点击下载 72 秒完整带声音视频（3.9 MB）</b></a></sub>
+https://github.com/user-attachments/assets/94b0e690-7623-4e80-a879-0a2d85c9ea1e
 
+<div align="center">
+<sub>真 Chrome + <code>qwen3.8-omni-flash-realtime</code> 72 秒带声音一镜到底实录（查询直出、写操作服务端锁参口头确认、约 1 秒自然打断），可用 <code>./demo/record.sh</code> 一条命令重录。</sub>
 </div>
 
 <br />
@@ -68,7 +68,7 @@
 | **App / 图形界面** | 找入口、点菜单、填表单 | 人逐步点击 | 弹窗按钮确认 | 每个服务各做一套前端 |
 | **串联语音（识别 → LLM → 合成）** | 语音输入，多次串行模型调用 | 延迟逐级叠加，难以打断 | 靠提示词约束 | 胶水代码或本地托管进程 |
 | **前端直连实时语音模型** | 实时语音 | 秒级响应 | 工具执行跟着模型走，听错或幻觉就可能误操作 | 和单一模型接口绑定 |
-| **Echo** | **开口即执行，随时打断** | **首字中位 1.51 s，约 1 s 停播** | **服务端锁参 + 发言轮次校验，模型无法自问自答** | **在 `tools.yaml` 写几行接入远程 MCP** |
+| **EchoOS** | **开口即执行，随时打断** | **首字中位 1.51 s，约 1 s 停播** | **服务端锁参 + 发言轮次校验，模型无法自问自答** | **在 `tools.yaml` 写几行接入远程 MCP** |
 
 ![图 1：(a) 系统结构 (b) 确认闸时序 (c) 实测首字延迟和任务完成率](docs/media/echo-figure.png)
 
@@ -134,7 +134,7 @@ uv run echo-server            # 打开 http://127.0.0.1:8000
 <details>
 <summary><b>从 2025 v1 到 2026 v2：为什么重写反而缩到不到 1,000 行</b></summary>
 
-Echo 在 2025 年 4 月启动 v1，完整代码和提交历史保留在 tag [`v1.0-2025`](../../tree/v1.0-2025)。2026 年重写时，实时语音模型已能在一次会话里同时听、调用函数、说话，远程 MCP 也有了官方 SDK 和现成服务，v2 据此做减法。
+EchoOS 在 2025 年 4 月启动 v1，完整代码和提交历史保留在 tag [`v1.0-2025`](../../tree/v1.0-2025)。2026 年重写时，实时语音模型已能在一次会话里同时听、调用函数、说话，远程 MCP 也有了官方 SDK 和现成服务，v2 据此做减法。
 
 | 2025 v1 | 2026 v2 |
 |---|---|
