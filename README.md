@@ -6,9 +6,9 @@
 
 ## 演示
 
-[![Echo 演示：查天气、记备忘并口头确认、中途打断（点开看带声音的完整视频）](docs/media/echo-demo.gif)](docs/media/echo-demo.mp4)
+[![Echo 演示：查天气、记备忘并口头确认、中途打断](docs/media/echo-demo.gif)](docs/media/echo-demo.mp4?raw=true)
 
-上面是 2 倍速无声预览，**[点这里看 72 秒带声音的完整视频](docs/media/echo-demo.mp4)**。
+上面是 2 倍速无声预览。**[下载 72 秒带声音的完整视频（mp4，3.9 MB）](docs/media/echo-demo.mp4?raw=true)**
 
 真实录屏、一镜到底：真 Chrome、真模型（Qwen3.8-Omni-Flash-Realtime）、本仓库的服务端和网页原样运行，对话没有剪辑，说明框是后加的。用户一方的声音是合成语音，从虚拟麦克风输入。录了几条完整的，这是其中一条；其他几条遇到的问题如实写在下面的[当前状态](#当前状态v201)里。用 `demo/record.sh` 可以一条命令重录。
 
