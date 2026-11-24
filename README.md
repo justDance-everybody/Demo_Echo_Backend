@@ -1,23 +1,62 @@
-# Echo
+<div align="center">
 
-**让声音成为真实软件的执行界面。**
+<img src="docs/media/echo-hero.png" alt="Echo：让声音成为真实软件的执行界面" width="100%" />
 
-![Voice-Native Action](https://img.shields.io/badge/Paradigm-Voice--Native%20Action-0F766E?style=flat-square)
-![Realtime](https://img.shields.io/badge/Realtime-Qwen--Omni%20%7C%20OpenAI-111827?style=flat-square)
-![MCP](https://img.shields.io/badge/Protocol-Streamable%20HTTP%20MCP-2563EB?style=flat-square)
-![Eval](https://img.shields.io/badge/Live%20Eval-39%2F39-16A34A?style=flat-square)
-![Core](https://img.shields.io/badge/Core-%3C1%2C000%20LOC%20Python-3776AB?style=flat-square)
+<br />
 
-四十年来人靠 App 点击用软件；语音 AI 会聊天了，却没人敢给它写权限。Echo 是后 App 时代的语音原生执行系统：**概率交给大模型，边界交给确定性代码。**
+<p>
+  <img src="https://img.shields.io/badge/Realtime-Qwen--Omni%20%7C%20OpenAI-0F172A?style=for-the-badge&labelColor=0D9488" alt="Realtime" />
+  <img src="https://img.shields.io/badge/MCP-Streamable%20HTTP-0F172A?style=for-the-badge&labelColor=0284C7" alt="MCP" />
+  <img src="https://img.shields.io/badge/Python-3.11%2B-0F172A?style=for-the-badge&labelColor=334155" alt="Python 3.11+" />
+  <img src="https://img.shields.io/badge/Release-v2.0.1-0F172A?style=for-the-badge&labelColor=334155" alt="Release" />
+</p>
 
-[![Echo 实录：查询直出、写操作口头确认、随时打断](docs/media/echo-demo.gif)](docs/media/echo-demo.mp4?raw=true)
+<h3>四十年来人靠 App 点击用软件；语音 AI 会聊天了，却没人敢给它写权限。</h3>
 
-<sub>真 Chrome + `qwen3.8-omni-flash-realtime` 一镜到底实录，2 倍速无声预览。**[下载 72 秒带声音的完整视频](docs/media/echo-demo.mp4?raw=true)**</sub>
+<p>
+  <a href="docs/media/echo-demo.mp4?raw=true"><b>▶ 72 秒带声音实录</b></a>
+  &nbsp;·&nbsp;
+  <a href="#paradigm"><b>核心范式</b></a>
+  &nbsp;·&nbsp;
+  <a href="#mcp"><b>接入 MCP</b></a>
+  &nbsp;·&nbsp;
+  <a href="#quickstart"><b>60 秒运行</b></a>
+  &nbsp;·&nbsp;
+  <a href="docs/engineering-notes.md"><b>工程笔记</b></a>
+</p>
 
-- **开口即执行，随时打断。** 查询说完就执行、直接播报；播报中插话，约 1 s 停下转向新问题。任何 Streamable HTTP 远程 MCP 服务，几行配置就成为语音能力。
-- **口头即签名。** 写操作先在服务端冻结参数、由模型复述；用户再次开口后才按原参数执行，模型无法自问自答。
-- **2025 年启程，2026 年收敛到不到 1,000 行 Python。** 真模型实测：首字延迟中位数 1.51 s，任务办成 39/39，评测和录音中未经用户开口的写执行 0 次。
+<br />
 
+<a href="docs/media/echo-demo.mp4?raw=true">
+  <img src="docs/media/echo-demo.gif" alt="Echo 实录：查询直出、写操作口头确认、随时打断" width="100%" />
+</a>
+
+<sub>真 Chrome + <code>qwen3.8-omni-flash-realtime</code> 一镜到底实录（2 倍速无声预览） · <a href="docs/media/echo-demo.mp4?raw=true"><b>点击下载 72 秒完整带声音视频（3.9 MB）</b></a></sub>
+
+</div>
+
+<br />
+
+<table>
+<tr>
+<td width="33%" valign="top">
+<b>⚡ 开口即执行，随时打断</b><br /><br />
+查询类请求说完即执行、直接播报；播报途中插话约 <b>1 s</b> 停下转向新问题。任何 Streamable HTTP 远程 MCP 服务，几行配置即可用嘴调度。
+</td>
+<td width="33%" valign="top">
+<b>🔒 写操作口头即签名</b><br /><br />
+下单、日程、记录等写操作先在服务端冻结参数、由模型复述；<b>用户再次开口后</b>才按原参数放行，模型无法自问自答或篡改参数。
+</td>
+<td width="34%" valign="top">
+<b>🧬 2025 启程，千行收敛</b><br /><br />
+始于 2025 年 4 月（<a href="../../tree/v1.0-2025"><code>v1.0-2025</code></a>），2026 重写进不到 <b>1,000 行 Python</b>。真模型实测首字延迟 <b>1.51 s</b>、任务办成 <b>39/39</b>、未确认写执行 <b>0 次</b>。
+</td>
+</tr>
+</table>
+
+---
+
+<a id="paradigm"></a>
 ## 核心范式：概率智能 × 确定性授权
 
 | 交互方式 | 怎么操作 | 响应与打断 | 写操作的安全边界 | 接新服务 |
@@ -31,6 +70,9 @@
 
 浏览器只传 PCM16 音频，不持有密钥、没有执行接口；写操作登记为参数快照，用户发言轮次增加且未超过 120 s 才执行（`echo_agent/confirm.py`）；能力边界由 `tools.yaml` 白名单声明，单会话最多 40 个工具。用户说的是同意还是拒绝由模型理解，边界见[工程笔记](docs/engineering-notes.md#确认闸的边界)。
 
+---
+
+<a id="mcp"></a>
 ## 把 MCP 服务变成语音能力
 
 内置 5 个免密钥工具（时间、计算、Open-Meteo 天气、备忘录）用来零依赖跑通全流程；真实业务在 `tools.yaml` 里接远程 MCP：
@@ -51,6 +93,9 @@ mcp_servers:
 
 `allow` 必须逐个放行；缺 `allow`、工具不存在、环境变量未设置或连不上时，该服务不加载、只记日志。不托管任何本地进程，每次调用新开连接，不保存 MCP 会话状态（`echo_agent/mcp_remote.py`）。
 
+---
+
+<a id="quickstart"></a>
 ## 运行
 
 ```bash
@@ -62,15 +107,19 @@ uv run echo-server            # 打开 http://127.0.0.1:8000
 
 公网部署必须设置 `ECHO_ACCESS_TOKEN`，并走 HTTPS。验证：`uv run pytest`（无需密钥）、`uv run python eval/run.py`（真模型评测）、`./demo/record.sh`（重录演示）。
 
+---
+
 ## 实测与一线规律
 
-2026-11-24，`qwen3.8-omni-flash-realtime`，13 条用例 × 3 轮文字输入：任务办成 39/39，第一步选对工具 34/39，首字延迟中位数 1.51 s、p90 3.35 s。接真语音时得到的三条规律：
+2026-11-24，`qwen3.8-omni-flash-realtime`，13 条用例 × 3 轮文字输入：任务办成 **39/39**，第一步选对工具 **34/39**，首字延迟中位数 **1.51 s**、p90 **3.35 s**。接真语音时得到的三条规律：
 
 1. 百炼 `semantic_vad` 会把“好的”当附和吞掉，确认卡死；Qwen3.8 改用 `semantic_vad_ec`。
 2. 打断后在途旧音频仍会续播；服务端在 `speech_started` 后丢弃音频，直到新一轮 `response_created`。
 3. 相对日期别让模型推算：天气工具固定返回 7 天并标星期几。
 
 评测明细、真语音记录和录屏方法见 [`docs/engineering-notes.md`](docs/engineering-notes.md)。
+
+---
 
 ## 下一步
 
@@ -102,7 +151,7 @@ echo_agent/      server.py 入口与令牌 · session.py 会话中继与打断 �
 web/index.html   单文件网页客户端（麦克风、播放、打断、服务端执行记录面板）
 tools.yaml       工具白名单
 eval/            真模型评测        demo/   一条命令重录演示视频
-docs/            engineering-notes.md 与 media/（视频、动图、图 1）
+docs/            engineering-notes.md 与 media/（首屏横幅、视频、动图、图 1）
 tests/           不依赖模型的自动化测试
 ```
 
