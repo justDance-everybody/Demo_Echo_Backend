@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 1280px;
+    height: 640px;
+    overflow: hidden;
+    background: #070b12;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans CJK SC", Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .canvas {
+    position: relative;
+    width: 1280px;
+    height: 640px;
+    background:
+      radial-gradient(560px 460px at 84% 48%, rgba(20, 184, 166, 0.28) 0%, rgba(15, 118, 110, 0.1) 45%, rgba(7, 11, 18, 0) 76%),
+      radial-gradient(460px 360px at 14% 10%, rgba(56, 189, 248, 0.1) 0%, rgba(7, 11, 18, 0) 70%),
+      linear-gradient(135deg, #070b12 0%, #0b1220 55%, #070d16 100%);
+    overflow: hidden;
+  }
+  .grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(148, 163, 184, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  .top-glow {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #2dd4bf 0%, #38bdf8 50%, transparent 100%);
+  }
+  .content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    width: 100%;
+    height: 100%;
+    padding: 58px 64px 54px 68px;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .left {
+    width: 810px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+  }
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    width: fit-content;
+    padding: 7px 16px;
+    border-radius: 999px;
+    background: rgba(20, 184, 166, 0.12);
+    border: 1px solid rgba(45, 212, 191, 0.36);
+    color: #5eead4;
+    font-family: "Noto Sans Mono", monospace;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.13em;
+  }
+  .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #2dd4bf; box-shadow: 0 0 10px #2dd4bf;
+  }
+  .brand-row {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 14px;
+  }
+  .brand {
+    font-family: "Noto Sans Mono", sans-serif;
+    font-size: 56px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    color: #ffffff;
+    line-height: 1;
+  }
+  .tag {
+    font-family: "Noto Sans Mono", monospace;
+    font-size: 15px;
+    font-weight: 700;
+    color: #5eead4;
+    padding: 5px 12px;
+    border-radius: 8px;
+    background: rgba(45, 212, 191, 0.12);
+    border: 1px solid rgba(45, 212, 191, 0.3);
+  }
+  .headline {
+    font-size: 46px;
+    font-weight: 900;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: #f8fafc;
+  }
+  .headline .accent {
+    background: linear-gradient(90deg, #5eead4 0%, #38bdf8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .sub {
+    margin-top: 16px;
+    font-size: 20px;
+    color: #cbd5e1;
+    font-weight: 500;
+  }
+  .sub strong { color: #ffffff; }
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+  .m {
+    background: rgba(15, 23, 42, 0.78);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 12px;
+    padding: 14px 14px;
+  }
+  .m.hi {
+    border-color: rgba(45, 212, 191, 0.4);
+    background: rgba(15, 32, 39, 0.85);
+  }
+  .mv {
+    font-family: "Noto Sans Mono", sans-serif;
+    font-size: 25px;
+    font-weight: 800;
+    color: #ffffff;
+  }
+  .m.hi .mv { color: #5eead4; }
+  .ml {
+    margin-top: 4px;
+    font-size: 13px;
+    color: #cbd5e1;
+  }
+  .right {
+    width: 340px;
+    height: 340px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .right svg { width: 340px; height: 340px; }
+</style>
+</head>
+<body>
+<div class="canvas">
+  <div class="grid"></div>
+  <div class="top-glow"></div>
+  <div class="content">
+    <div class="left">
+      <div class="eyebrow"><span class="dot"></span>VOICE-NATIVE ACTION RUNTIME · MCP · REALTIME S2S</div>
+      <div>
+        <div class="brand-row">
+          <div class="brand">EchoOS</div>
+          <div class="tag">v2.0 · &lt;1,000 LOC</div>
+        </div>
+        <div class="headline">Voice as the <span class="accent">Execution Interface</span><br>for Real-World Software</div>
+        <div class="sub">Realtime speech-to-speech + Remote MCP · <strong>Server-enforced spoken confirmation</strong></div>
+      </div>
+      <div class="metrics">
+        <div class="m hi"><div class="mv">1.51 s</div><div class="ml">Median Latency</div></div>
+        <div class="m"><div class="mv">39 / 39</div><div class="ml">Live Eval Pass</div></div>
+        <div class="m hi"><div class="mv">0</div><div class="ml">Unconfirmed Writes</div></div>
+        <div class="m"><div class="mv">MIT</div><div class="ml">Open Source</div></div>
+      </div>
+    </div>
+    <div class="right">
+      <svg viewBox="0 0 360 360">
+        <defs>
+          <radialGradient id="g1" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#2dd4bf" stop-opacity="0.72"/>
+            <stop offset="40%" stop-color="#14b8a6" stop-opacity="0.26"/>
+            <stop offset="100%" stop-color="#070b12" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <circle cx="180" cy="180" r="168" fill="url(#g1)"/>
+        <circle cx="180" cy="180" r="154" fill="none" stroke="rgba(148,163,184,0.24)" stroke-width="1.5" stroke-dasharray="6 8"/>
+        <circle cx="180" cy="180" r="126" fill="none" stroke="rgba(45,212,191,0.34)" stroke-width="1.5"/>
+        <ellipse cx="180" cy="180" rx="104" ry="92" transform="rotate(-14 180 180)" fill="none" stroke="#5eead4" stroke-width="2.2" opacity="0.85"/>
+        <ellipse cx="180" cy="180" rx="90" ry="102" transform="rotate(24 180 180)" fill="none" stroke="#38bdf8" stroke-width="1.8" opacity="0.65"/>
+        <circle cx="180" cy="180" r="62" fill="rgba(15, 23, 42, 0.6)" stroke="#5eead4" stroke-width="2"/>
+        <g fill="#5eead4">
+          <rect x="148" y="170" width="5" height="20" rx="2.5" opacity="0.6"/>
+          <rect x="158" y="158" width="5" height="44" rx="2.5" opacity="0.85"/>
+          <rect x="168" y="144" width="5" height="72" rx="2.5"/>
+          <rect x="178" y="152" width="5" height="56" rx="2.5" fill="#38bdf8"/>
+          <rect x="188" y="138" width="5" height="84" rx="2.5"/>
+          <rect x="198" y="158" width="5" height="44" rx="2.5" opacity="0.85"/>
+          <rect x="208" y="168" width="5" height="24" rx="2.5" opacity="0.6"/>
+        </g>
+      </svg>
+    </div>
+  </div>
+</div>
+</body>
+</html>
