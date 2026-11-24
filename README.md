@@ -103,11 +103,12 @@ Every tool must be explicitly listed in `allow`. Missing env vars, unknown tools
 ## Quick Start
 
 ```bash
-uv sync
+uv sync                       # Python 3.11+
 cp .env.example .env          # Set ECHO_PROVIDER_URL and ECHO_PROVIDER_API_KEY
-set -a; . ./.env; set +a
-uv run echo-server            # Open http://127.0.0.1:8000
+uv run echo-server            # Loads .env; open http://127.0.0.1:8000
 ```
+
+You need an [Alibaba Cloud Model Studio (Bailian)](https://bailian.console.aliyun.com/) API key and your workspace ID; `.env.example` shows exactly where each goes. The OpenAI Realtime dialect is implemented but has not yet been verified against the live OpenAI model. Without a key, `uv run pytest` still exercises the relay, confirmation gate, barge-in and MCP whitelist against a scripted fake model.
 
 For public deployment, set `ECHO_ACCESS_TOKEN` and serve over HTTPS (required by browsers for microphone access). Verify locally: `uv run pytest` (no API key needed), `uv run python eval/run.py` (live model benchmark), `./demo/record.sh` (one-command headless demo recording).
 
