@@ -68,8 +68,8 @@ def builtin_specs(memo: builtin.MemoStore) -> dict[str, tuple[str, dict, ToolFn]
             lambda a: builtin.calculate(**a),
         ),
         "get_weather": (
-            "查询某个城市当前天气和未来几天预报。",
-            _obj({"city": {**s, "description": "城市名，如 武汉"}, "days": {**i, "description": "1-7，默认 1"}}, ["city"]),
+            "查询某个城市的当前天气和从今天起 7 天的预报（每天标了星期几）。",
+            _obj({"city": {**s, "description": "城市名，如 武汉"}}, ["city"]),
             lambda a: builtin.get_weather(**a),
         ),
         "save_memo": (

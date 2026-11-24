@@ -32,5 +32,5 @@ async def test_memo_roundtrip(tmp_path):
 
 @pytest.mark.skipif(not os.environ.get("ECHO_NETWORK_TESTS"), reason="需要外网：ECHO_NETWORK_TESTS=1")
 async def test_weather_live():
-    r = await builtin.get_weather("武汉", days=2)
-    assert "now" in r and len(r["daily"]) == 2
+    r = await builtin.get_weather("武汉")
+    assert "now" in r and len(r["daily"]) == 7 and r["daily"][0]["weekday"].startswith("今天")

@@ -8,7 +8,7 @@ from __future__ import annotations
 import ast
 import json
 import operator
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -75,8 +75,8 @@ _WMO = {
 }
 
 
-async def get_weather(city: str, days: int = 1) -> dict:
-    days = max(1, min(int(days), 7))
+async def get_weather(city: str) -> dict:
+    """总是返回从今天起 7 天，每天带星期几，模型不用自己推算“周末”是哪天。"""
     async with httpx.AsyncClient(timeout=8) as client:
         geo = (
             await client.get(
@@ -96,7 +96,7 @@ async def get_weather(city: str, days: int = 1) -> dict:
                     "current": "temperature_2m,weather_code,wind_speed_10m",
                     "daily": "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max",
                     "timezone": "auto",
-                    "forecast_days": days,
+                    "forecast_days": 7,
                 },
             )
         ).json()
@@ -111,6 +111,7 @@ async def get_weather(city: str, days: int = 1) -> dict:
         "daily": [
             {
                 "date": d["time"][i],
+                "weekday": ("今天 " if i == 0 else "") + "星期" + "一二三四五六日"[date.fromisoformat(d["time"][i]).weekday()],
                 "weather": _WMO.get(d["weather_code"][i], "未知"),
                 "min_c": d["temperature_2m_min"][i],
                 "max_c": d["temperature_2m_max"][i],

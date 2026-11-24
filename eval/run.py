@@ -67,12 +67,20 @@ async def run_case(settings: Settings, registry, text: str, timeout: float = 30)
 
 
 def judge(case: dict, got: dict) -> bool:
-    first = next((c for c in got["calls"] if c["name"] not in ("confirm_action", "cancel_action")), None)
+    """任务是否办成：调用了期望的工具且参数对；或者（算术这类）没调工具但回答里有正确结果。"""
+    calls = [c for c in got["calls"] if c["name"] not in ("confirm_action", "cancel_action")]
     if case.get("tool") is None:
-        return first is None and not got["error"]
-    if first is None or first["name"] != case["tool"]:
-        return False
-    return all(str(v) in str(first["args"].get(k, "")) for k, v in (case.get("args") or {}).items())
+        return not calls and not got["error"]
+    for c in calls:
+        if c["name"] == case["tool"] and all(str(v) in str(c["args"].get(k, "")) for k, v in (case.get("args") or {}).items()):
+            return True
+    return any(s in got["reply"] for s in case.get("reply_any") or [])
+
+
+def picked_tool(case: dict, got: dict) -> bool:
+    """更严的口径：第一个调用的工具就是期望的那个。"""
+    first = next((c["name"] for c in got["calls"] if c["name"] not in ("confirm_action", "cancel_action")), None)
+    return first == case.get("tool")
 
 
 async def main() -> None:
@@ -92,7 +100,7 @@ async def main() -> None:
         for case in cases:
             got = await run_case(settings, registry, case["text"])
             ok = judge(case, got)
-            rows.append({**case, **got, "ok": ok})
+            rows.append({**case, **got, "ok": ok, "picked": picked_tool(case, got)})
             mark = "✓" if ok else "✗"
             lat = f"{got['first_audio_ms']:.0f}ms" if got["first_audio_ms"] else "-"
             print(f"{mark} {lat:>7}  {case['text']}  → {[c['name'] for c in got['calls']]}  {got['error'] or ''}")
@@ -101,11 +109,14 @@ async def main() -> None:
     lats = sorted(r["first_audio_ms"] for r in rows if r["first_audio_ms"])
     p50 = statistics.median(lats) if lats else None
     p90 = lats[int(len(lats) * 0.9) - 1] if len(lats) >= 10 else (lats[-1] if lats else None)
-    print(f"\n意图准确率 {acc:.0%}（{sum(r['ok'] for r in rows)}/{len(rows)}）  "
+    picked = sum(r["picked"] for r in rows)
+    print(f"\n任务办成 {acc:.0%}（{sum(r['ok'] for r in rows)}/{len(rows)}）  "
+          f"第一步就选对工具 {picked / len(rows):.0%}（{picked}/{len(rows)}）  "
           f"首字延迟 p50 {p50 and round(p50)}ms  p90 {p90 and round(p90)}ms")
     out = ROOT / "data" / "eval" / f"result-{time.strftime('%Y%m%d-%H%M%S')}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps({"model": settings.model, "dialect": settings.dialect, "accuracy": acc,
+                               "picked_tool": picked / len(rows),
                                "p50_ms": p50, "p90_ms": p90, "rows": rows}, ensure_ascii=False, indent=1))
     print(f"明细：{out}")
 

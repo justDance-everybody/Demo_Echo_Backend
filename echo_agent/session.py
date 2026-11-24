@@ -59,6 +59,8 @@ class VoiceSession:
         self.log = SessionLog(data_dir, self.id)
         self.user_end: float | None = None  # 用户说完（或发出文字）的时刻
         self.calls: list[tuple[str, asyncio.Task]] = []
+        # 用户开口打断后，被打断那轮回答的音频可能还在路上；在模型开始新一轮回答之前一律丢掉
+        self.barged_in = False
 
     async def _send(self, **msg) -> None:
         await self.client.send_text(json.dumps(msg, ensure_ascii=False))
@@ -112,6 +114,8 @@ class VoiceSession:
         async for ev in self.rt.events():
             t = ev["type"]
             if t == "audio":
+                if self.barged_in:
+                    continue
                 if self.user_end is not None:
                     ms = round((time.monotonic() - self.user_end) * 1000)
                     self.user_end = None
@@ -123,7 +127,10 @@ class VoiceSession:
                     self.log.write("transcript", role=ev["role"], text=ev["text"])
                 await self._send(**ev)
             elif t == "speech_started":
+                self.barged_in = True
                 await self._send(type="speech_started")
+            elif t == "response_created":
+                self.barged_in = False
             elif t == "speech_stopped":
                 self.user_end = time.monotonic()
             elif t == "user_turn":

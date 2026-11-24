@@ -4,7 +4,7 @@ Qwen-Omni-Realtime（阿里云百炼）和 OpenAI Realtime 用的是同一套事
 差别只在 session.update 的字段和少数事件名，这里用 dialect 区分。
 上层只看到归一化后的事件：
   audio(bytes) / transcript(role, text, final) / speech_started / speech_stopped /
-  user_turn / tool_call(call_id, name, arguments) / response_done / error(message)
+  user_turn / tool_call(call_id, name, arguments) / response_created / response_done / error(message)
 """
 
 from __future__ import annotations
@@ -56,7 +56,9 @@ class Dialect:
                     "output": {"format": {"type": "pcm", "sample_rate": self.output_rate}, "voice": voice},
                 },
                 "input_audio_transcription": {"model": "qwen3-asr-flash-realtime"},
-                "turn_detection": {"type": "semantic_vad"},
+                # semantic_vad 会把“好的”“可以”这类短回应当成附和过滤掉，确认闸收不到用户的“同意”；
+                # 官方建议 3.8 系列用 semantic_vad_ec（实测：短确认能触发）
+                "turn_detection": {"type": "semantic_vad_ec"},
                 "tools": [{"type": "function", "function": t} for t in tools],
             },
         }
@@ -149,6 +151,8 @@ class RealtimeClient:
                     "name": ev["name"],
                     "arguments": ev.get("arguments", "{}"),
                 }
+            elif t == "response.created":
+                yield {"type": "response_created"}
             elif t == "response.done":
                 yield {"type": "response_done", "status": (ev.get("response") or {}).get("status", "")}
             elif t == "error":

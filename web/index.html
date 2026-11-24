@@ -6,42 +6,175 @@
 <title>Echo</title>
 <link rel="icon" href="data:,">
 <style>
-  :root { --fg:#f2f2f2; --bg:#16161f; --dim:#8a8a99; --accent:#4fd1c5; --err:#f56565; }
+  :root { --fg:#eef1f6; --bg:#0b0d12; --panel:#12151d; --line:#222838; --dim:#7d8597;
+          --user:#a78bfa; --echo:#2dd4bf; --warn:#fbbf24; --ok:#34d399; --err:#f87171; }
   * { box-sizing:border-box; }
-  body { margin:0; font:16px/1.5 system-ui, sans-serif; background:var(--bg); color:var(--fg);
-         display:flex; flex-direction:column; height:100vh; }
-  #log { flex:1; overflow-y:auto; padding:16px; }
-  .msg { margin:6px 0; max-width:85%; padding:8px 12px; border-radius:12px; }
-  .user { margin-left:auto; background:#2b2b3a; }
-  .assistant { background:#1f3a38; }
-  .sys { color:var(--dim); font-size:13px; }
-  .err { color:var(--err); font-size:13px; }
-  footer { padding:16px; display:flex; gap:8px; align-items:center; border-top:1px solid #2b2b3a; }
-  #talk { width:64px; height:64px; border-radius:50%; border:none; background:var(--accent);
-          color:#000; font-size:14px; cursor:pointer; flex:none; }
-  #talk.on { background:var(--err); color:#fff; }
-  #text { flex:1; padding:10px; border-radius:8px; border:1px solid #333; background:#1e1e2a; color:var(--fg); }
-  #status { font-size:12px; color:var(--dim); padding:0 16px 8px; }
+  html, body { height:100%; }
+  body { margin:0; font:15px/1.5 "PingFang SC","Noto Sans CJK SC","Microsoft YaHei",system-ui,sans-serif;
+         background:var(--bg); color:var(--fg); display:grid; grid-template-columns:minmax(0,1fr) 400px;
+         grid-template-rows:minmax(0,1fr) auto; }
+  main { position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center;
+         padding:24px 32px 8px; min-height:0; }
+  #brand { position:absolute; top:20px; left:28px; font-weight:600; letter-spacing:.08em; color:var(--dim); font-size:13px; }
+  #brand b { color:var(--fg); font-size:16px; letter-spacing:.12em; margin-right:8px; }
+  #orb { width:300px; height:300px; }
+  #state { margin-top:4px; font-size:13px; letter-spacing:.2em; color:var(--dim); height:20px; }
+  #captions { width:min(760px, 100%); margin-top:18px; min-height:150px; }
+  .cap { font-size:24px; line-height:1.45; margin:10px 0; transition:opacity .3s; }
+  .cap .who { display:inline-block; margin-bottom:4px; font-size:12px; letter-spacing:.15em; padding:1px 8px; margin-right:10px;
+              border-radius:4px; vertical-align:middle; position:relative; top:-2px; }
+  .cap.user .who { color:var(--user); border:1px solid var(--user); }
+  .cap.assistant .who { color:var(--echo); border:1px solid var(--echo); }
+  .cap.old { opacity:.35; font-size:17px; }
+  .cap .t { display:-webkit-box; }
+  .cap.assistant .t { display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+  .cap.old.assistant .t { -webkit-line-clamp:1; }
+  .cap .cut { font-size:12px; color:var(--user); border:1px solid var(--user); border-radius:4px; padding:0 6px; margin-left:8px; }
+  aside { grid-row:1 / span 2; grid-column:2; background:var(--panel); border-left:1px solid var(--line);
+          display:flex; flex-direction:column; min-height:0; }
+  aside h2 { margin:0; padding:20px 20px 4px; font-size:13px; letter-spacing:.15em; color:var(--dim); font-weight:600; }
+  aside .sub { padding:0 20px 12px; font-size:12px; color:#5b6375; border-bottom:1px solid var(--line); }
+  #trace { flex:1; overflow-y:auto; padding:12px 14px; display:flex; flex-direction:column; gap:10px; }
+  .card { border:1px solid var(--line); border-radius:10px; padding:10px 12px; background:#0f1219;
+          font:12.5px/1.5 ui-monospace,"JetBrains Mono",Menlo,monospace; animation:pop .25s ease-out; }
+  @keyframes pop { from { transform:translateY(6px); opacity:0; } to { transform:none; opacity:1; } }
+  .card .row { display:flex; justify-content:space-between; gap:8px; align-items:center; }
+  .card .name { color:var(--fg); font-weight:600; font-size:13.5px; }
+  .card .args { color:var(--dim); margin-top:4px; word-break:break-all; }
+  .card .note { margin-top:6px; color:var(--fg); font-family:inherit; }
+  .chip { font-size:11.5px; padding:1px 8px; border-radius:99px; white-space:nowrap; }
+  .chip.run { color:var(--echo); border:1px solid var(--echo); }
+  .chip.ok { color:#062; background:var(--ok); }
+  .chip.wait { color:#3a2600; background:var(--warn); }
+  .chip.bad { color:#fff; background:var(--err); }
+  .chip.dim { color:var(--dim); border:1px solid var(--line); }
+  .card.lat { border-style:dashed; color:var(--dim); padding:6px 12px; }
+  .card.lat b { color:var(--echo); font-size:14px; }
+  .card.gate { border-color:var(--warn); }
+  footer { grid-column:1; display:flex; gap:12px; align-items:center; padding:14px 32px 22px; }
+  #talk { height:44px; padding:0 22px; border-radius:22px; border:1px solid var(--echo); background:transparent;
+          color:var(--echo); font-size:14px; cursor:pointer; flex:none; letter-spacing:.1em; }
+  #talk.on { background:var(--echo); color:#00201c; }
+  #text { flex:1; height:44px; padding:0 16px; border-radius:22px; border:1px solid var(--line); background:#10131a;
+          color:var(--fg); font-size:14px; outline:none; }
+  #status { font-size:12px; color:var(--dim); white-space:nowrap; }
+  @media (max-width: 900px) { body { grid-template-columns:1fr; grid-template-rows:auto auto auto; }
+    aside { grid-row:auto; grid-column:1; max-height:40vh; } footer { grid-row:auto; } #orb { width:200px; height:200px; } }
 </style>
 </head>
 <body>
-<div id="log"></div>
-<div id="status">未连接</div>
+<main>
+  <div id="brand"><b>ECHO</b>一句话语音 Agent</div>
+  <canvas id="orb" width="600" height="600"></canvas>
+  <div id="state">未连接</div>
+  <div id="captions"></div>
+</main>
+<aside>
+  <h2>服务端执行记录</h2>
+  <div class="sub">模型只能提出调用；执行、确认都在服务端</div>
+  <div id="trace"></div>
+</aside>
 <footer>
-  <button id="talk">开始</button>
+  <button id="talk">开始说话</button>
   <input id="text" placeholder="也可以打字，回车发送">
+  <span id="status"></span>
 </footer>
 <script>
 const $ = (id) => document.getElementById(id);
 const token = new URLSearchParams(location.search).get("token") || "";
-let ws, ctx, micNode, micStream, inRate = 16000, outRate = 24000, playAt = 0, sources = [];
-let partial = null, workletLoaded = false;
+let ws, ctx, micNode, micStream, micAn, outAn, outGain, inRate = 16000, outRate = 24000, playAt = 0, sources = [];
+let partial = null, lastReply = null, workletLoaded = false, mode = "idle";
 
-function line(cls, text) {
-  const d = document.createElement("div"); d.className = "msg " + cls; d.textContent = text;
-  $("log").appendChild(d); $("log").scrollTop = 1e9; return d;
+// ---------- 画面 ----------
+function setState(m) {
+  mode = m;
+  $("state").textContent = { idle: "未连接", ready: "就绪", listen: "聆听中", think: "思考中", speak: "Echo 说话中" }[m] || m;
 }
 
+function caption(role, text) {
+  const box = $("captions");
+  [...box.children].forEach(c => c.classList.add("old"));
+  while (box.children.length > 2) box.firstChild.remove();
+  const d = document.createElement("div"); d.className = "cap " + role;
+  d.innerHTML = `<span class="who">${role === "user" ? "你" : "ECHO"}</span><span class="t"></span>`;
+  d.querySelector(".t").textContent = text; box.appendChild(d);
+  if (role === "assistant") lastReply = d;
+  return d.querySelector(".t");
+}
+
+const CHIP = { running: ["run", "执行中"], ok: ["ok", "完成"], needs_confirmation: ["wait", "待用户确认"],
+  rejected: ["bad", "已拦截"], cancelled: ["dim", "已取消"], error: ["bad", "出错"], timeout: ["bad", "超时"],
+  unknown_tool: ["bad", "无此工具"], bad_args: ["bad", "参数错误"] };
+const open = [];   // 还在“执行中”的卡片
+const gates = [];  // 等用户确认的卡片
+
+function card(m) {
+  const tr = $("trace");
+  // 确认/取消的结果事件里 tool 是被确认的那个工具名，所以找不到同名卡片时归到正在执行的 confirm/cancel 卡片
+  let c = m.status === "running" ? null
+    : open.find(x => x.tool === m.tool) || open.find(x => x.tool === "confirm_action" || x.tool === "cancel_action");
+  if (!c) {
+    c = document.createElement("div"); c.className = "card"; c.tool = m.tool;
+    c.innerHTML = `<div class="row"><span class="name"></span><span class="chip"></span></div><div class="args"></div><div class="note"></div>`;
+    c.querySelector(".name").textContent = m.tool; tr.appendChild(c);
+  }
+  const [cls, label] = CHIP[m.status] || ["dim", m.status];
+  const chip = c.querySelector(".chip"); chip.className = "chip " + cls;
+  chip.textContent = label + (m.ms != null ? ` · ${m.ms} ms` : "");
+  if (m.status === "running") open.push(c); else { const i = open.indexOf(c); if (i >= 0) open.splice(i, 1); }
+  if (m.status === "needs_confirmation") gates.push(c);
+  if (m.confirmed || (c.tool === "cancel_action" && m.status === "cancelled")) {
+    const gc = gates.shift();
+    if (gc) { const ch = gc.querySelector(".chip"); ch.className = "chip dim"; ch.textContent = m.confirmed ? "已确认 ↓" : "已取消 ↓"; gc.classList.remove("gate"); }
+  }
+  if (m.args && Object.keys(m.args).length) c.querySelector(".args").textContent = JSON.stringify(m.args);
+  const note = c.querySelector(".note");
+  if (m.status === "needs_confirmation") { c.classList.add("gate"); note.textContent = "服务端已锁定参数，等用户开口： " + (m.summary || ""); }
+  else if (m.confirmed) { c.classList.add("gate"); note.textContent = "用户已口头确认 → 服务端执行登记时的参数"; }
+  else if (c.tool === "confirm_action" && m.status === "rejected") note.textContent = "用户还没开口，模型自己确认被服务端拒绝";
+  else if (c.tool === "cancel_action" && m.status === "cancelled") note.textContent = "用户拒绝，待确认动作已丢弃";
+  if (m.confirmed) c.querySelector(".name").textContent = m.tool;
+  tr.scrollTop = 1e9;
+}
+
+function latency(ms) {
+  const c = document.createElement("div"); c.className = "card lat";
+  c.innerHTML = `首字延迟 <b>${(ms / 1000).toFixed(2)} s</b>　用户说完 → 听到第一个字`;
+  $("trace").appendChild(c); $("trace").scrollTop = 1e9;
+  $("status").textContent = `首字延迟 ${ms} ms`;
+}
+
+// 光球：紫色 = 你在说，青色 = Echo 在说
+const orb = $("orb"), g = orb.getContext("2d"), buf = new Uint8Array(512);
+let lvlIn = 0, lvlOut = 0, phase = 0;
+function rms(an) { if (!an) return 0; an.getByteTimeDomainData(buf); let s = 0;
+  for (const v of buf) { const x = (v - 128) / 128; s += x * x; } return Math.sqrt(s / buf.length); }
+function draw() {
+  lvlIn += (Math.min(1, rms(micAn) * 6) - lvlIn) * 0.25;
+  lvlOut += (Math.min(1, rms(outAn) * 5) - lvlOut) * 0.25;
+  if (lvlOut > 0.04) { if (mode !== "speak") setState("speak"); }
+  else if (mode === "speak" && !sources.length) setState(micStream ? "listen" : "ready");
+  phase += 0.015; const W = orb.width, c = W / 2, base = W * 0.2;
+  g.clearRect(0, 0, W, W);
+  const lvl = Math.max(lvlIn, lvlOut), col = lvlIn > lvlOut + 0.02 ? [167, 139, 250] : [45, 212, 191];
+  const idle = mode === "think" ? 0.35 + 0.2 * Math.sin(phase * 6) : mode === "idle" ? 0.1 : 0.22;
+  for (let k = 4; k >= 0; k--) {
+    const r = base * (1 + 0.12 * k) + W * 0.12 * lvl * (1 - k * 0.15);
+    g.beginPath();
+    for (let a = 0; a <= Math.PI * 2 + 0.01; a += Math.PI / 90) {
+      const wob = 1 + (0.04 + 0.1 * lvl) * Math.sin(a * 3 + phase * (2 + k)) * Math.sin(a * 2 - phase * 3);
+      const x = c + Math.cos(a) * r * wob, y = c + Math.sin(a) * r * wob; a ? g.lineTo(x, y) : g.moveTo(x, y);
+    }
+    g.strokeStyle = `rgba(${col},${Math.min(1, (1 - k * 0.17) * (0.5 + Math.max(lvl, idle)))})`; g.lineWidth = k ? 2 : 3; g.stroke();
+  }
+  const grad = g.createRadialGradient(c, c, 0, c, c, base * (1 + lvl));
+  grad.addColorStop(0, `rgba(${col},${0.35 + 0.6 * Math.max(lvl, idle)})`); grad.addColorStop(1, `rgba(${col},0)`);
+  g.fillStyle = grad; g.beginPath(); g.arc(c, c, base * (1.1 + lvl), 0, Math.PI * 2); g.fill();
+  requestAnimationFrame(draw);
+}
+requestAnimationFrame(draw);
+
+// ---------- 音频 ----------
 // 麦克风采集：AudioWorklet 把 Float32 降采样成 PCM16
 const workletSrc = `
 class Mic extends AudioWorkletProcessor {
@@ -65,7 +198,7 @@ function play(buf) {
   const pcm = new Int16Array(buf), f = new Float32Array(pcm.length);
   for (let i = 0; i < pcm.length; i++) f[i] = pcm[i] / 0x8000;
   const ab = ctx.createBuffer(1, f.length, outRate); ab.copyToChannel(f, 0);
-  const src = ctx.createBufferSource(); src.buffer = ab; src.connect(ctx.destination);
+  const src = ctx.createBufferSource(); src.buffer = ab; src.connect(outGain);
   playAt = Math.max(playAt, ctx.currentTime + 0.03); src.start(playAt); playAt += ab.duration;
   sources.push(src); src.onended = () => { sources = sources.filter(s => s !== src); };
 }
@@ -75,26 +208,34 @@ function connect() {
     const proto = location.protocol === "https:" ? "wss" : "ws";
     ws = new WebSocket(`${proto}://${location.host}/ws?token=${encodeURIComponent(token)}`);
     ws.binaryType = "arraybuffer";
-    ws.onclose = (e) => { $("status").textContent = "已断开" + (e.code === 4401 ? "（令牌不对）" : ""); stopMic(); };
+    ws.onclose = (e) => { setState("idle"); $("status").textContent = "已断开" + (e.code === 4401 ? "（令牌不对）" : ""); stopMic(); };
     ws.onmessage = (e) => {
       if (typeof e.data !== "string") { play(e.data); return; }
       const m = JSON.parse(e.data);
-      if (m.type === "ready") { inRate = m.input_rate; outRate = m.output_rate; $("status").textContent = "已连接"; resolve(); }
-      else if (m.type === "speech_started") stopPlayback();
-      else if (m.type === "transcript") {
-        if (m.role === "user") line("user", m.text);
-        else if (!m.final) { partial = partial || line("assistant", ""); partial.textContent += m.text; }
-        else { (partial || line("assistant", "")).textContent = m.text; partial = null; }
+      if (m.type === "ready") { inRate = m.input_rate; outRate = m.output_rate; setState("ready"); resolve(); }
+      else if (m.type === "speech_started") {
+        if (sources.length && lastReply && !lastReply.querySelector(".cut"))  // Echo 正在说就被用户打断
+          lastReply.querySelector(".who").insertAdjacentHTML("afterend", '<span class="cut">被打断</span>');
+        stopPlayback(); partial = null; setState("listen");
       }
-      else if (m.type === "tool") line("sys", `工具 ${m.tool}：${m.status}${m.ms ? "，" + m.ms + "ms" : ""}`);
-      else if (m.type === "latency") $("status").textContent = `首字延迟 ${m.first_audio_ms} ms`;
-      else if (m.type === "error") { line("err", m.message); reject(new Error(m.message)); }
+      else if (m.type === "transcript") {
+        if (m.role === "user") { caption("user", m.text); setState("think"); }
+        else if (!m.final) { partial = partial || caption("assistant", ""); partial.textContent += m.text; }
+        else { (partial || caption("assistant", "")).textContent = m.text; partial = null; }
+      }
+      else if (m.type === "tool") card(m);
+      else if (m.type === "latency") latency(m.first_audio_ms);
+      else if (m.type === "error") { caption("assistant", "出错：" + m.message); reject(new Error(m.message)); }
     };
   });
 }
 
 async function ensure() {
-  if (!ctx) ctx = new AudioContext();
+  if (!ctx) {
+    ctx = new AudioContext();
+    outGain = ctx.createGain(); outAn = ctx.createAnalyser(); outAn.fftSize = 512;
+    outGain.connect(outAn); outAn.connect(ctx.destination);
+  }
   await ctx.resume();
   if (!ws || ws.readyState > 1) await connect();
 }
@@ -108,22 +249,23 @@ async function startMic() {
   }
   micNode = new AudioWorkletNode(ctx, "mic", { processorOptions: { rate: inRate } });
   micNode.port.onmessage = (e) => { if (ws.readyState === 1) ws.send(e.data); };
-  ctx.createMediaStreamSource(micStream).connect(micNode);
-  $("talk").classList.add("on"); $("talk").textContent = "停止";
+  const src = ctx.createMediaStreamSource(micStream);
+  micAn = ctx.createAnalyser(); micAn.fftSize = 512; src.connect(micAn); src.connect(micNode);
+  $("talk").classList.add("on"); $("talk").textContent = "停止"; setState("listen");
 }
 
 function stopMic() {
   if (micStream) micStream.getTracks().forEach(t => t.stop());
   if (micNode) micNode.disconnect();
-  micStream = micNode = null; $("talk").classList.remove("on"); $("talk").textContent = "开始";
+  micStream = micNode = micAn = null; $("talk").classList.remove("on"); $("talk").textContent = "开始说话";
 }
 
-$("talk").onclick = () => (micStream ? stopMic() : startMic().catch(e => line("err", e.message)));
+$("talk").onclick = () => (micStream ? stopMic() : startMic().catch(e => caption("assistant", "出错：" + e.message)));
 $("text").onkeydown = async (e) => {
   if (e.key !== "Enter" || !e.target.value.trim()) return;
   const text = e.target.value; e.target.value = "";
-  try { await ensure(); stopPlayback(); line("user", text); ws.send(JSON.stringify({ type: "text", text })); }
-  catch (err) { line("err", err.message); }
+  try { await ensure(); stopPlayback(); caption("user", text); setState("think"); ws.send(JSON.stringify({ type: "text", text })); }
+  catch (err) { caption("assistant", "出错：" + err.message); }
 };
 </script>
 </body>
