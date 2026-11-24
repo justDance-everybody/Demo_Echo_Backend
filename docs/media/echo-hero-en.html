@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 1920px;
+    height: 620px;
+    overflow: hidden;
+    background: transparent;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans CJK SC", Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .canvas {
+    position: relative;
+    width: 1920px;
+    height: 620px;
+    background:
+      radial-gradient(680px 520px at 80% 48%, rgba(20, 184, 166, 0.22) 0%, rgba(15, 118, 110, 0.08) 42%, rgba(7, 11, 18, 0) 74%),
+      radial-gradient(520px 360px at 14% 12%, rgba(56, 189, 248, 0.08) 0%, rgba(7, 11, 18, 0) 70%),
+      linear-gradient(135deg, #070b12 0%, #0b1220 55%, #070d16 100%);
+    border: 2px solid rgba(45, 212, 191, 0.24);
+    border-radius: 24px;
+    overflow: hidden;
+  }
+  .grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(148, 163, 184, 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148, 163, 184, 0.045) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: linear-gradient(90deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 65%, rgba(0,0,0,0.7) 100%);
+  }
+  .top-glow {
+    position: absolute;
+    top: 0;
+    left: 88px;
+    width: 520px;
+    height: 3px;
+    background: linear-gradient(90deg, #2dd4bf 0%, #38bdf8 55%, transparent 100%);
+  }
+  .content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    width: 100%;
+    height: 100%;
+    padding: 54px 84px 50px 88px;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .left {
+    width: 1210px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+  }
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    width: fit-content;
+    padding: 8px 18px;
+    border-radius: 999px;
+    background: rgba(20, 184, 166, 0.11);
+    border: 1px solid rgba(45, 212, 191, 0.34);
+    color: #5eead4;
+    font-family: "Noto Sans Mono", monospace;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #2dd4bf;
+    box-shadow: 0 0 12px #2dd4bf;
+  }
+  .title-block { margin-top: 8px; }
+  .brand-row {
+    display: flex;
+    align-items: baseline;
+    gap: 20px;
+    margin-bottom: 12px;
+  }
+  .brand {
+    font-family: "Noto Sans Mono", sans-serif;
+    font-size: 52px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    color: #f8fafc;
+    line-height: 1;
+  }
+  .brand-tag {
+    font-family: "Noto Sans Mono", monospace;
+    font-size: 17px;
+    font-weight: 600;
+    color: #2dd4bf;
+    padding: 5px 13px;
+    border-radius: 8px;
+    background: rgba(45, 212, 191, 0.1);
+    border: 1px solid rgba(45, 212, 191, 0.28);
+    letter-spacing: 0.06em;
+  }
+  .headline {
+    font-size: 56px;
+    font-weight: 900;
+    line-height: 1.12;
+    letter-spacing: -0.025em;
+    color: #ffffff;
+  }
+  .headline .accent {
+    background: linear-gradient(90deg, #5eead4 0%, #38bdf8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .subhead {
+    margin-top: 16px;
+    font-size: 23px;
+    font-weight: 500;
+    color: #cbd5e1;
+  }
+  .subhead strong { color: #f8fafc; font-weight: 700; }
+  .sep { color: #2dd4bf; margin: 0 12px; font-weight: 700; }
+
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-top: 22px;
+  }
+  .metric {
+    background: rgba(15, 23, 42, 0.72);
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    border-radius: 14px;
+    padding: 15px 18px;
+  }
+  .metric.hi {
+    border-color: rgba(45, 212, 191, 0.36);
+    background: rgba(15, 32, 39, 0.78);
+  }
+  .metric-val {
+    font-family: "Noto Sans Mono", sans-serif;
+    font-size: 31px;
+    font-weight: 800;
+    color: #f8fafc;
+    line-height: 1.15;
+  }
+  .metric.hi .metric-val { color: #5eead4; }
+  .metric-lbl {
+    margin-top: 5px;
+    font-size: 16px;
+    color: #cbd5e1;
+    font-weight: 500;
+  }
+
+  .right {
+    position: relative;
+    width: 500px;
+    height: 500px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .right svg { width: 500px; height: 500px; overflow: visible; }
+  .chip {
+    position: absolute;
+    padding: 8px 15px;
+    border-radius: 10px;
+    background: rgba(15, 23, 42, 0.88);
+    border: 1px solid rgba(45, 212, 191, 0.32);
+    color: #e2e8f0;
+    font-family: "Noto Sans Mono", sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+    white-space: nowrap;
+  }
+  .chip .c-teal { color: #5eead4; }
+  .chip-top { top: 14px; right: 10px; }
+  .chip-mid { left: -78px; top: 230px; border-color: rgba(56, 189, 248, 0.38); }
+  .chip-bot { bottom: 16px; right: 10px; border-color: rgba(250, 204, 21, 0.45); color: #fef08a; }
+</style>
+</head>
+<body>
+<div class="canvas">
+  <div class="grid"></div>
+  <div class="top-glow"></div>
+  <div class="content">
+    <div class="left">
+      <div class="eyebrow"><span class="dot"></span>VOICE-NATIVE ACTION RUNTIME · SINCE 2025</div>
+
+      <div class="title-block">
+        <div class="brand-row">
+          <div class="brand">ECHO</div>
+          <div class="brand-tag">v2.0 · MIT OPEN SOURCE</div>
+        </div>
+        <div class="headline">Voice as the <span class="accent">Execution Interface</span><br>for Real-World Software</div>
+        <div class="subhead">Probabilistic voice models<span class="sep">×</span><strong>Deterministic server-side authority</strong></div>
+      </div>
+
+      <div class="metrics">
+        <div class="metric hi">
+          <div class="metric-val">1.51 s</div>
+          <div class="metric-lbl">Median First-Audio Latency</div>
+        </div>
+        <div class="metric">
+          <div class="metric-val">39 / 39</div>
+          <div class="metric-lbl">Live Model Eval Pass</div>
+        </div>
+        <div class="metric hi">
+          <div class="metric-val">0</div>
+          <div class="metric-lbl">Unconfirmed Writes</div>
+        </div>
+        <div class="metric">
+          <div class="metric-val">&lt; 1,000 LOC</div>
+          <div class="metric-lbl">Auditable Python Core</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="right">
+      <svg viewBox="0 0 500 500">
+        <defs>
+          <radialGradient id="orbGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#2dd4bf" stop-opacity="0.72"/>
+            <stop offset="35%" stop-color="#14b8a6" stop-opacity="0.28"/>
+            <stop offset="70%" stop-color="#0f766e" stop-opacity="0.08"/>
+            <stop offset="100%" stop-color="#070b12" stop-opacity="0"/>
+          </radialGradient>
+          <linearGradient id="ringGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#5eead4" stop-opacity="0.9"/>
+            <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.25"/>
+          </linearGradient>
+          <linearGradient id="ringGrad2" x1="100%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.7"/>
+            <stop offset="100%" stop-color="#2dd4bf" stop-opacity="0.15"/>
+          </linearGradient>
+        </defs>
+        <circle cx="250" cy="250" r="220" fill="url(#orbGlow)"/>
+        <circle cx="250" cy="250" r="206" fill="none" stroke="rgba(148,163,184,0.22)" stroke-width="1.5" stroke-dasharray="6 8"/>
+        <circle cx="250" cy="250" r="172" fill="none" stroke="rgba(45,212,191,0.28)" stroke-width="1.5"/>
+        <ellipse cx="250" cy="250" rx="142" ry="126" transform="rotate(-14 250 250)" fill="none" stroke="url(#ringGrad1)" stroke-width="2.4"/>
+        <ellipse cx="250" cy="250" rx="124" ry="140" transform="rotate(24 250 250)" fill="none" stroke="url(#ringGrad2)" stroke-width="2.0"/>
+        <ellipse cx="250" cy="250" rx="108" ry="96" transform="rotate(-32 250 250)" fill="none" stroke="rgba(94,234,212,0.75)" stroke-width="2.2"/>
+        <circle cx="250" cy="250" r="82" fill="rgba(15, 23, 42, 0.55)" stroke="#5eead4" stroke-width="2"/>
+        <g fill="#5eead4">
+          <rect x="206" y="238" width="6" height="24" rx="3" opacity="0.55"/>
+          <rect x="219" y="224" width="6" height="52" rx="3" opacity="0.8"/>
+          <rect x="232" y="206" width="6" height="88" rx="3"/>
+          <rect x="245" y="216" width="6" height="68" rx="3" fill="#38bdf8"/>
+          <rect x="258" y="198" width="6" height="104" rx="3"/>
+          <rect x="271" y="222" width="6" height="56" rx="3" opacity="0.85"/>
+          <rect x="284" y="236" width="6" height="28" rx="3" opacity="0.6"/>
+        </g>
+        <line x1="250" y1="24" x2="250" y2="44" stroke="#2dd4bf" stroke-width="2"/>
+        <line x1="250" y1="456" x2="250" y2="476" stroke="#2dd4bf" stroke-width="2"/>
+        <line x1="24" y1="250" x2="44" y2="250" stroke="#2dd4bf" stroke-width="2"/>
+        <line x1="456" y1="250" x2="476" y2="250" stroke="#2dd4bf" stroke-width="2"/>
+      </svg>
+      <div class="chip chip-top"><span class="c-teal">●</span> Qwen-Omni · OpenAI Realtime</div>
+      <div class="chip chip-mid"><span class="c-teal">⚡</span> Streamable HTTP MCP</div>
+      <div class="chip chip-bot">🔒 Locked Args · Spoken Confirmation</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
