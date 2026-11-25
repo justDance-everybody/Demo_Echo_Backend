@@ -99,11 +99,12 @@ def main() -> None:
     import os
 
     import uvicorn
+    from dotenv import load_dotenv
 
     logging.basicConfig(level=logging.INFO)
-    uvicorn.run(create_app(), host=os.environ.get("ECHO_HOST", "127.0.0.1"),
+    load_dotenv(ROOT / ".env")  # 已在环境里的变量优先
+    settings = Settings.from_env()
+    if not settings.provider_url or not settings.provider_api_key:
+        log.warning("没配 ECHO_PROVIDER_URL / ECHO_PROVIDER_API_KEY：网页能打开，但点开始说话会报错。见 .env.example")
+    uvicorn.run(create_app(settings), host=os.environ.get("ECHO_HOST", "127.0.0.1"),
                 port=int(os.environ.get("ECHO_PORT", "8000")))
-
-
-if __name__ == "__main__":
-    main()

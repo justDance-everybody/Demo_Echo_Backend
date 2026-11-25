@@ -11,6 +11,7 @@ dependencies = [
     "httpx>=0.27",
     "pyyaml>=6",
     "mcp>=1.9,<2",
+    "python-dotenv>=1",
 ]
 
 [dependency-groups]
@@ -25,6 +26,7 @@ packages = ["echo_agent"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
 
 [project.scripts]

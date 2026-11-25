@@ -88,6 +88,8 @@ async def main() -> None:
     ap.add_argument("--cases", default=str(ROOT / "eval" / "cases.yaml"))
     ap.add_argument("--repeat", type=int, default=1)
     a = ap.parse_args()
+    from dotenv import load_dotenv
+    load_dotenv(ROOT / ".env")
     settings = Settings.from_env()
     if not settings.provider_url or not settings.provider_api_key:
         sys.exit("先设置 ECHO_PROVIDER_URL 和 ECHO_PROVIDER_API_KEY")

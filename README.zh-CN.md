@@ -103,11 +103,12 @@ mcp_servers:
 ## 运行
 
 ```bash
-uv sync
+uv sync                       # Python 3.11 及以上
 cp .env.example .env          # 填 ECHO_PROVIDER_URL 和 ECHO_PROVIDER_API_KEY
-set -a; . ./.env; set +a
-uv run echo-server            # 打开 http://127.0.0.1:8000
+uv run echo-server            # 自动读取 .env，打开 http://127.0.0.1:8000
 ```
+
+需要一把[阿里云百炼](https://bailian.console.aliyun.com/)的 API key 和业务空间 ID，填法见 `.env.example`。OpenAI Realtime 协议已实现，但还没用真模型验证过。没有 key 时，`uv run pytest` 用脚本模拟的模型跑通中继、确认闸、打断和 MCP 白名单。
 
 公网部署必须设置 `ECHO_ACCESS_TOKEN`，并走 HTTPS。验证：`uv run pytest`（无需密钥）、`uv run python eval/run.py`（真模型评测）、`./demo/record.sh`（重录演示）。
 
