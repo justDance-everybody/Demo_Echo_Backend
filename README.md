@@ -26,6 +26,8 @@
   &nbsp;·&nbsp;
   <a href="#quickstart"><b>Quick Start</b></a>
   &nbsp;·&nbsp;
+  <a href="docs/high-stakes-tool-verification.md"><b>High-Stakes Verification Note</b></a>
+  &nbsp;·&nbsp;
   <a href="docs/engineering-notes.md"><b>Engineering Notes</b></a>
 </p>
 
